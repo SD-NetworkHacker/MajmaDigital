@@ -1,0 +1,9 @@
+{
+  "name": "MajmaDigital - Dahira Majmahoun Nourayni",
+  "description": "Une plateforme complète de gestion pour le Dahira Majmahoun Nourayni, incluant la gestion des membres, des commissions, des finances et des événements avec une identité visuelle spirituelle et moderne.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
