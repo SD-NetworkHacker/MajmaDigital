@@ -6,47 +6,51 @@ const connectDB = async () => {
     const password = process.env.DB_PASSWORD;
     const dbName = 'majma_db';
     
-    // Construction de l'URI : Utilise le mot de passe sécurisé s'il existe
     let uri = process.env.MONGODB_URI;
     
+    // Construction dynamique de l'URI si le mot de passe est fourni
     if (password) {
-      // Encodage du mot de passe pour gérer les caractères spéciaux (@, :, etc.)
       const encodedPassword = encodeURIComponent(password);
-      
-      // Construction de l'URI standard Atlas avec authSource=admin pour garantir l'authentification
+      // Ajout de authSource=admin pour la compatibilité Atlas
       uri = `mongodb+srv://majmadigital:${encodedPassword}@cluster0.ja0grya.mongodb.net/${dbName}?retryWrites=true&w=majority&appName=Cluster0&authSource=admin`;
     }
 
     if (!uri) {
-      throw new Error("Aucune URI MongoDB trouvée. Vérifiez DB_PASSWORD ou MONGODB_URI dans .env");
+      console.error("❌ ERREUR CONFIG : Variable MONGODB_URI ou DB_PASSWORD manquante.");
+      console.error("   -> Sur Railway, allez dans l'onglet 'Variables' et ajoutez DB_PASSWORD.");
+      return; 
     }
 
-    // Masquer le mot de passe pour les logs
+    // Masquer le mot de passe pour les logs de sécurité
     const maskedUri = uri.replace(/:([^:@]+)@/, ':****@');
-    console.log(`📡 Tentative de connexion à : ${maskedUri}`);
+    console.log(`📡 Tentative de connexion MongoDB vers : ${maskedUri}`);
 
     const conn = await mongoose.connect(uri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 5000, // Timeout court (5s) pour détecter vite les blocages IP
       socketTimeoutMS: 45000,
-      family: 4 // Force IPv4
+      family: 4 // Force IPv4 (Recommandé pour Railway)
     });
 
-    console.log(`🚀 MAJMA-DATABASE CONNECTÉE : ${conn.connection.host}`);
+    console.log(`✅ MongoDB Connecté avec succès : ${conn.connection.host}`);
   } catch (error) {
-    console.error(`❌ Erreur Linkage MongoDB : ${error.message}`);
+    console.error(`❌ ÉCHEC CONNEXION MONGODB : ${error.message}`);
     
-    if (error.message.includes('auth') || error.message.includes('Authentication failed')) {
-      console.error("\n💡 DIAGNOSTIC AUTHENTIFICATION :");
-      console.error("1. Vérifiez que le mot de passe dans '.env' (DB_PASSWORD) est strictement identique à celui dans Atlas.");
-      console.error("2. Vérifiez que l'utilisateur 'majmadigital' a bien les droits 'readWrite' sur 'majma_db'.");
-      console.error("3. L'option '&authSource=admin' a été ajoutée automatiquement pour cibler la base admin.");
-    }
+    // Diagnostic automatique pour l'utilisateur
+    console.error("\n💡 GUIDE DE DÉPANNAGE (RAILWAY / ATLAS) :");
+    console.error("====================================================");
+    console.error("1. 🌍 NETWORK ACCESS (IP Whitelist) - Cause N°1 des erreurs !");
+    console.error("   Railway change d'IP à chaque déploiement.");
+    console.error("   -> Allez sur MongoDB Atlas > Network Access");
+    console.error("   -> Ajoutez l'IP : 0.0.0.0/0 (Allow Access from Anywhere)");
+    console.error("----------------------------------------------------");
+    console.error("2. 🔑 MOT DE PASSE");
+    console.error("   -> Vérifiez que la variable 'DB_PASSWORD' est bien définie dans Railway.");
+    console.error("   -> Le mot de passe ne doit pas contenir de caractères spéciaux non encodés.");
+    console.error("====================================================\n");
     
-    // On ne quitte pas le processus brutalement en dev pour permettre le debug, mais en prod oui
-    if (process.env.NODE_ENV === 'production') {
-       process.exit(1);
-    }
+    // On quitte le processus pour que Railway redémarre ou signale l'erreur
+    process.exit(1);
   }
 };
 
