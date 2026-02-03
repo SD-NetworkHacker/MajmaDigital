@@ -6,7 +6,8 @@ const SEED_TASKS: Task[] = [];
 
 // --- CONFIGURATION API & CIRCUIT BREAKER ---
 const USE_MONGO_API = true;
-const API_URL = 'http://localhost:5000/api';
+// URL de production Railway
+const API_URL = 'https://majmadigital-production.up.railway.app/api';
 
 // Le Circuit Breaker empêche de spammer le serveur s'il est éteint
 let isApiOnline = true; 
@@ -33,9 +34,9 @@ async function mongoFetch<T>(endpoint: string, options: RequestInit = {}): Promi
         const headers: HeadersInit = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        // Timeout court pour détecter rapidement si le serveur est éteint (2s)
+        // Timeout augmenté pour la production (10s) pour compenser la latence réseau ou le "cold start" de Railway
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         const res = await fetch(`${API_URL}${endpoint}`, { 
             headers, 
@@ -52,10 +53,10 @@ async function mongoFetch<T>(endpoint: string, options: RequestInit = {}): Promi
         const json = await res.json();
         return json.data !== undefined ? json.data : json;
     } catch (e) {
-        // Au premier échec réseau (serveur éteint), on désactive l'API pour cette session
+        // Au premier échec réseau, on log l'erreur mais on laisse une chance de reconnexion (pas de désactivation brutale en prod)
         if (isApiOnline) {
-            console.warn(`Serveur Backend injoignable (${API_URL}). Passage automatique en mode HORS-LIGNE.`);
-            isApiOnline = false;
+            console.warn(`Serveur Backend injoignable (${API_URL}). Passage temporaire en mode HORS-LIGNE. Erreur: ${e}`);
+            // isApiOnline = false; // On ne désactive pas définitivement en prod pour permettre les retries
         }
         return null;
     }

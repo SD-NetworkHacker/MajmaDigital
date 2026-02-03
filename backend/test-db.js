@@ -14,10 +14,10 @@ const testConnection = async () => {
   let uri = process.env.MONGODB_URI;
 
   if (password) {
-    console.log('🔑 Utilisation de DB_PASSWORD détectée'.yellow);
-    uri = `mongodb+srv://majmadigital:${password}@cluster0.ja0grya.mongodb.net/majma_db?retryWrites=true&w=majority&appName=Cluster0`;
-  } else {
-    console.log('⚠️ DB_PASSWORD manquant, utilisation de MONGODB_URI brute'.yellow);
+    console.log('🔑 Construction URI avec DB_PASSWORD...'.yellow);
+    const encodedPassword = encodeURIComponent(password);
+    // Ajout de authSource=admin
+    uri = `mongodb+srv://majmadigital:${encodedPassword}@cluster0.ja0grya.mongodb.net/majma_db?retryWrites=true&w=majority&appName=Cluster0&authSource=admin`;
   }
   
   if (!uri) {
@@ -33,7 +33,7 @@ const testConnection = async () => {
   try {
     const conn = await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 5000,
-      family: 4 // Force IPv4
+      family: 4
     });
 
     console.log(`\n✅ SUCCÈS - AUTHENTIFICATION RÉUSSIE`.green.bold);
@@ -48,9 +48,13 @@ const testConnection = async () => {
     console.error(`Erreur : ${error.message}`.red);
     
     if (error.message.includes('bad auth') || error.message.includes('Authentication failed')) {
-        console.log('\n💡 DIAGNOSTIC : Mot de passe incorrect.'.yellow.bold);
-        console.log('   Le mot de passe "majmadigital" semble rejeté par Atlas.'.yellow);
-        console.log('   Vérifiez vos accès dans l\'onglet "Database Access" sur cloud.mongodb.com'.yellow);
+        console.log('\n💡 CONSEIL AUTHENTIFICATION :'.yellow.bold);
+        console.log('   1. Le mot de passe est peut-être incorrect.');
+        console.log('   2. L\'utilisateur "majmadigital" n\'existe peut-être pas dans la base "admin".');
+        console.log('   3. Vérifiez "Database Access" dans Atlas.');
+    } else if (error.message.includes('querySrv')) {
+        console.log('\n💡 CONSEIL RÉSEAU :'.yellow.bold);
+        console.log('   Vérifiez "Network Access" dans Atlas. Ajoutez votre IP (ou 0.0.0.0/0 pour tester).');
     }
     
     console.log(`---------------------------------------\n`.cyan.bold);
