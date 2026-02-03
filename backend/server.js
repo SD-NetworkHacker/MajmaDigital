@@ -2,6 +2,8 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const { connectDB, getConnectionStatus } = require('./config/database');
 
 // Configuration
@@ -26,8 +28,8 @@ app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/resources', require('./routes/resourceRoutes'));
 
-// Route de santé améliorée pour le débogage Railway
-app.get('/', (req, res) => {
+// Route de santé API dédiée
+app.get('/api/health', (req, res) => {
   const dbStatus = getConnectionStatus();
   
   if (dbStatus.isConnected) {
@@ -37,13 +39,47 @@ app.get('/', (req, res) => {
       message: 'API MajmaDigital is running 🟢'
     });
   } else {
-    // Renvoie 200 OK pour que Railway considère le service comme "En ligne"
-    // mais affiche l'erreur critique à l'utilisateur
     res.status(200).json({
       status: 'degraded',
       database: 'disconnected',
       error: dbStatus.error,
       tip: "Vérifiez vos variables d'environnement (DB_USER, DB_PASSWORD) sur Railway."
+    });
+  }
+});
+
+// --- SERVIR LE FRONTEND (VITE BUILD) ---
+// Le dossier 'dist' est généré par la commande 'npm run build' à la racine
+const distPath = path.join(__dirname, '../dist');
+
+// Servir les fichiers statiques
+app.use(express.static(distPath));
+
+// Catch-all : Rediriger toutes les autres requêtes vers l'index.html du Frontend (SPA)
+app.get('*', (req, res) => {
+  // Si c'est une requête API non trouvée, on renvoie une 404 JSON
+  if (req.path.startsWith('/api')) {
+     return res.status(404).json({ message: `Route API non trouvée: ${req.path}` });
+  }
+
+  const indexPath = path.join(distPath, 'index.html');
+  
+  // Vérifier si le build existe
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    // Fallback si le build n'est pas trouvé (ex: déploiement API seul)
+    const dbStatus = getConnectionStatus();
+    res.status(200).json({
+      title: "MajmaDigital API",
+      ui_status: "Introuvable (Dossier /dist manquant)",
+      api_status: dbStatus.isConnected ? '🟢 Connecté' : '🔴 Déconnecté',
+      db_error: dbStatus.error,
+      message: "L'application est en ligne. Pour voir l'interface, assurez-vous d'avoir exécuté 'npm run build' avant le déploiement.",
+      routes: {
+         health: "/api/health",
+         docs: "Utilisez le frontend local pour interagir avec cette API."
+      }
     });
   }
 });
@@ -62,4 +98,5 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🛡️  Server listening on port: ${PORT}`);
+  console.log(`🌍 Frontend path: ${distPath}`);
 });
