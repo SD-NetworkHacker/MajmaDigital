@@ -13,8 +13,17 @@ const MeetingOverviewWidget: React.FC<Props> = ({ commission, onClick }) => {
   const reports = getReportsByCommission(commission);
   const pendingReports = reports.filter(r => r.status === 'brouillon' || r.status === 'soumis_admin');
   
-  // Mock next meeting
-  const nextMeetingDate = "15 Juin";
+  // Calcul dynamique des actions ouvertes
+  const openActions = reports.flatMap(r => r.actionItems || []).filter(a => a.status !== 'termine').length;
+
+  // Recherche de la prochaine réunion (basée sur les rapports de type planification ou dates futures si dispo)
+  const nextMeeting = reports
+    .filter(r => new Date(r.date) >= new Date())
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+
+  const nextMeetingDate = nextMeeting 
+    ? new Date(nextMeeting.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+    : '--';
 
   return (
     <div 
@@ -47,7 +56,7 @@ const MeetingOverviewWidget: React.FC<Props> = ({ commission, onClick }) => {
                  <CheckSquare size={14} className="text-slate-400"/>
                  <span className="text-[10px] font-bold text-slate-600">Actions ouvertes</span>
               </div>
-              <span className="text-[10px] font-black text-slate-400">5</span>
+              <span className="text-[10px] font-black text-slate-400">{openActions}</span>
            </div>
         </div>
       </div>

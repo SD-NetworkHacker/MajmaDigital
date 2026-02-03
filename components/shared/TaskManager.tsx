@@ -1,0 +1,410 @@
+
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { 
+  CheckCircle, Circle, Clock, MoreHorizontal, Plus, 
+  Trash2, User, AlertCircle, Edit, Calendar, ListTodo, X,
+  MessageSquare, Lock, Hourglass, Send
+} from 'lucide-react';
+import { CommissionType, Task, TaskStatus, TaskPriority, TaskComment } from '../../types';
+import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../context/AuthContext';
+
+interface TaskManagerProps {
+  commission: CommissionType;
+}
+
+const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
+  const { tasks, members, addTask, updateTask, deleteTask } = useData();
+  const { user } = useAuth();
+  const [showModal, setShowModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  
+  // Comment handling
+  const [newComment, setNewComment] = useState('');
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  // Form State
+  const [newTask, setNewTask] = useState<Partial<Task>>({
+    priority: 'medium',
+    status: 'todo',
+    commission: commission,
+    comments: []
+  });
+
+  // Filtered Tasks
+  const commissionTasks = useMemo(() => 
+    tasks.filter(t => t.commission === commission).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), 
+  [tasks, commission]);
+
+  // Derived columns
+  const todoTasks = commissionTasks.filter(t => t.status === 'todo');
+  // Include blocked/waiting in progress col visually but maybe distinctive, or just group them
+  const inProgressTasks = commissionTasks.filter(t => ['in_progress', 'review', 'waiting', 'blocked'].includes(t.status));
+  const doneTasks = commissionTasks.filter(t => t.status === 'done');
+
+  // Scroll to bottom of comments when opening modal or adding comment
+  useEffect(() => {
+    if (showModal && editingTask) {
+        setTimeout(() => {
+            commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    }
+  }, [showModal, editingTask, editingTask?.comments]);
+
+  // Handlers
+  const handleSaveTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTask.title) return;
+
+    if (editingTask) {
+      updateTask(editingTask.id, newTask);
+    } else {
+      const task: Task = {
+        id: `TASK-${Date.now()}`,
+        title: newTask.title!,
+        description: newTask.description || '',
+        assignedTo: newTask.assignedTo,
+        dueDate: newTask.dueDate,
+        priority: newTask.priority || 'medium',
+        status: newTask.status || 'todo',
+        commission: commission,
+        createdBy: user?.firstName || 'Admin', 
+        createdAt: new Date().toISOString(),
+        comments: []
+      };
+      addTask(task);
+    }
+    closeModal();
+  };
+
+  const handleAddComment = () => {
+    if(!newComment.trim() || !editingTask) return;
+    
+    const comment: TaskComment = {
+        id: Date.now().toString(),
+        authorId: user?.id || 'unknown',
+        authorName: user ? `${user.firstName} ${user.lastName}` : 'Utilisateur',
+        text: newComment,
+        date: new Date().toISOString()
+    };
+
+    const updatedComments = [...(editingTask.comments || []), comment];
+    updateTask(editingTask.id, { comments: updatedComments });
+    
+    // Update local state to reflect change immediately in modal
+    setEditingTask({ ...editingTask, comments: updatedComments });
+    setNewTask({ ...newTask, comments: updatedComments }); // Sync form state too
+    setNewComment('');
+  };
+
+  const openEditModal = (task: Task) => {
+    setEditingTask(task);
+    setNewTask(task); // Pre-fill form
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingTask(null);
+    setNewTask({ priority: 'medium', status: 'todo', commission: commission, comments: [] });
+    setNewComment('');
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Supprimer cette tâche ?")) {
+      deleteTask(id);
+      if(editingTask?.id === id) closeModal();
+    }
+  };
+
+  const moveTask = (task: Task, newStatus: TaskStatus) => {
+    updateTask(task.id, { status: newStatus });
+  };
+
+  const getPriorityColor = (p: TaskPriority) => {
+    switch (p) {
+      case 'high': return 'text-rose-600 bg-rose-50 border-rose-100';
+      case 'medium': return 'text-amber-600 bg-amber-50 border-amber-100';
+      case 'low': return 'text-blue-600 bg-blue-50 border-blue-100';
+      default: return 'text-slate-500 bg-slate-50';
+    }
+  };
+
+  const getStatusBadge = (status: TaskStatus) => {
+     switch(status) {
+         case 'blocked': return <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border bg-rose-100 text-rose-700 border-rose-200 flex items-center gap-1"><Lock size={10}/> Bloqué</span>;
+         case 'waiting': return <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border bg-amber-100 text-amber-700 border-amber-200 flex items-center gap-1"><Hourglass size={10}/> Attente</span>;
+         case 'review': return <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border bg-purple-100 text-purple-700 border-purple-200">Revue</span>;
+         default: return null;
+     }
+  };
+
+  const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
+    const assignee = members.find(m => m.id === task.assignedTo);
+    
+    return (
+      <div 
+        onClick={() => openEditModal(task)}
+        className={`bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all group cursor-pointer ${task.status === 'blocked' ? 'border-rose-200 bg-rose-50/10' : 'border-slate-100 hover:border-blue-200'}`}
+      >
+        <div className="flex justify-between items-start mb-2">
+           <div className="flex gap-1 flex-wrap">
+             <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${getPriorityColor(task.priority)}`}>
+               {task.priority === 'high' ? 'Urgent' : task.priority === 'medium' ? 'Normal' : 'Faible'}
+             </span>
+             {getStatusBadge(task.status)}
+           </div>
+           
+           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1" onClick={e => e.stopPropagation()}>
+             <button onClick={() => handleDelete(task.id)} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-rose-500"><Trash2 size={12}/></button>
+           </div>
+        </div>
+        
+        <h4 className={`text-sm font-bold text-slate-800 mb-1 leading-tight ${task.status === 'done' ? 'line-through text-slate-400' : ''}`}>{task.title}</h4>
+        {task.description && <p className="text-xs text-slate-500 line-clamp-2 mb-3">{task.description}</p>}
+        
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
+           <div className="flex items-center gap-2">
+             {assignee ? (
+               <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-bold text-slate-600 border border-white" title={`${assignee.firstName} ${assignee.lastName}`}>
+                 {assignee.firstName[0]}{assignee.lastName[0]}
+               </div>
+             ) : (
+               <div className="w-6 h-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center"><User size={12} className="text-slate-300"/></div>
+             )}
+             
+             {/* Comments Indicator */}
+             {(task.comments?.length || 0) > 0 && (
+                <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400">
+                    <MessageSquare size={12} /> {task.comments?.length}
+                </div>
+             )}
+           </div>
+
+           {/* Quick Move Actions */}
+           <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+             {task.status !== 'done' && (
+                <button 
+                  onClick={() => moveTask(task, task.status === 'todo' ? 'in_progress' : 'done')}
+                  className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                  title="Avancer"
+                >
+                  <CheckCircle size={14}/>
+                </button>
+             )}
+           </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6 h-full flex flex-col">
+      {/* Modal Detail / Edit */}
+      {showModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl animate-in zoom-in duration-200 flex flex-col max-h-[85vh]">
+            
+            {/* Header Modal */}
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-50 rounded-t-[2.5rem]">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 bg-white rounded-xl text-blue-600 shadow-sm"><ListTodo size={20}/></div>
+                 <div>
+                    <h3 className="text-lg font-black text-slate-900">{editingTask ? 'Détails de la tâche' : 'Nouvelle Tâche'}</h3>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">{editingTask ? `ID: ${editingTask.id}` : 'Création'}</p>
+                 </div>
+              </div>
+              <button onClick={closeModal} className="p-2 hover:bg-white rounded-full text-slate-400 transition-colors"><X size={20}/></button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-0 flex flex-col md:flex-row">
+                {/* Form Section */}
+                <form className="p-6 space-y-5 flex-1 border-r border-slate-100" onSubmit={handleSaveTask}>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400">Titre</label>
+                        <input required type="text" className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20" value={newTask.title || ''} onChange={e => setNewTask({...newTask, title: e.target.value})} />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400">Statut</label>
+                            <select 
+                                className={`w-full p-3 border-none rounded-xl text-xs font-bold outline-none ${
+                                    newTask.status === 'blocked' ? 'bg-rose-50 text-rose-700' : 
+                                    newTask.status === 'waiting' ? 'bg-amber-50 text-amber-700' : 
+                                    newTask.status === 'done' ? 'bg-emerald-50 text-emerald-700' :
+                                    'bg-slate-50 text-slate-700'
+                                }`}
+                                value={newTask.status} 
+                                onChange={e => setNewTask({...newTask, status: e.target.value as TaskStatus})}
+                            >
+                                <option value="todo">À faire</option>
+                                <option value="in_progress">En cours</option>
+                                <option value="review">En revue</option>
+                                <option value="waiting">En attente</option>
+                                <option value="blocked">Bloqué</option>
+                                <option value="done">Terminé</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400">Priorité</label>
+                            <select className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none" value={newTask.priority} onChange={e => setNewTask({...newTask, priority: e.target.value as any})}>
+                                <option value="low">Faible</option>
+                                <option value="medium">Moyenne</option>
+                                <option value="high">Urgente</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400">Description</label>
+                        <textarea rows={4} className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-medium resize-none outline-none focus:ring-2 focus:ring-blue-500/20" value={newTask.description || ''} onChange={e => setNewTask({...newTask, description: e.target.value})} placeholder="Détails de la mission..." />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400">Échéance</label>
+                            <input type="date" className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none" value={newTask.dueDate || ''} onChange={e => setNewTask({...newTask, dueDate: e.target.value})} />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400">Assigner à</label>
+                            <select className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none" value={newTask.assignedTo || ''} onChange={e => setNewTask({...newTask, assignedTo: e.target.value})}>
+                                <option value="">Non assigné</option>
+                                {members.map(m => (
+                                <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    {/* Action Button for Form */}
+                    <div className="pt-4 flex gap-3">
+                        {editingTask && <button type="button" onClick={() => handleDelete(editingTask.id)} className="p-3 text-rose-500 bg-rose-50 rounded-xl hover:bg-rose-100"><Trash2 size={18}/></button>}
+                        <button type="submit" className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-black transition-all">
+                            {editingTask ? 'Mettre à jour' : 'Créer Tâche'}
+                        </button>
+                    </div>
+                </form>
+
+                {/* Comments Section (Only if editing) */}
+                {editingTask && (
+                    <div className="w-full md:w-80 bg-slate-50/50 flex flex-col border-t md:border-t-0 md:border-l border-slate-100 h-96 md:h-auto">
+                        <div className="p-4 border-b border-slate-100">
+                            <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                <MessageSquare size={14}/> Commentaires ({editingTask.comments?.length || 0})
+                            </h4>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                            {(editingTask.comments && editingTask.comments.length > 0) ? (
+                                editingTask.comments.map((comment) => (
+                                    <div key={comment.id} className="flex flex-col gap-1">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-slate-700">{comment.authorName}</span>
+                                            <span className="text-[9px] text-slate-400">{new Date(comment.date).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="bg-white p-3 rounded-xl rounded-tl-none border border-slate-100 text-xs text-slate-600 shadow-sm">
+                                            {comment.text}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-center text-[10px] text-slate-400 italic mt-10">Aucun commentaire. Ajoutez une note pour le suivi.</p>
+                            )}
+                            <div ref={commentsEndRef} />
+                        </div>
+                        <div className="p-4 border-t border-slate-100 bg-white">
+                             <div className="flex gap-2">
+                                 <input 
+                                    type="text" 
+                                    value={newComment} 
+                                    onChange={e => setNewComment(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleAddComment()}
+                                    className="flex-1 bg-slate-50 border-none rounded-xl px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                                    placeholder="Écrire un commentaire..."
+                                 />
+                                 <button onClick={handleAddComment} disabled={!newComment.trim()} className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50">
+                                     <Send size={14} />
+                                 </button>
+                             </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm shrink-0">
+         <div className="flex items-center gap-4 px-4">
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><ListTodo size={20}/></div>
+            <div>
+               <h4 className="font-black text-sm text-slate-800">Suivi des Tâches</h4>
+               <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">{commissionTasks.length} Tâches au total</p>
+            </div>
+         </div>
+         <button 
+           onClick={() => { setEditingTask(null); setNewTask({ priority: 'medium', status: 'todo', commission: commission, comments: [] }); setShowModal(true); }}
+           className="px-6 py-3 bg-slate-900 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center gap-2 hover:bg-black transition-all"
+         >
+            <Plus size={16}/> Nouvelle Tâche
+         </button>
+      </div>
+
+      {/* Kanban Board */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
+         <div className="flex gap-6 h-full min-w-[800px]">
+            
+            {/* COLUMN: TODO */}
+            <div className="flex-1 flex flex-col gap-4 bg-slate-50/50 rounded-[2rem] p-4 border border-slate-200/60 h-full">
+               <div className="flex items-center justify-between px-2 mb-2">
+                  <h5 className="font-black text-xs text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                     <Circle size={12} className="text-slate-400 fill-current"/> À faire
+                  </h5>
+                  <span className="bg-slate-200 text-slate-600 text-[9px] font-black px-2 py-0.5 rounded-full">{todoTasks.length}</span>
+               </div>
+               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
+                  {todoTasks.map(task => <TaskCard key={task.id} task={task} />)}
+                  {todoTasks.length === 0 && <p className="text-center text-[10px] text-slate-400 italic mt-10">Rien à faire.</p>}
+               </div>
+            </div>
+
+            {/* COLUMN: IN PROGRESS (Includes Waiting/Blocked/Review) */}
+            <div className="flex-1 flex flex-col gap-4 bg-blue-50/30 rounded-[2rem] p-4 border border-blue-100/60 h-full">
+               <div className="flex items-center justify-between px-2 mb-2">
+                  <h5 className="font-black text-xs text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                     <Clock size={12} className="text-blue-500 fill-current"/> En cours
+                  </h5>
+                  <span className="bg-blue-100 text-blue-600 text-[9px] font-black px-2 py-0.5 rounded-full">{inProgressTasks.length}</span>
+               </div>
+               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
+                  {inProgressTasks.map(task => <TaskCard key={task.id} task={task} />)}
+                  {inProgressTasks.length === 0 && <p className="text-center text-[10px] text-blue-300 italic mt-10">Aucune tâche en cours.</p>}
+               </div>
+            </div>
+
+            {/* COLUMN: DONE */}
+            <div className="flex-1 flex flex-col gap-4 bg-emerald-50/30 rounded-[2rem] p-4 border border-emerald-100/60 h-full">
+               <div className="flex items-center justify-between px-2 mb-2">
+                  <h5 className="font-black text-xs text-emerald-600 uppercase tracking-widest flex items-center gap-2">
+                     <CheckCircle size={12} className="text-emerald-500 fill-current"/> Terminé
+                  </h5>
+                  <span className="bg-emerald-100 text-emerald-600 text-[9px] font-black px-2 py-0.5 rounded-full">{doneTasks.length}</span>
+               </div>
+               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
+                  {doneTasks.map(task => (
+                    <div key={task.id} className="opacity-60 hover:opacity-100 transition-opacity">
+                      <TaskCard task={task} />
+                    </div>
+                  ))}
+                  {doneTasks.length === 0 && <p className="text-center text-[10px] text-emerald-300 italic mt-10">Aucune tâche terminée.</p>}
+               </div>
+            </div>
+
+         </div>
+      </div>
+    </div>
+  );
+};
+
+export default TaskManager;

@@ -1,16 +1,16 @@
 
 import React from 'react';
-import { School, Users, Gamepad2, FileCheck, Star, Heart, TrendingUp, ChevronRight, Award, Plus } from 'lucide-react';
+import { School, Users, Gamepad2, TrendingUp, Award, Plus, Star } from 'lucide-react';
 
 const StudentSectorHub: React.FC = () => {
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {[
-          { l: 'Moyenne Scolaire', v: '14.5/20', c: 'text-amber-600', icon: TrendingUp },
-          { l: 'Participation', v: '92%', c: 'text-emerald-600', icon: Users },
-          { l: 'Badges Apprentis', v: '124', c: 'text-cyan-600', icon: Award },
-          { l: 'Points Majma', v: '4,250', c: 'text-indigo-600', icon: Star },
+          { l: 'Moyenne Scolaire', v: '--/20', c: 'text-amber-600', icon: TrendingUp },
+          { l: 'Participation', v: '0%', c: 'text-emerald-600', icon: Users },
+          { l: 'Badges Apprentis', v: '0', c: 'text-cyan-600', icon: Award },
+          { l: 'Points Majma', v: '0', c: 'text-indigo-600', icon: Star },
         ].map((stat, i) => (
           <div key={i} className="glass-card p-8 group hover:-translate-y-1 transition-all flex flex-col justify-between">
              <div className="flex justify-between items-start mb-6">
@@ -38,24 +38,7 @@ const StudentSectorHub: React.FC = () => {
            </div>
            
            <div className="space-y-6">
-              {[
-                { subject: 'Mathématiques - Terminale', tutor: 'Ibrahima Fall', date: 'Demain 16h', place: 'Dahira Médina' },
-                { subject: 'Anglais - 3ème', tutor: 'Awa Ndiaye', date: 'Mercredi 14h', place: 'Visioconférence' },
-                { subject: 'Physique-Chimie', tutor: 'Modou Diop', date: 'Samedi 10h', place: 'Dahira Médina' },
-              ].map((course, i) => (
-                <div key={i} className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-white hover:border-amber-200 transition-all group">
-                   <div className="flex items-center gap-6">
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-amber-600 shadow-sm group-hover:scale-110 transition-transform">
-                         {course.subject[0]}
-                      </div>
-                      <div>
-                         <p className="text-sm font-black text-slate-800">{course.subject}</p>
-                         <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Tuteur : {course.tutor} • {course.date}</p>
-                      </div>
-                   </div>
-                   <button className="p-3 bg-white border border-slate-200 rounded-xl text-slate-300 group-hover:text-amber-600 group-hover:border-amber-200 transition-all shadow-sm"><ChevronRight size={18}/></button>
-                </div>
-              ))}
+              <p className="text-xs text-slate-400 italic text-center py-10">Aucun cours de soutien programmé.</p>
            </div>
         </div>
 
@@ -71,10 +54,10 @@ const StudentSectorHub: React.FC = () => {
                  </div>
                  
                  <div className="p-6 bg-white/5 rounded-3xl border border-white/10 flex items-center gap-6">
-                    <div className="w-16 h-16 rounded-[1.5rem] bg-amber-500/20 text-amber-400 flex items-center justify-center shadow-inner font-black text-2xl">#1</div>
+                    <div className="w-16 h-16 rounded-[1.5rem] bg-slate-800 text-slate-500 flex items-center justify-center shadow-inner font-black text-2xl">-</div>
                     <div>
                        <p className="text-xs font-black uppercase opacity-60">Meilleur Kurel</p>
-                       <p className="text-xl font-black text-white">Kurel Médina Junior</p>
+                       <p className="text-xl font-black text-white">Non Classé</p>
                     </div>
                  </div>
               </div>

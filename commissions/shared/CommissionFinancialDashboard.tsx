@@ -20,8 +20,10 @@ const CommissionFinancialDashboard: React.FC<Props> = ({ commission }) => {
   const reports = getCommissionReports(commission);
   const requests = getCommissionRequests(commission);
 
-  const activeBudget = 250000; // Mock current allocated budget
-  const spent = 120000;
+  // Initialisation à 0 (pas de budget alloué par défaut)
+  const activeBudget = 0; 
+  // Calcul des dépenses réelles basées sur les rapports soumis
+  const spent = reports.reduce((acc, r) => acc + (r.totalExpenses || 0), 0);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -39,7 +41,7 @@ const CommissionFinancialDashboard: React.FC<Props> = ({ commission }) => {
               </div>
               <h2 className="text-4xl font-black mb-2">{activeBudget.toLocaleString()} <span className="text-lg opacity-40">F</span></h2>
               <div className="w-full bg-white/10 h-2 rounded-full mt-6 overflow-hidden">
-                 <div className="bg-emerald-400 h-full" style={{ width: `${(spent/activeBudget)*100}%` }}></div>
+                 <div className="bg-emerald-400 h-full" style={{ width: activeBudget > 0 ? `${(spent/activeBudget)*100}%` : '0%' }}></div>
               </div>
               <div className="flex justify-between mt-2 text-[10px] font-bold opacity-60 uppercase">
                  <span>Dépensé: {spent.toLocaleString()}</span>

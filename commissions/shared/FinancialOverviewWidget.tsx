@@ -13,10 +13,13 @@ const FinancialOverviewWidget: React.FC<Props> = ({ commission, onClick }) => {
   const requests = getCommissionRequests(commission);
   const pendingRequests = requests.filter(r => ['soumis_finance', 'soumis_bureau'].includes(r.status));
   
-  // Mock budget data
-  const budgetTotal = 5000000;
-  const budgetUsed = 3200000;
-  const percent = Math.round((budgetUsed / budgetTotal) * 100);
+  // Données réelles (initialisées à 0 si pas de système de budget global connecté)
+  const budgetTotal = 0; 
+  const budgetUsed = requests
+    .filter(r => r.status === 'approuve')
+    .reduce((acc, r) => acc + (r.amountApproved || 0), 0);
+    
+  const percent = budgetTotal > 0 ? Math.round((budgetUsed / budgetTotal) * 100) : 0;
 
   return (
     <div 
@@ -37,7 +40,7 @@ const FinancialOverviewWidget: React.FC<Props> = ({ commission, onClick }) => {
         
         <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Situation Financière</h4>
         <div className="flex items-end gap-2 mb-4">
-           <span className="text-2xl font-black text-slate-900">{(budgetTotal - budgetUsed).toLocaleString()}</span>
+           <span className="text-2xl font-black text-slate-900">{budgetTotal > 0 ? (budgetTotal - budgetUsed).toLocaleString() : '--'}</span>
            <span className="text-[10px] font-bold text-slate-400 mb-1">F (Solde)</span>
         </div>
 

@@ -1,13 +1,9 @@
 
 import React from 'react';
-// Added Plus to the lucide-react imports
 import { Brain, Heart, Users, MessageSquare, ChevronRight, Play, Info, Sparkles, Wind, Sun, Plus } from 'lucide-react';
 
 const MentalHealthSupport: React.FC = () => {
-  const groups = [
-    { name: 'Cercle de Résilience', time: 'Mardi 21h00', members: 12, topic: 'Gestion du stress' },
-    { name: 'Sérénité Spirituelle', time: 'Jeudi 18h30', members: 8, topic: 'Dhikr & Relaxation' },
-  ];
+  const groups: any[] = []; // Liste vide
 
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700">
@@ -88,7 +84,7 @@ const MentalHealthSupport: React.FC = () => {
                  <Users size={18} className="text-teal-500" /> Groupes d'Entraide
               </h4>
               <div className="space-y-6">
-                 {groups.map((g, i) => (
+                 {groups.length > 0 ? groups.map((g, i) => (
                    <div key={i} className="p-5 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white transition-all cursor-pointer group">
                       <div className="flex justify-between items-start mb-4">
                          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-teal-600 shadow-sm border border-slate-100 group-hover:bg-teal-600 group-hover:text-white transition-all font-black text-xs">GR</div>
@@ -101,7 +97,9 @@ const MentalHealthSupport: React.FC = () => {
                          <ChevronRight size={14} className="text-slate-300 group-hover:text-teal-600 transition-colors" />
                       </div>
                    </div>
-                 ))}
+                 )) : (
+                   <p className="text-xs text-slate-400 italic text-center">Aucun groupe actif.</p>
+                 )}
               </div>
               <button className="w-full mt-10 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
                  <Plus size={16}/> Créer un cercle d'échange

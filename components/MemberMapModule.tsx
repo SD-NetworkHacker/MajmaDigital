@@ -4,7 +4,7 @@ import {
   MapPin, Search, Navigation, Sparkles, Loader2, Info, Crosshair, 
   Map as MapIcon, X, ChevronRight, Filter, Layers, Briefcase, 
   GraduationCap, School, User, List, ShieldCheck, Phone, Mail, 
-  Clock, MapPinned, ExternalLink 
+  Clock, ExternalLink 
 } from 'lucide-react';
 import { getMapsLocationInfo } from '../services/geminiService';
 import { MemberCategory, Member } from '../types';
@@ -26,14 +26,50 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
   const [activeFilter, setActiveFilter] = useState('Tous');
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
 
-  // Initialisation de la carte
+  // Gestion du redimensionnement de la fenêtre
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Gestion du changement de vue (Liste <-> Carte)
+  useEffect(() => {
+    if (mapRef.current) {
+      // Petit délai pour laisser le temps au DOM de s'ajuster (transition CSS)
+      setTimeout(() => {
+        mapRef.current.invalidateSize();
+      }, 300);
+    }
+  }, [viewMode]);
+
+  // Gestion du focus sur un membre sélectionné
+  useEffect(() => {
+    if (selectedMember && mapRef.current) {
+       // On s'assure que la carte est bien dimensionnée avant de zoomer
+       setTimeout(() => {
+         mapRef.current.invalidateSize();
+         mapRef.current.flyTo(
+           [selectedMember.coordinates.lat, selectedMember.coordinates.lng], 
+           16, 
+           { duration: 1.2, easeLinearity: 0.25 }
+         );
+       }, 350);
+    }
+  }, [selectedMember]);
+
+  // Initialisation de la carte et des marqueurs
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
     if (!mapRef.current) {
       mapRef.current = L.map(mapContainerRef.current, {
         zoomControl: false,
-        scrollWheelZoom: false, // Désactivé par défaut pour ne pas bloquer le scroll page
+        scrollWheelZoom: false,
         fadeAnimation: true,
         attributionControl: false
       }).setView([14.7167, -17.4677], 12);
@@ -43,7 +79,6 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
         maxZoom: 20
       }).addTo(mapRef.current);
       
-      // Ajout contrôles de zoom manuels
       L.control.zoom({
         position: 'bottomright'
       }).addTo(mapRef.current);
@@ -91,7 +126,7 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
       });
     });
 
-    // Ajustement de la vue (seulement si pas de sélection active pour éviter le saut)
+    // Ajustement de la vue (seulement si pas de sélection active pour éviter le saut intempestif)
     if (filtered.length > 0 && mapRef.current && !selectedMember) {
       mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
     }
@@ -106,14 +141,7 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
       setViewMode('map');
     }
 
-    if (mapRef.current) {
-      mapRef.current.flyTo([member.coordinates.lat, member.coordinates.lng], 16, {
-        duration: 1.2,
-        easeLinearity: 0.25
-      });
-    }
-
-    // Appel IA simulé/réel
+    // Appel IA
     setIsLoadingInsight(true);
     setLocationInsight(null);
     const query = `Identifie les mosquées et centres d'intérêt pour un membre vivant à "${member.address}" et donne 3 conseils de fraternité locale pour ce talibé au sein du Dahira.`;
@@ -138,10 +166,9 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
   });
 
   return (
-    // Utilisation de h-[calc(100dvh-120px)] pour occuper l'espace restant sans dépasser
     <div className="flex flex-col h-[calc(100dvh-120px)] min-h-[500px] animate-in fade-in duration-500">
       
-      {/* Header Filtres & Recherche - Fixe en haut */}
+      {/* Header Filtres & Recherche */}
       <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6 shrink-0">
         <div className="flex-1 w-full relative group">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={20} />
@@ -188,11 +215,11 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
       {/* Conteneur Principal - Grille Map/List */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
         
-        {/* Colonne Carte (Prenant plus de place sur desktop) */}
+        {/* Colonne Carte */}
         <div className={`lg:col-span-8 xl:col-span-9 relative rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-xl bg-slate-100 h-full transition-all duration-500 ${viewMode === 'list' ? 'hidden lg:block' : 'block'}`}>
           <div ref={mapContainerRef} className="w-full h-full z-0 grayscale-[0.1]"></div>
           
-          {/* Overlay Contrôle Zoom Warning (si scroll) */}
+          {/* Overlay Contrôle Zoom Warning (Desktop) */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-4 py-2 rounded-full text-[10px] font-bold text-slate-500 shadow-sm border border-slate-100 pointer-events-none z-[400] hidden lg:block">
             Utilisez Ctrl + Scroll pour zoomer
           </div>
@@ -215,7 +242,7 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 backdrop-blur-sm sticky top-0 z-10 shrink-0">
              <div className="flex justify-between items-center">
                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                 <MapPinned size={14} /> Résultats
+                 <MapPin size={14} /> Résultats
                </h3>
                <span className="text-[10px] font-black text-white bg-emerald-600 px-3 py-1 rounded-full shadow-sm shadow-emerald-200">{filteredMembers.length}</span>
              </div>

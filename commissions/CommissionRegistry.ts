@@ -2,7 +2,7 @@
 import React, { lazy } from 'react';
 import { 
   ShieldCheck, Wallet, MessageSquare, ListTodo, 
-  Heart, Briefcase, Activity, Landmark, Bus, BookHeart
+  Heart, Briefcase, Activity, Landmark, Bus, Library
 } from 'lucide-react';
 import { CommissionType } from '../types';
 
@@ -122,7 +122,7 @@ export const COMMISSION_REGISTRY: Record<string, CommissionModuleConfig> = {
   [CommissionType.CULTURELLE]: {
     id: 'culturelle',
     name: CommissionType.CULTURELLE,
-    icon: BookHeart,
+    icon: Library,
     color: 'indigo',
     gradient: 'from-indigo-600 to-violet-900',
     description: 'Promotion du patrimoine, médiathèque spirituelle et événements culturels.',

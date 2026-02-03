@@ -3,16 +3,19 @@ import React, { useState, useMemo, useRef } from 'react';
 import { 
   Search, Filter, UserPlus, Download, CheckSquare, 
   Trash2, ShieldAlert, ChevronDown, LayoutGrid, List,
-  Users, UserCheck, UserX, BarChart2, Edit, UploadCloud, MoreVertical, FileSpreadsheet, Eye
+  Users, UserCheck, UserX, BarChart2, Edit, UploadCloud, MoreVertical, FileSpreadsheet, Eye,
+  Crown, Briefcase, User, Layers, Key, VenetianMask
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../context/AuthContext'; // Import Auth
 import { Member, MemberCategory, GlobalRole } from '../../types';
 import MemberForm from '../../components/MemberForm';
 import MemberProfileModal from '../../components/MemberProfileModal';
 
 const MemberManagementDashboard: React.FC = () => {
   const { members, addMember, updateMember, deleteMember, importMembers } = useData();
+  const { impersonate } = useAuth(); // Hook Auth
   
   // UI States
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -20,10 +23,13 @@ const MemberManagementDashboard: React.FC = () => {
   const [selectedSector, setSelectedSector] = useState<string>('Tous');
   const [selectedStatus, setSelectedStatus] = useState<string>('Tous');
   
+  // --- NOUVEAU: Filtre de Profil Super Admin ---
+  const [profileView, setProfileView] = useState<'all' | 'leaders' | 'commissioned' | 'simple'>('all');
+  
   // Action States
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showForm, setShowForm] = useState(false);
-  const [viewingMember, setViewingMember] = useState<Member | null>(null); // New state for details
+  const [viewingMember, setViewingMember] = useState<Member | null>(null); 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   
   // File Import Ref
@@ -31,10 +37,16 @@ const MemberManagementDashboard: React.FC = () => {
 
   // --- STATISTICS COMPUTATION ---
   const stats = useMemo(() => {
-    const active = members.filter(m => m.status === 'active').length;
-    const inactive = members.length - active;
+    const total = members.length;
+    // Définition des rôles à responsabilité
+    const leaderRoles = [GlobalRole.ADMIN, GlobalRole.SG, GlobalRole.ADJOINT_SG, GlobalRole.DIEUWRINE];
+
+    const leaders = members.filter(m => leaderRoles.includes(m.role)).length;
+    const commissioned = members.filter(m => m.commissions.length > 0).length;
+    // Membres simples = Pas de commission et pas de rôle de leader (souvent role = MEMBRE et commissions = [])
+    const simpleMembers = members.filter(m => m.commissions.length === 0 && !leaderRoles.includes(m.role)).length;
     
-    // Distribution par secteur
+    // Distribution par secteur (pour le graph)
     const sectors = members.reduce((acc, curr) => {
       acc[curr.category] = (acc[curr.category] || 0) + 1;
       return acc;
@@ -46,27 +58,53 @@ const MemberManagementDashboard: React.FC = () => {
       color: ['#10b981', '#3b82f6', '#f59e0b', '#6366f1'][index % 4] 
     }));
 
-    return { active, inactive, chartData };
+    return { total, leaders, commissioned, simpleMembers, chartData };
   }, [members]);
 
   // --- FILTERING & SORTING ---
   const filteredMembers = useMemo(() => {
     return members
       .filter(m => {
+        // 1. Filtre Recherche
         const matchesSearch = 
           m.firstName.toLowerCase().includes(searchTerm.toLowerCase()) || 
           m.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
           m.matricule.toLowerCase().includes(searchTerm.toLowerCase());
         
+        // 2. Filtre Secteur & Statut
         const matchesSector = selectedSector === 'Tous' || m.category === selectedSector;
         const matchesStatus = selectedStatus === 'Tous' || 
                               (selectedStatus === 'Actif' && m.status === 'active') ||
                               (selectedStatus === 'Inactif' && m.status !== 'active');
 
-        return matchesSearch && matchesSector && matchesStatus;
+        // 3. Filtre Profil (Super Admin View)
+        let matchesProfile = true;
+        const leaderRoles = [GlobalRole.ADMIN, GlobalRole.SG, GlobalRole.ADJOINT_SG, GlobalRole.DIEUWRINE];
+
+        if (profileView === 'leaders') {
+          matchesProfile = leaderRoles.includes(m.role);
+        } else if (profileView === 'commissioned') {
+          matchesProfile = m.commissions.length > 0;
+        } else if (profileView === 'simple') {
+          matchesProfile = m.commissions.length === 0 && !leaderRoles.includes(m.role);
+        }
+
+        return matchesSearch && matchesSector && matchesStatus && matchesProfile;
       })
-      .sort((a, b) => a.lastName.localeCompare(b.lastName)); // Tri alphabétique par défaut
-  }, [members, searchTerm, selectedSector, selectedStatus]);
+      .sort((a, b) => {
+          // Tri par rôle prioritaire si vue globale, sinon alphabétique
+          if (profileView === 'all') {
+             const rolePriority = (role: string) => {
+                 if (role === GlobalRole.SG) return 1;
+                 if (role === GlobalRole.ADJOINT_SG) return 2;
+                 if (role === GlobalRole.DIEUWRINE) return 3;
+                 return 10;
+             };
+             return rolePriority(a.role) - rolePriority(b.role) || a.lastName.localeCompare(b.lastName);
+          }
+          return a.lastName.localeCompare(b.lastName);
+      }); 
+  }, [members, searchTerm, selectedSector, selectedStatus, profileView]);
 
   // --- HANDLERS ---
 
@@ -103,6 +141,12 @@ const MemberManagementDashboard: React.FC = () => {
     }
   };
 
+  const handleImpersonate = (member: Member) => {
+     if (confirm(`Voulez-vous incarner le profil de ${member.firstName} ? Vous verrez la plateforme exactement comme ce membre.`)) {
+        impersonate(member);
+     }
+  };
+
   const handleFormSubmit = (data: any) => {
     if (editingMember) {
       updateMember(editingMember.id, data);
@@ -129,29 +173,10 @@ const MemberManagementDashboard: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Simulation d'import (Dans un vrai cas, on parserait le CSV/JSON)
+    // Simulation d'import
     const reader = new FileReader();
     reader.onload = (e) => {
-      // Mock logic : On génère 5 membres fictifs pour simuler l'import
-      const importedMembers: Member[] = Array.from({ length: 5 }).map((_, i) => ({
-        id: `IMP-${Date.now()}-${i}`,
-        matricule: `IMP-${Math.floor(Math.random()*1000)}`,
-        firstName: `Importé`,
-        lastName: `Membre ${i+1}`,
-        email: `import${i}@majma.sn`,
-        phone: '770000000',
-        category: MemberCategory.ETUDIANT,
-        level: '',
-        role: GlobalRole.MEMBRE,
-        commissions: [],
-        joinDate: new Date().toISOString(),
-        status: 'active',
-        address: 'Dakar',
-        coordinates: { lat: 14.7, lng: -17.4 }
-      }));
-      
-      importMembers(importedMembers);
-      alert(`${importedMembers.length} membres importés avec succès.`);
+        alert("Import CSV connecté au module de traitement de masse.");
     };
     reader.readAsText(file);
     if(fileInputRef.current) fileInputRef.current.value = '';
@@ -178,9 +203,9 @@ const MemberManagementDashboard: React.FC = () => {
       {/* Header Actions */}
       <div className="flex flex-col lg:flex-row justify-between items-end gap-6">
         <div>
-          <h3 className="text-2xl font-black text-slate-900 tracking-tight">Registre Global des Membres</h3>
+          <h3 className="text-2xl font-black text-slate-900 tracking-tight">Vue Super Admin</h3>
           <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-            <Users size={14} className="text-emerald-500" /> Pilotage des effectifs et validation des profils
+            <Users size={14} className="text-emerald-500" /> Gestion centralisée de tous les profils
           </p>
         </div>
         <div className="flex gap-4 w-full lg:w-auto">
@@ -195,61 +220,108 @@ const MemberManagementDashboard: React.FC = () => {
             onClick={() => fileInputRef.current?.click()}
             className="flex-1 lg:flex-none px-6 py-4 bg-white border border-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm flex items-center justify-center gap-3 hover:bg-slate-50 transition-all"
           >
-            <UploadCloud size={18} /> Importer Liste
+            <UploadCloud size={18} /> Importer
           </button>
           <button 
             onClick={() => { setEditingMember(null); setShowForm(true); }}
-            className="flex-1 lg:flex-none px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all hover:bg-emerald-700"
+            className="flex-1 lg:flex-none px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all hover:bg-black"
           >
-            <UserPlus size={18} /> Inscrire un Membre
+            <UserPlus size={18} /> Inscrire Membre
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Statistics Demographics */}
-        <div className="lg:col-span-4 glass-card p-10 flex flex-col h-fit">
-          <div className="flex items-center justify-between mb-10">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Répartition par Secteur</h4>
-            <BarChart2 size={18} className="text-emerald-600" />
-          </div>
-          <div className="h-64 w-full mb-8">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 'bold' }} />
-                <YAxis hide />
-                <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px' }} />
-                <Bar dataKey="val" radius={[8, 8, 0, 0]} barSize={40}>
-                  {stats.chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-4">
-             <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                <div className="flex items-center gap-3">
-                   <UserCheck size={18} className="text-emerald-600" />
-                   <span className="text-xs font-black text-emerald-800">Membres Actifs</span>
-                </div>
-                <span className="text-sm font-black text-emerald-700">{stats.active}</span>
+        {/* Left Column: Profile Breakdown Stats */}
+        <div className="lg:col-span-4 space-y-6">
+           {/* Cards for Profiles */}
+           <div 
+             onClick={() => setProfileView('leaders')}
+             className={`p-6 rounded-2xl border transition-all cursor-pointer group ${
+               profileView === 'leaders' ? 'bg-purple-600 text-white border-purple-600 shadow-xl' : 'bg-white border-slate-100 hover:border-purple-200'
+             }`}
+           >
+              <div className="flex justify-between items-start mb-4">
+                 <div className={`p-3 rounded-xl ${profileView === 'leaders' ? 'bg-white/20' : 'bg-purple-50 text-purple-600'}`}>
+                    <Crown size={24} />
+                 </div>
+                 <span className={`text-[10px] font-black uppercase tracking-widest ${profileView === 'leaders' ? 'text-white' : 'text-slate-400'}`}>Leadership</span>
+              </div>
+              <p className={`text-3xl font-black ${profileView === 'leaders' ? 'text-white' : 'text-slate-900'}`}>{stats.leaders}</p>
+              <p className={`text-[10px] font-bold mt-1 ${profileView === 'leaders' ? 'text-purple-100' : 'text-slate-500'}`}>Responsables (SG, Adjoints, Dieuwrines)</p>
+           </div>
+
+           <div 
+             onClick={() => setProfileView('commissioned')}
+             className={`p-6 rounded-2xl border transition-all cursor-pointer group ${
+               profileView === 'commissioned' ? 'bg-emerald-600 text-white border-emerald-600 shadow-xl' : 'bg-white border-slate-100 hover:border-emerald-200'
+             }`}
+           >
+              <div className="flex justify-between items-start mb-4">
+                 <div className={`p-3 rounded-xl ${profileView === 'commissioned' ? 'bg-white/20' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <Briefcase size={24} />
+                 </div>
+                 <span className={`text-[10px] font-black uppercase tracking-widest ${profileView === 'commissioned' ? 'text-white' : 'text-slate-400'}`}>Actifs</span>
+              </div>
+              <p className={`text-3xl font-black ${profileView === 'commissioned' ? 'text-white' : 'text-slate-900'}`}>{stats.commissioned}</p>
+              <p className={`text-[10px] font-bold mt-1 ${profileView === 'commissioned' ? 'text-emerald-100' : 'text-slate-500'}`}>Membres dans une commission</p>
+           </div>
+
+           <div 
+             onClick={() => setProfileView('simple')}
+             className={`p-6 rounded-2xl border transition-all cursor-pointer group ${
+               profileView === 'simple' ? 'bg-slate-700 text-white border-slate-700 shadow-xl' : 'bg-white border-slate-100 hover:border-slate-300'
+             }`}
+           >
+              <div className="flex justify-between items-start mb-4">
+                 <div className={`p-3 rounded-xl ${profileView === 'simple' ? 'bg-white/20' : 'bg-slate-100 text-slate-600'}`}>
+                    <User size={24} />
+                 </div>
+                 <span className={`text-[10px] font-black uppercase tracking-widest ${profileView === 'simple' ? 'text-white' : 'text-slate-400'}`}>Non-Affectés</span>
+              </div>
+              <p className={`text-3xl font-black ${profileView === 'simple' ? 'text-white' : 'text-slate-900'}`}>{stats.simpleMembers}</p>
+              <p className={`text-[10px] font-bold mt-1 ${profileView === 'simple' ? 'text-slate-300' : 'text-slate-500'}`}>Membres simples (Sans commission)</p>
+           </div>
+           
+           {/* Chart */}
+           <div className="glass-card p-6 bg-white border border-slate-100">
+             <div className="flex items-center justify-between mb-6">
+               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Répartition Sectorielle</h4>
+               <BarChart2 size={16} className="text-slate-400" />
              </div>
-             <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                   <UserX size={18} className="text-slate-400" />
-                   <span className="text-xs font-black text-slate-500">Inactifs / En attente</span>
-                </div>
-                <span className="text-sm font-black text-slate-600">{stats.inactive}</span>
+             <div className="h-40 w-full">
+               <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={stats.chartData}>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 'bold' }} />
+                   <YAxis hide />
+                   <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px' }} />
+                   <Bar dataKey="val" radius={[8, 8, 0, 0]} barSize={30}>
+                     {stats.chartData.map((entry, index) => (
+                       <Cell key={`cell-${index}`} fill={entry.color} />
+                     ))}
+                   </Bar>
+                 </BarChart>
+               </ResponsiveContainer>
              </div>
-          </div>
+           </div>
         </div>
 
-        {/* Member List with Advanced Filters */}
+        {/* Right Column: Member List with Advanced Filters */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="glass-card p-6 flex flex-wrap items-center gap-4 border-slate-100">
+          <div className="glass-card p-6 flex flex-wrap items-center gap-4 border-slate-100 bg-white">
+            
+            {/* View Reset Button */}
+            {profileView !== 'all' && (
+               <button 
+                 onClick={() => setProfileView('all')}
+                 className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center gap-2"
+               >
+                 <LayoutGrid size={14}/> Tout Afficher
+               </button>
+            )}
+
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
@@ -309,7 +381,7 @@ const MemberManagementDashboard: React.FC = () => {
                    </span>
                 </div>
                 
-                {selectedIds.size > 0 && (
+                {selectedIds.size > 0 ? (
                   <div className="flex gap-2 animate-in fade-in slide-in-from-right-4">
                      <button className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase flex items-center gap-2 hover:bg-slate-50">
                         <FileSpreadsheet size={14}/> Exporter
@@ -321,6 +393,10 @@ const MemberManagementDashboard: React.FC = () => {
                         <Trash2 size={14}/> Supprimer ({selectedIds.size})
                      </button>
                   </div>
+                ) : (
+                  <span className="text-[10px] font-black uppercase text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+                     {profileView === 'all' ? 'Tous les profils' : profileView === 'leaders' ? 'Responsables Uniquement' : profileView === 'commissioned' ? 'Membres en Commission' : 'Membres Sans Commission'}
+                  </span>
                 )}
              </div>
 
@@ -329,77 +405,106 @@ const MemberManagementDashboard: React.FC = () => {
                    <thead className="sticky top-0 z-10 bg-white shadow-sm text-[9px] font-black text-slate-400 uppercase tracking-widest">
                       <tr>
                          <th className="px-8 py-5 w-16"></th>
-                         <th className="px-4 py-5 w-10">#</th>
                          <th className="px-4 py-5">Membre</th>
                          <th className="px-4 py-5">Matricule</th>
                          <th className="px-4 py-5">Secteur</th>
-                         <th className="px-4 py-5">Rôle Global</th>
+                         <th className="px-4 py-5">Rôle & Commissions</th>
                          <th className="px-4 py-5">Statut</th>
                          <th className="px-8 py-5 text-right">Action</th>
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-50">
-                      {filteredMembers.map((member, index) => (
-                        <tr key={member.id} className={`hover:bg-emerald-50/10 transition-all group ${selectedIds.has(member.id) ? 'bg-emerald-50/20' : ''}`}>
-                           <td className="px-8 py-6">
-                              <div 
-                                onClick={() => handleSelection(member.id)}
-                                className={`w-5 h-5 border-2 rounded cursor-pointer flex items-center justify-center transition-all ${
-                                  selectedIds.has(member.id) ? 'bg-emerald-500 border-emerald-500' : 'border-slate-200 bg-white hover:border-emerald-400'
-                                }`}
-                              >
-                                {selectedIds.has(member.id) && <CheckSquare size={12} className="text-white"/>}
-                              </div>
-                           </td>
-                           <td className="px-4 py-6 text-[10px] font-bold text-slate-400">{index + 1}</td>
-                           <td className="px-4 py-6">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-[10px] text-slate-500">
-                                    {member.firstName[0]}{member.lastName[0]}
+                      {filteredMembers.map((member, index) => {
+                         const isLeader = [GlobalRole.ADMIN, GlobalRole.SG, GlobalRole.ADJOINT_SG, GlobalRole.DIEUWRINE].includes(member.role);
+                         const hasCommission = member.commissions.length > 0;
+
+                         return (
+                           <tr key={member.id} className={`hover:bg-slate-50/80 transition-all group ${selectedIds.has(member.id) ? 'bg-emerald-50/20' : ''}`}>
+                              <td className="px-8 py-6">
+                                 <div 
+                                   onClick={() => handleSelection(member.id)}
+                                   className={`w-5 h-5 border-2 rounded cursor-pointer flex items-center justify-center transition-all ${
+                                     selectedIds.has(member.id) ? 'bg-emerald-500 border-emerald-500' : 'border-slate-200 bg-white hover:border-emerald-400'
+                                   }`}
+                                 >
+                                   {selectedIds.has(member.id) && <CheckSquare size={12} className="text-white"/>}
                                  </div>
-                                 <span className="text-xs font-black text-slate-800">{member.lastName} {member.firstName}</span>
-                              </div>
-                           </td>
-                           <td className="px-4 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{member.matricule}</td>
-                           <td className="px-4 py-6 text-[10px] font-black text-slate-500 uppercase">{member.category}</td>
-                           <td className="px-4 py-6"><span className="px-2 py-1 bg-slate-50 text-slate-500 rounded text-[9px] font-bold uppercase border border-slate-100">{member.role}</span></td>
-                           <td className="px-4 py-6">
-                              <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
-                                member.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                              }`}>
-                                {member.status === 'active' ? 'Actif' : 'Inactif'}
-                              </span>
-                           </td>
-                           <td className="px-8 py-6 text-right">
-                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button 
-                                  onClick={() => setViewingMember(member)}
-                                  className="p-2 bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-emerald-600 hover:border-emerald-200 transition-colors shadow-sm"
-                                  title="Voir Profil"
-                                >
-                                   <Eye size={14}/>
-                                </button>
-                                <button 
-                                  onClick={() => { setEditingMember(member); setShowForm(true); }}
-                                  className="p-2 bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
-                                  title="Modifier"
-                                >
-                                   <Edit size={14}/>
-                                </button>
-                                <button 
-                                  onClick={() => handleDelete(member.id)}
-                                  className="p-2 bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-rose-600 hover:border-rose-200 transition-colors shadow-sm"
-                                  title="Supprimer"
-                                >
-                                   <Trash2 size={14}/>
-                                </button>
-                              </div>
-                           </td>
-                        </tr>
-                      ))}
+                              </td>
+                              <td className="px-4 py-6">
+                                 <div className="flex items-center gap-4">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] border ${isLeader ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                       {member.firstName[0]}{member.lastName[0]}
+                                    </div>
+                                    <div>
+                                       <span className="text-xs font-black text-slate-800 block">{member.lastName} {member.firstName}</span>
+                                       {isLeader && <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 rounded uppercase">Responsable</span>}
+                                    </div>
+                                 </div>
+                              </td>
+                              <td className="px-4 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{member.matricule}</td>
+                              <td className="px-4 py-6 text-[10px] font-black text-slate-500 uppercase">{member.category}</td>
+                              <td className="px-4 py-6">
+                                 <div className="flex flex-col gap-1">
+                                    <span className="text-[9px] font-bold uppercase text-slate-700">{member.role}</span>
+                                    <div className="flex flex-wrap gap-1">
+                                       {hasCommission ? (
+                                          member.commissions.slice(0, 2).map((c, i) => (
+                                             <span key={i} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-[8px] font-black uppercase">{c.type.substring(0,3)}</span>
+                                          ))
+                                       ) : (
+                                          <span className="text-[8px] italic text-slate-400 bg-slate-50 px-2 py-0.5 rounded">Sans commission</span>
+                                       )}
+                                       {member.commissions.length > 2 && <span className="text-[8px] text-slate-400">+{member.commissions.length - 2}</span>}
+                                    </div>
+                                 </div>
+                              </td>
+                              <td className="px-4 py-6">
+                                 <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
+                                   member.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                                 }`}>
+                                   {member.status === 'active' ? 'Actif' : 'Inactif'}
+                                 </span>
+                              </td>
+                              <td className="px-8 py-6 text-right">
+                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                   <button 
+                                     onClick={() => handleImpersonate(member)}
+                                     className="p-2 bg-slate-900 border border-slate-900 text-white rounded-lg hover:bg-black transition-colors shadow-sm"
+                                     title="Incarner (Impersonate)"
+                                   >
+                                      <VenetianMask size={14}/>
+                                   </button>
+                                   <button 
+                                     onClick={() => setViewingMember(member)}
+                                     className="p-2 bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-emerald-600 hover:border-emerald-200 transition-colors shadow-sm"
+                                     title="Voir Profil"
+                                   >
+                                      <Eye size={14}/>
+                                   </button>
+                                   <button 
+                                     onClick={() => { setEditingMember(member); setShowForm(true); }}
+                                     className="p-2 bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
+                                     title="Modifier"
+                                   >
+                                      <Edit size={14}/>
+                                   </button>
+                                   <button 
+                                     onClick={() => handleDelete(member.id)}
+                                     className="p-2 bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-rose-600 hover:border-rose-200 transition-colors shadow-sm"
+                                     title="Supprimer"
+                                   >
+                                      <Trash2 size={14}/>
+                                   </button>
+                                 </div>
+                              </td>
+                           </tr>
+                         );
+                      })}
                       {filteredMembers.length === 0 && (
                         <tr>
-                          <td colSpan={8} className="text-center py-20 text-slate-400 text-xs italic">Aucun membre trouvé correspondant aux filtres.</td>
+                          <td colSpan={8} className="text-center py-20 text-slate-400 text-xs italic">
+                             Aucun membre trouvé pour ce profil.
+                          </td>
                         </tr>
                       )}
                    </tbody>

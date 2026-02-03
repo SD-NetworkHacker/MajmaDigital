@@ -1,27 +1,57 @@
 
-import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
-import { PieChart, TrendingUp, Download, FileText, Share2, Globe, Activity, Landmark, Sparkles, Filter } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, TrendingUp, Download, FileText, Globe, Activity, Landmark, Sparkles, Filter } from 'lucide-react';
+import { useData } from '../../contexts/DataContext';
 
 const FinancialReporting: React.FC = () => {
-  const data = [
-    { name: 'Jan', revenue: 450, expenses: 320 },
-    { name: 'Fev', revenue: 520, expenses: 380 },
-    { name: 'Mar', revenue: 680, expenses: 410 },
-    { name: 'Avr', revenue: 590, expenses: 450 },
-    { name: 'Mai', revenue: 840, expenses: 520 },
-    { name: 'Juin', revenue: 950, expenses: 600 },
-  ];
+  const { contributions, totalTreasury, financialReports, budgetRequests } = useData();
+
+  // Agrégation des données par mois pour le graphique (6 derniers mois)
+  const chartData = useMemo(() => {
+    const data = [];
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const monthLabel = d.toLocaleString('fr-FR', { month: 'short' });
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        
+        // Recettes réelles (contributions)
+        const revenue = contributions.filter(c => {
+            const cDate = new Date(c.date);
+            return cDate.getMonth() === month && cDate.getFullYear() === year && c.status === 'paid';
+        }).reduce((acc, curr) => acc + curr.amount, 0);
+        
+        // Dépenses réelles (Basées sur les budgets validés ou rapports financiers soumis ce mois)
+        // Note: Idéalement, on aurait une table 'expenses' séparée, ici on approxime via les budgets approuvés
+        const expenses = budgetRequests.filter(req => {
+            const rDate = new Date(req.submittedAt);
+            return rDate.getMonth() === month && rDate.getFullYear() === year && req.status === 'approuve';
+        }).reduce((acc, req) => acc + (req.amountApproved || req.amountRequested), 0);
+
+        data.push({ name: monthLabel, revenue, expenses });
+    }
+    return data;
+  }, [contributions, budgetRequests]);
+
+  // Moyenne mensuelle (basée sur le graphique)
+  const averageRevenue = useMemo(() => {
+      const total = chartData.reduce((acc, d) => acc + d.revenue, 0);
+      return Math.round(total / (chartData.length || 1));
+  }, [chartData]);
+
+  const totalReportsCount = financialReports.length;
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { l: 'Portée Annuelle', v: '18.4M', trend: '+22%', icon: TrendingUp, color: 'text-indigo-500' },
-          { l: 'Taux de Recouvrement', v: '91.2%', trend: '+5.4%', icon: Activity, color: 'text-emerald-500' },
-          { l: 'Dépenses Moyennes', v: '1.2M', trend: '-2.1%', icon: PieChart, color: 'text-rose-500' },
-          { l: 'Réserves Cloud', v: '4.2M', trend: 'Sécurisé', icon: Landmark, color: 'text-blue-500' },
+          { l: 'Trésorerie Actuelle', v: totalTreasury.toLocaleString() + ' F', trend: 'Solde', icon: Landmark, color: 'text-indigo-500' },
+          { l: 'Moyenne Recettes', v: averageRevenue.toLocaleString() + ' F', trend: 'Mensuel', icon: TrendingUp, color: 'text-emerald-500' },
+          { l: 'Volume Transactions', v: contributions.length.toString(), trend: 'Flux', icon: Activity, color: 'text-rose-500' },
+          { l: 'Bilans Soumis', v: totalReportsCount.toString(), trend: 'Archives', icon: FileText, color: 'text-blue-500' },
         ].map((stat, i) => (
           <div key={i} className="glass-card p-8 group hover:-translate-y-1 transition-all duration-300">
              <div className="flex justify-between items-start mb-6">
@@ -40,7 +70,7 @@ const FinancialReporting: React.FC = () => {
            <div className="flex justify-between items-center mb-12">
               <div>
                  <h3 className="text-xl font-black text-slate-900">Évolution Recettes vs Dépenses</h3>
-                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Comparaison consolidée premier semestre 2024</p>
+                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Comparaison consolidée (6 derniers mois)</p>
               </div>
               <div className="flex gap-2">
                  <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-indigo-600 border border-slate-100 transition-all"><Filter size={18}/></button>
@@ -48,7 +78,7 @@ const FinancialReporting: React.FC = () => {
            </div>
            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                 <AreaChart data={data}>
+                 <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
@@ -63,8 +93,8 @@ const FinancialReporting: React.FC = () => {
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 'bold' }} />
                     <YAxis hide />
                     <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', fontSize: '11px', fontWeight: 'bold' }} />
-                    <Area type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
-                    <Area type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={4} fillOpacity={1} fill="url(#colorExp)" />
+                    <Area type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" name="Recettes" />
+                    <Area type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={4} fillOpacity={1} fill="url(#colorExp)" name="Dépenses (Budgets)" />
                  </AreaChart>
               </ResponsiveContainer>
            </div>
@@ -80,7 +110,7 @@ const FinancialReporting: React.FC = () => {
                  </div>
                  <h2 className="text-4xl font-black mb-4">94.8%</h2>
                  <p className="text-[11px] font-black uppercase tracking-widest opacity-50 mb-8">Indice de Santé Financière</p>
-                 <p className="text-sm font-medium leading-relaxed italic opacity-80 mb-10">"Basé sur les flux actuels, le Dahira aura une réserve nette de 4.2M après le Magal, permettant de lancer le projet Infrastructure."</p>
+                 <p className="text-sm font-medium leading-relaxed italic opacity-80 mb-10">"Basé sur les flux actuels, les réserves permettent de couvrir les charges fixes des 3 prochains mois."</p>
                  <button className="w-full py-4 bg-white/10 hover:bg-white hover:text-indigo-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 active:scale-95">Voir Simulations</button>
               </div>
               <div className="absolute -right-10 -bottom-10 opacity-5 font-arabic text-[12rem] rotate-12 pointer-events-none">ص</div>

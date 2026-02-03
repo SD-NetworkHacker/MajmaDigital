@@ -1,212 +1,244 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+// Components
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
-import MemberModule from './components/MemberModule';
-import MemberMapModule from './components/MemberMapModule';
-import CommissionModule from './components/CommissionModule';
-import FinanceModule from './components/FinanceModule';
-import EventModule from './components/EventModule';
-import MessagesModule from './components/MessagesModule';
-import AdminModule from './components/AdminModule';
-import SettingsModule from './components/SettingsModule';
-import PedagogicalModule from './components/PedagogicalModule';
-import HealthModule from './components/HealthModule';
-import SocialModule from './components/SocialModule';
-import AIChatBot from './components/AIChatBot';
-import WarRoomLayout from './components/bureau/WarRoomLayout';
-import { Bell, Search, Cloud, Menu, ChevronDown, Command } from 'lucide-react';
-import { DataProvider, useData } from './contexts/DataContext';
 
-// Composant wrapper pour utiliser le hook useData
+// Lazy Imports for Modules to improve TTI (Time to Interactive)
+const MemberModule = React.lazy(() => import('./components/MemberModule'));
+const MemberMapModule = React.lazy(() => import('./components/MemberMapModule'));
+const CommissionModule = React.lazy(() => import('./components/CommissionModule'));
+const FinanceModule = React.lazy(() => import('./components/FinanceModule'));
+const EventModule = React.lazy(() => import('./components/EventModule'));
+const MessagesModule = React.lazy(() => import('./components/MessagesModule'));
+const AdminModule = React.lazy(() => import('./components/AdminModule'));
+const SettingsModule = React.lazy(() => import('./components/SettingsModule'));
+const PedagogicalModule = React.lazy(() => import('./components/PedagogicalModule'));
+const HealthModule = React.lazy(() => import('./components/HealthModule'));
+const SocialModule = React.lazy(() => import('./components/SocialModule'));
+const AIChatBot = React.lazy(() => import('./components/AIChatBot'));
+const WarRoomLayout = React.lazy(() => import('./components/bureau/WarRoomLayout'));
+const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
+const TransportDashboard = React.lazy(() => import('./commissions/transport/TransportDashboard'));
+const CulturalDashboard = React.lazy(() => import('./commissions/culturelle/CulturalDashboard'));
+
+// Auth Components (Static for fast initial load)
+import LoginForm from './components/auth/LoginForm';
+import RegisterForm from './components/auth/RegisterForm';
+import ForgotPasswordForm from './components/auth/ForgotPasswordForm';
+import ResetPasswordForm from './components/auth/ResetPasswordForm';
+import ProfileCompletion from './components/auth/ProfileCompletion';
+
+// Shared Components
+import OfflineBanner from './components/shared/OfflineBanner';
+import { SkeletonCard } from './components/shared/Skeleton';
+
+import { Menu, ChevronDown, VenetianMask, Loader2, Fingerprint, Eye, Power } from 'lucide-react';
+import { DataProvider, useData } from './contexts/DataContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+import { LoadingProvider } from './context/LoadingContext';
+import { ThemeProvider } from './context/ThemeContext';
+
+// Loading Fallback Component
+const PageLoader = () => (
+  <div className="h-full w-full p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+    <SkeletonCard />
+    <SkeletonCard />
+    <SkeletonCard />
+  </div>
+);
+
+// Identity Switch Screen
+const IdentitySwitchScreen = () => (
+   <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col items-center justify-center text-emerald-500 font-mono">
+      <div className="relative">
+         <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full animate-pulse"></div>
+         <Fingerprint size={80} className="relative z-10 animate-pulse" />
+      </div>
+      <h2 className="mt-8 text-2xl font-black uppercase tracking-[0.3em] animate-pulse">Changement d'Identité</h2>
+      <p className="mt-2 text-xs text-emerald-700 font-bold uppercase">Décryptage du profil en cours...</p>
+      
+      <div className="mt-8 w-64 h-1 bg-emerald-900 rounded-full overflow-hidden">
+         <div className="h-full bg-emerald-500 animate-[width_1.5s_ease-in-out_infinite]" style={{width: '30%'}}></div>
+      </div>
+      
+      <div className="absolute bottom-10 font-mono text-[10px] text-emerald-800">
+         SECURE_PROTOCOL_INIT_V3.1
+      </div>
+   </div>
+);
+
+// Main Layout Component (Dashboard)
 const MainContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [viewProfileId, setViewProfileId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  const { members, events, contributions, userProfile } = useData();
+  const { members, events, contributions } = useData();
+  const { user, isImpersonating, isSwitching, stopImpersonation } = useAuth();
 
   useEffect(() => {
-    // Simulation sync silencieuse
     const interval = setInterval(() => {
       setIsSyncing(true);
-      setTimeout(() => setIsSyncing(false), 800);
+      setTimeout(() => setIsSyncing(false), 1200);
     }, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const getPageTitle = (tab: string) => {
-    switch(tab) {
-        case 'dashboard': return 'Tableau de Bord';
-        case 'members': return 'Annuaire des Membres';
-        case 'map': return 'Cartographie';
-        case 'commissions': return 'Commissions & Pôles';
-        case 'finance': return 'Finance & Trésorerie';
-        case 'events': return 'Agenda & Événements';
-        case 'messages': return 'Messagerie Interne';
-        case 'admin': return 'Administration Système';
-        case 'settings': return 'Paramètres';
-        case 'pedagogy': return 'Pôle Pédagogique';
-        case 'social': return 'Action Sociale';
-        case 'health': return 'Santé & Bien-être';
-        case 'bureau': return 'Bureau Exécutif';
-        default: return 'MajmaDigital Platform';
-    }
+  const navigateToProfile = (id: string | null) => {
+    setViewProfileId(id);
+    setActiveTab('profile');
   };
 
   const renderContent = () => {
     if (activeTab === 'bureau') {
-      return <WarRoomLayout />;
+      return (
+        <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-slate-950 text-white"><Loader2 className="animate-spin mr-2"/> Chargement War Room...</div>}>
+           <WarRoomLayout />
+        </Suspense>
+      );
     }
 
     const commonProps = { members, events, contributions };
     
-    switch (activeTab) {
-      case 'dashboard': return <Dashboard {...commonProps} />;
-      case 'members': return <MemberModule />; 
-      case 'map': return <MemberMapModule members={members} />;
-      case 'commissions': return <CommissionModule members={members} events={events} />;
-      case 'pedagogy': return <PedagogicalModule />;
-      case 'social': return <SocialModule />;
-      case 'health': return <HealthModule />;
-      case 'finance': return <FinanceModule />;
-      case 'events': return <EventModule />;
-      case 'messages': return <MessagesModule />;
-      case 'admin': return <AdminModule />;
-      case 'settings': return <SettingsModule />;
-      default: return <Dashboard {...commonProps} />;
-    }
+    return (
+      <Suspense fallback={<PageLoader />}>
+        {(() => {
+          switch (activeTab) {
+            case 'dashboard': return <Dashboard {...commonProps} setActiveTab={setActiveTab} />;
+            case 'members': return <MemberModule onViewProfile={navigateToProfile} />;
+            case 'map': return <MemberMapModule members={members} />;
+            case 'commissions': return <CommissionModule members={members} events={events} />;
+            case 'pedagogy': return <PedagogicalModule />;
+            case 'social': return <SocialModule />;
+            case 'health': return <HealthModule />;
+            case 'finance': return <FinanceModule />;
+            case 'events': return <EventModule />;
+            case 'transport': return <TransportDashboard />;
+            case 'culturelle': return <CulturalDashboard />;
+            case 'messages': return <MessagesModule />;
+            case 'admin': return <AdminModule />;
+            case 'settings': return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
+            case 'profile': return <UserProfile targetId={viewProfileId} onBack={() => { setViewProfileId(null); setActiveTab('members'); }} />;
+            default: return <Dashboard {...commonProps} setActiveTab={setActiveTab} />;
+          }
+        })()}
+      </Suspense>
+    );
   };
 
-  if (activeTab === 'bureau') {
-    return (
-      <div className="h-dvh w-screen overflow-hidden bg-slate-950">
-        {renderContent()}
-        <button 
-          onClick={() => setActiveTab('dashboard')} 
-          className="fixed bottom-6 left-6 z-[100] px-4 py-2 bg-white/10 backdrop-blur text-white/50 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest border border-white/10 transition-all hover:bg-white/20"
-        >
-          Retour App
-        </button>
-      </div>
-    );
-  }
+  if (isSwitching) return <IdentitySwitchScreen />;
 
   return (
-    // Structure App Shell optimisée
-    <div className="flex h-dvh w-full bg-[#f8fafc] overflow-hidden relative selection:bg-emerald-100 selection:text-emerald-900">
+    <div className={`flex h-screen w-full bg-[#f8fafc] overflow-hidden relative transition-all duration-500 ${isImpersonating ? 'border-[8px] border-amber-500/50' : ''}`}>
       
-      {/* Sidebar Desktop */}
-      <aside className="hidden lg:block w-[280px] h-full border-r border-slate-200/60 bg-white/80 backdrop-blur-xl shrink-0 z-50 transition-all duration-300">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      </aside>
-
-      {/* Main Layout Column */}
-      <div className="flex-1 flex flex-col min-w-0 h-full relative bg-[#f8fafc]">
-        
-        {/* Header Enhanced */}
-        <header className="h-[88px] border-b border-slate-200/60 bg-white/80 backdrop-blur-xl flex items-center justify-between px-6 lg:px-10 shrink-0 z-40 sticky top-0 transition-all duration-300">
+      {/* HUD MODE INCARNATION (GLOBAL OVERLAY) */}
+      {isImpersonating && (
+        <div className="fixed top-0 left-0 right-0 h-14 bg-slate-900 text-amber-500 px-6 flex justify-between items-center z-[100] shadow-2xl shadow-amber-900/20 border-b-2 border-amber-500">
+          <div className="flex items-center gap-4">
+             <div className="p-2 bg-amber-500/10 rounded-lg animate-pulse border border-amber-500/30">
+                <VenetianMask size={18} />
+             </div>
+             <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Simulation Active</span>
+                <span className="text-xs font-bold font-mono text-amber-400 flex items-center gap-2">
+                   <Eye size={12}/> Vue actuelle : {user?.firstName} {user?.lastName} ({user?.matricule})
+                </span>
+             </div>
+          </div>
           
-          <div className="flex items-center gap-6 flex-1 max-w-4xl">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-3 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-500 active:scale-95 transition-transform hover:text-emerald-600 hover:border-emerald-100">
-              <Menu size={20} />
-            </button>
-            
-            {/* Context Title & Breadcrumbs */}
-            <div className="hidden lg:flex flex-col animate-in fade-in slide-in-from-left-2 duration-300 w-48" key={activeTab}>
-               <h1 className="text-xl font-black text-slate-800 tracking-tight leading-none truncate">{getPageTitle(activeTab)}</h1>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-               </p>
-            </div>
-
-            {/* Separator */}
-            <div className="hidden lg:block h-8 w-px bg-slate-200 mx-2"></div>
-
-            {/* Search Bar - Enhanced Visuals */}
-            <div className="hidden md:flex items-center gap-3 bg-slate-50/50 border border-slate-200/80 rounded-2xl px-5 py-3 flex-1 max-w-md transition-all duration-300 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:border-emerald-500/30 focus-within:shadow-xl focus-within:shadow-emerald-900/5 group hover:border-slate-300 cursor-text">
-              <Search size={18} className="text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
-              <input 
-                type="text" 
-                placeholder="Rechercher (Ctrl+K)" 
-                className="bg-transparent border-none outline-none text-sm w-full font-bold text-slate-700 placeholder-slate-400/80" 
-              />
-              <div className="hidden xl:flex items-center gap-1 px-2 py-1 bg-white rounded-lg border border-slate-200 text-[9px] font-black text-slate-400 shadow-sm">
-                <Command size={10} />K
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 sm:gap-5">
-            {/* Live Sync Widget */}
-            <div className={`hidden xl:flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all duration-500 ${isSyncing ? 'bg-emerald-50 border-emerald-100 shadow-sm' : 'bg-transparent border-transparent'}`}>
-              <Cloud size={16} className={isSyncing ? 'text-emerald-500 animate-bounce' : 'text-slate-300'} />
-              <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isSyncing ? 'text-emerald-700' : 'text-slate-400'}`}>
-                {isSyncing ? 'Sync...' : 'Cloud Actif'}
-              </span>
-            </div>
-
-            {/* Notifications */}
-            <button className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 relative hover:text-emerald-600 hover:border-emerald-100 hover:shadow-lg hover:shadow-emerald-900/5 transition-all duration-300 active:scale-95 group">
-              <Bell size={20} className="group-hover:rotate-12 transition-transform" />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white shadow-sm"></span>
-            </button>
-
-            {/* Profile Dropdown */}
-            <div className="flex items-center gap-4 pl-5 border-l border-slate-200/60 ml-2">
-              <div className="text-right hidden xl:block leading-tight">
-                <p className="text-xs font-black text-slate-800">{userProfile.firstName} {userProfile.lastName}</p>
-                <p className="text-[9px] text-emerald-600 font-black uppercase tracking-widest">{userProfile.role}</p>
-              </div>
-              <button 
-                onClick={() => setActiveTab('settings')}
-                className="flex items-center gap-2 cursor-pointer group p-1 pr-2 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200"
-              >
-                <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs shadow-xl shadow-slate-900/20 group-hover:scale-105 transition-transform border-2 border-white ring-2 ring-slate-100 group-hover:ring-emerald-200 overflow-hidden">
-                  {userProfile.avatar ? (
-                    <img src={userProfile.avatar} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{userProfile.firstName[0]}{userProfile.lastName[0]}</span>
-                  )}
-                </div>
-                <ChevronDown size={14} className="text-slate-300 group-hover:text-slate-600 transition-colors" />
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-transparent relative scroll-smooth">
-          <div className="p-4 md:p-8 lg:p-10 max-w-[1920px] mx-auto min-h-full flex flex-col">
-            {renderContent()}
-          </div>
-        </main>
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] lg:hidden">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsMobileMenuOpen(false)}></div>
-          <div className="absolute left-0 w-80 h-full bg-white animate-in slide-in-from-left duration-300 shadow-2xl flex flex-col overflow-hidden">
-            <div className="flex justify-end p-4">
-               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-slate-50 rounded-full"><ChevronDown className="rotate-90" size={20}/></button>
-            </div>
-            <Sidebar activeTab={activeTab} setActiveTab={(t) => { setActiveTab(t); setIsMobileMenuOpen(false); }} />
+          <div className="flex items-center gap-4">
+             <div className="hidden md:flex flex-col text-right mr-4">
+                <span className="text-[9px] text-slate-500 font-mono">SESSION ID</span>
+                <span className="text-[10px] text-slate-400 font-mono">SIM-{Math.floor(Date.now()/1000)}</span>
+             </div>
+             <button 
+               onClick={stopImpersonation}
+               className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all flex items-center gap-2 active:scale-95"
+             >
+               <Power size={14} /> Terminer
+             </button>
           </div>
         </div>
       )}
+
+      {/* SIDEBAR */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} ${isImpersonating ? 'mt-14' : ''}`}>
+         <Sidebar activeTab={activeTab} setActiveTab={(tab) => { setActiveTab(tab); setIsMobileMenuOpen(false); }} />
+      </div>
+
+      {/* MOBILE OVERLAY */}
+      {isMobileMenuOpen && (
+         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsMobileMenuOpen(false)}></div>
+      )}
+
+      {/* MAIN CONTENT AREA */}
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden relative ${isImpersonating ? 'pt-14' : ''}`}>
+         
+         {/* Mobile Header */}
+         <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-100">
+            <div className="flex items-center gap-3">
+               <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-emerald-500 font-arabic text-lg pb-1">م</div>
+               <span className="font-black text-slate-900">Majma</span>
+            </div>
+            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg"><Menu size={20}/></button>
+         </div>
+
+         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 relative">
+            {/* Simulation Watermark */}
+            {isImpersonating && (
+               <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden opacity-[0.03] z-0">
+                  <div className="text-[15vw] font-black uppercase text-slate-900 -rotate-45 select-none">
+                     Simulation
+                  </div>
+               </div>
+            )}
+            
+            <div className="relative z-10">
+               {renderContent()}
+            </div>
+         </div>
+      </div>
       
-      <AIChatBot />
+      <OfflineBanner />
+      <Suspense fallback={null}>
+         <AIChatBot />
+      </Suspense>
     </div>
   );
 };
 
-const App: React.FC = () => {
+const AppContent = () => {
+  const { isAuthenticated } = useAuth();
+  const [authView, setAuthView] = useState<'login' | 'register' | 'forgot' | 'reset' | 'profile-completion'>('login');
+  
+  if (!isAuthenticated) {
+    switch (authView) {
+      case 'register': return <RegisterForm onLoginClick={() => setAuthView('login')} onSuccess={() => setAuthView('login')} />;
+      case 'forgot': return <ForgotPasswordForm onBackToLogin={() => setAuthView('login')} />;
+      case 'reset': return <ResetPasswordForm onSuccess={() => setAuthView('login')} />;
+      default: return <LoginForm onRegisterClick={() => setAuthView('register')} onForgotPasswordClick={() => setAuthView('forgot')} />;
+    }
+  }
+
+  return <MainContent />;
+};
+
+const App = () => {
   return (
-    <DataProvider>
-      <MainContent />
-    </DataProvider>
+    <ThemeProvider>
+      <LoadingProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <DataProvider>
+              <AppContent />
+            </DataProvider>
+          </AuthProvider>
+        </NotificationProvider>
+      </LoadingProvider>
+    </ThemeProvider>
   );
 };
 

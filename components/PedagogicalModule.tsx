@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { BookOpen, Search, Play, FileText, Brain, Sparkles, X, ChevronRight, Volume2, Languages, Loader2, Award, History, Bookmark, TrendingUp } from 'lucide-react';
+import { BookOpen, Search, Play, FileText, Brain, Sparkles, X, ChevronRight, Volume2, Languages, Loader2, Award, History, Bookmark, TrendingUp, ArrowLeft } from 'lucide-react';
 import { explainXassaid, translateXassaid } from '../services/geminiService';
+import { useAuth } from '../context/AuthContext';
 
 const PedagogicalModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,12 +12,14 @@ const PedagogicalModule: React.FC = () => {
   const [loadingAi, setLoadingAi] = useState(false);
   const [loadingTranslation, setLoadingTranslation] = useState(false);
 
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin';
+
+  // Exemple de données pour la démo
   const xassaids = [
-    { id: 1, title: 'Jawartu', theme: 'Protection & Pardon', length: '12 pages', type: 'Poésie', content: "Jawartu bihi Khayral bariyyati kullihaa... Ô Seigneur, par le meilleur de toute la création, j'implore Ta protection contre tout mal et Ton pardon infini. Que la paix soit sur lui, sa famille et ses compagnons." },
-    { id: 2, title: 'Mawaahibu Naafi', theme: 'Gratitude & Louanges', length: '25 pages', type: 'Prose', content: "Al hamdulillahi lathi hadana... Louange à Allah qui nous a guidés vers la lumière de la foi et nous a comblés de Ses bienfaits inépuisables. La gratitude est la clé de l'augmentation." },
-    { id: 3, title: 'Sindidi', theme: 'Force & Persévérance', length: '8 pages', type: 'Poésie', content: "Sindidi yaa dhaal quwwati... Ô Force inébranlable, soutiens mon âme dans les épreuves et accorde-moi la persévérance des véridiques sur le chemin de l'excellence." },
-    { id: 4, title: 'Matlabul Fawzayni', theme: 'Succès des deux mondes', length: '15 pages', type: 'Éducation', content: "Allahumma inni as'aluka fawzall darayni... Ô Allah, je Te demande le succès dans ce monde et dans l'autre, une science utile et un cœur humble devant Ta Grandeur." },
-    { id: 5, title: 'Assindidi', theme: 'Combat Spirituel', length: '10 pages', type: 'Poésie', content: "Jihaadul nafsi huwa al jihaadul akbar... Le combat contre l'ego est le plus grand des combats. Que la lumière de la sagesse dissipe les ténèbres de l'ignorance." },
+    { id: '1', title: 'Mawahibou Nafiha', type: 'Khassaide', theme: 'Panégyrique', length: '45 Versets', content: 'Texte arabe simulé...' },
+    { id: '2', title: 'Djazboul Qulub', type: 'Khassaide', theme: 'Amour du Prophète', length: '63 Versets', content: 'Texte arabe simulé...' },
+    { id: '3', title: 'Matlaboul Fawzayni', type: 'Khassaide', theme: 'Recherche du Bonheur', length: 'Long', content: 'Texte arabe simulé...' },
   ];
 
   const handleExplain = async (title: string) => {
@@ -33,8 +36,16 @@ const PedagogicalModule: React.FC = () => {
     setLoadingTranslation(false);
   };
 
+  const handleCloseReader = () => {
+      setSelectedXassaid(null);
+      setAiExplanation(null);
+      setTranslation(null);
+  };
+
   return (
     <div className="space-y-6 h-full flex flex-col overflow-hidden animate-in fade-in duration-700">
+      
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shrink-0">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">Pédagogie & Xassaids</h2>
@@ -43,10 +54,12 @@ const PedagogicalModule: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-4 w-full md:w-auto">
-          <div className="hidden sm:flex px-6 py-4 bg-amber-50 rounded-2xl items-center gap-3 border border-amber-100 shadow-sm shadow-amber-900/5">
-            <Sparkles size={18} className="text-amber-600" />
-            <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">IA Majma Optisée</span>
-          </div>
+          {isAdmin && (
+             <div className="hidden sm:flex px-6 py-4 bg-amber-50 rounded-2xl items-center gap-3 border border-amber-100 shadow-sm shadow-amber-900/5">
+                <Sparkles size={18} className="text-amber-600" />
+                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">IA Majma Optisée</span>
+             </div>
+          )}
           <button className="flex-1 md:flex-none px-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95">
              <History size={16} /> Mon Carnet
           </button>
@@ -68,10 +81,10 @@ const PedagogicalModule: React.FC = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6 pr-2 pb-6 custom-scrollbar">
-            {xassaids.filter(x => x.title.toLowerCase().includes(searchTerm.toLowerCase())).map((x) => (
+            {xassaids.length > 0 ? xassaids.filter(x => x.title.toLowerCase().includes(searchTerm.toLowerCase())).map((x) => (
               <div 
                 key={x.id} 
-                className="glass-card p-8 group flex flex-col hover:border-emerald-500/40 relative"
+                className="glass-card p-8 group flex flex-col hover:border-emerald-500/40 relative cursor-pointer"
                 onClick={() => {setSelectedXassaid(x); setAiExplanation(null); setTranslation(null);}}
               >
                 <div className="flex justify-between items-start mb-6">
@@ -87,14 +100,20 @@ const PedagogicalModule: React.FC = () => {
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-10">{x.theme}</p>
                 <div className="flex items-center justify-between pt-6 border-t border-slate-50 mt-auto">
                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{x.length}</span>
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-3 bg-white rounded-xl text-slate-400 hover:text-emerald-600 border border-slate-100 shadow-sm"><Volume2 size={18} /></button>
-                    <button className="p-3 bg-white rounded-xl text-slate-400 hover:text-blue-600 border border-slate-100 shadow-sm"><Languages size={18} /></button>
-                    <button className="p-3 bg-[#2E8B57] text-white rounded-xl shadow-lg shadow-emerald-100"><Play size={18} className="fill-current" /></button>
+                  <div className="flex gap-2">
+                    <button className="p-2 bg-white rounded-xl text-slate-400 border border-slate-100 shadow-sm"><Volume2 size={16} /></button>
+                    <button className="px-4 py-2 bg-[#2E8B57] text-white rounded-xl shadow-lg shadow-emerald-100 text-[10px] font-black uppercase flex items-center gap-2">
+                       Lire <Play size={10} className="fill-current" />
+                    </button>
                   </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="col-span-2 flex flex-col items-center justify-center py-20 text-slate-400">
+                 <BookOpen size={48} className="mb-4 opacity-20"/>
+                 <p className="text-xs font-bold uppercase">Aucun résultat trouvé</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -107,21 +126,8 @@ const PedagogicalModule: React.FC = () => {
                 <h3 className="font-black text-xs uppercase tracking-[0.2em]">Acquisition Spirituelle</h3>
               </div>
               <div className="space-y-8">
-                {[
-                  { label: 'Mémorisation Jawartu', val: 75, color: 'bg-emerald-400' },
-                  { label: 'Lecture Sindidi', val: 40, color: 'bg-amber-400' },
-                  { label: 'Mawaahibu Naafi', val: 15, color: 'bg-blue-400' }
-                ].map((stat, i) => (
-                  <div key={i} className="space-y-3">
-                    <div className="flex justify-between items-center text-[10px] font-black uppercase opacity-60">
-                      <span>{stat.label}</span>
-                      <span>{stat.val}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/5">
-                      <div className={`h-full ${stat.color} transition-all duration-2000 ease-out`} style={{ width: `${stat.val}%` }}></div>
-                    </div>
-                  </div>
-                ))}
+                {/* Empty State for Progress */}
+                <p className="text-xs italic opacity-60 text-center">Aucun progrès enregistré.</p>
               </div>
               <button className="w-full mt-12 py-4 bg-white/10 hover:bg-white text-white hover:text-emerald-900 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 active:scale-95">
                 Ouvrir mon carnet personnel
@@ -135,22 +141,7 @@ const PedagogicalModule: React.FC = () => {
               <Award size={18} className="text-amber-500" /> Séances Collectives
             </h3>
             <div className="space-y-4">
-              {[
-                { date: '18', day: 'Mai', title: 'Apprentissage Sindidi', time: '18:00', place: 'Visio-Conférence' },
-                { date: '20', day: 'Mai', title: 'Explication Jawartu', time: '14:00', place: 'Dahira Plateau' }
-              ].map(( séance, i) => (
-                <div key={i} className="p-5 bg-slate-50 border border-slate-100 rounded-[1.5rem] flex items-center gap-5 hover:bg-white hover:border-emerald-100 transition-all cursor-pointer group">
-                  <div className="w-14 h-14 bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border border-slate-100 group-hover:bg-emerald-50 transition-colors">
-                    <span className="text-lg font-black leading-none text-emerald-700">{séance.date}</span>
-                    <span className="text-[8px] font-black uppercase text-slate-400">{séance.day}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-slate-800 leading-none mb-1.5 truncate">{séance.title}</p>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest truncate">{séance.time} • {séance.place}</p>
-                  </div>
-                  <ChevronRight size={16} className="text-slate-200 group-hover:text-emerald-600 transition-colors" />
-                </div>
-              ))}
+               <p className="text-xs text-slate-400 italic text-center">Aucune séance planifiée.</p>
             </div>
           </div>
         </div>
@@ -159,27 +150,33 @@ const PedagogicalModule: React.FC = () => {
       {/* Reader Modal / AI Explanation */}
       {selectedXassaid && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-6xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] border border-white/20">
+          <div className="bg-white w-full max-w-6xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] border border-white/20 relative">
+            
+            {/* Top Bar Mobile/Desktop */}
+            <button 
+              onClick={handleCloseReader} 
+              className="absolute top-6 right-6 p-3 bg-slate-100 hover:bg-rose-100 hover:text-rose-500 rounded-full transition-all z-50 shadow-sm"
+            >
+              <X size={20} />
+            </button>
+
             {/* Left: Text Content */}
-            <div className="flex-1 p-12 overflow-y-auto border-r border-slate-50 flex flex-col bg-white">
-              <div className="flex justify-between items-center mb-10 shrink-0">
-                <div className="flex items-center gap-6">
-                  <div className="p-4 bg-emerald-50 text-emerald-700 rounded-2xl"><BookOpen size={28} /></div>
-                  <div>
-                    <h3 className="text-4xl font-black text-slate-900 leading-tight">{selectedXassaid.title}</h3>
+            <div className="flex-1 p-8 md:p-12 overflow-y-auto border-r border-slate-50 flex flex-col bg-white">
+              <div className="flex items-center gap-4 mb-8">
+                 <button onClick={handleCloseReader} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors md:hidden">
+                    <ArrowLeft size={20} />
+                 </button>
+                 <div>
+                    <h3 className="text-3xl font-black text-slate-900 leading-tight">{selectedXassaid.title}</h3>
                     <p className="text-emerald-600 font-bold uppercase text-[10px] tracking-[0.2em]">{selectedXassaid.theme}</p>
-                  </div>
-                </div>
-                <button onClick={() => {setSelectedXassaid(null); setAiExplanation(null); setTranslation(null);}} className="p-3 hover:bg-slate-100 rounded-full transition-all text-slate-300 hover:rotate-90">
-                  <X size={24} />
-                </button>
+                 </div>
               </div>
 
-              <div className="flex-1 rounded-[2.5rem] p-10 bg-slate-50/50 border border-slate-100 overflow-y-auto custom-scrollbar shadow-inner relative">
-                 <div className="space-y-12 text-slate-800 leading-relaxed text-3xl font-arabic text-right pb-10">
+              <div className="flex-1 rounded-[2.5rem] p-8 md:p-12 bg-slate-50/50 border border-slate-100 overflow-y-auto custom-scrollbar shadow-inner relative">
+                 <div className="space-y-12 text-slate-800 leading-relaxed text-2xl md:text-3xl font-arabic text-right pb-10">
                     <p className="text-emerald-700 font-bold text-4xl">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</p>
                     <p className="opacity-40 italic font-sans text-lg">صَلَّى اللَّهُ عَلَى سَيِّدِنَا مُحَمَّدٍ وَعَلَى آلِهِ وَصَحْبِهِ وَسَلَّمَ تَسْلِيمًا</p>
-                    <div className="arabic-glow leading-[1.8]">{selectedXassaid.content}</div>
+                    <div className="arabic-glow leading-[2]">{selectedXassaid.content}</div>
                     <div className="pt-10 flex justify-center">
                        <span className="px-6 py-2 bg-white border border-slate-100 rounded-full text-[10px] font-black uppercase text-slate-300 tracking-[0.3em]">Fin de l'extrait</span>
                     </div>
@@ -200,7 +197,7 @@ const PedagogicalModule: React.FC = () => {
             </div>
 
             {/* Right: AI Analysis Panel */}
-            <div className="w-full md:w-96 bg-slate-50/50 p-10 flex flex-col overflow-y-auto no-scrollbar">
+            <div className="w-full md:w-96 bg-slate-50/50 p-8 md:p-10 flex flex-col overflow-y-auto custom-scrollbar">
               <div className="flex items-center gap-4 mb-10 text-emerald-800 shrink-0">
                 <div className="p-3 bg-white rounded-2xl shadow-sm"><Sparkles size={28} /></div>
                 <div>
@@ -210,7 +207,7 @@ const PedagogicalModule: React.FC = () => {
               </div>
 
               <div className="space-y-6">
-                <div className="glass-card p-8 space-y-6">
+                <div className="glass-card p-6 md:p-8 space-y-6 bg-white">
                   <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Brain size={16} /> Analyse Théologique
                   </h5>
@@ -230,7 +227,7 @@ const PedagogicalModule: React.FC = () => {
                   )}
                 </div>
 
-                <div className="glass-card p-8 space-y-6">
+                <div className="glass-card p-6 md:p-8 space-y-6 bg-white">
                   <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Languages size={16} /> Linguistique
                   </h5>

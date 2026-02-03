@@ -5,11 +5,7 @@ import { MessageSquare, FileText, Send, Plus, ChevronRight, Share2, Globe, Spark
 const InstitutionalComm: React.FC = () => {
   const [activeComm, setActiveComm] = useState('releases');
 
-  const releases = [
-    { title: 'Communiqué : Lancement MajmaDigital', date: 'Hier', status: 'Diffusé', reach: '1.2k' },
-    { title: 'Note de Clarification - Magal 2024', date: '02 Mai', status: 'Brouillon', reach: '-' },
-    { title: 'Rapport Annuel Relations Extérieures', date: 'Avril 2024', status: 'Archivé', reach: '850' },
-  ];
+  const releases: any[] = [];
 
   return (
     <div className="space-y-8 animate-in slide-in-from-left-4 duration-700">
@@ -28,25 +24,14 @@ const InstitutionalComm: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                 {releases.map((release, i) => (
-                   <div key={i} className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:bg-white hover:border-slate-300 transition-all cursor-pointer">
-                      <div className="flex items-center gap-6">
-                         <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-700 shadow-sm border border-slate-100 group-hover:bg-slate-800 group-hover:text-white transition-all">
-                            <FileText size={20} />
-                         </div>
-                         <div>
-                            <p className="text-sm font-black text-slate-800 leading-none mb-2">{release.title}</p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{release.date} • {release.reach} Vues</p>
-                         </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                         <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
-                           release.status === 'Diffusé' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'
-                         }`}>{release.status}</span>
-                         <button className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-200 group-hover:text-slate-800 transition-all"><Share2 size={16}/></button>
-                      </div>
+                 {releases.length > 0 ? releases.map((release, i) => (
+                   <div key={i}></div>
+                 )) : (
+                   <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-100 rounded-3xl">
+                      <Newspaper size={40} className="mb-4 opacity-20"/>
+                      <p className="text-xs font-bold uppercase">Aucun communiqué publié</p>
                    </div>
-                 ))}
+                 )}
               </div>
            </div>
 
@@ -82,19 +67,7 @@ const InstitutionalComm: React.FC = () => {
                  <Globe size={18} className="text-slate-800" /> Kit Média Officiel
               </h4>
               <div className="space-y-4">
-                 {[
-                   { l: 'Logo Majma (HD)', s: '2.4 MB', t: 'Archive' },
-                   { l: 'Charte Graphique v2', s: '15.8 MB', t: 'Guide' },
-                   { l: 'Dossier de Presse 2024', s: '5.2 MB', t: 'PDF' },
-                 ].map((file, i) => (
-                   <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-white hover:border-slate-300 transition-all cursor-pointer group">
-                      <div className="min-w-0 flex-1">
-                         <p className="text-xs font-black text-slate-800 truncate mb-1">{file.l}</p>
-                         <p className="text-[9px] text-slate-400 font-bold uppercase">{file.t} • {file.s}</p>
-                      </div>
-                      <ChevronRight size={16} className="text-slate-300 group-hover:text-slate-800 transition-colors" />
-                   </div>
-                 ))}
+                 <p className="text-xs text-slate-400 italic text-center">Aucun fichier média disponible.</p>
               </div>
               <button className="w-full mt-10 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
                  <Send size={16}/> Envoyer aux Médias
@@ -107,7 +80,7 @@ const InstitutionalComm: React.FC = () => {
                  <h4 className="font-black text-xs uppercase tracking-widest">Veille Réputationnelle</h4>
               </div>
               <p className="text-[12px] font-medium text-slate-700 leading-relaxed italic">
-                "Votre image publique est stable. Nous avons noté une hausse de 15% de citations positives suite à la campagne Social Gott."
+                "Aucune donnée de veille disponible."
               </p>
               <button className="mt-6 text-[10px] font-black text-emerald-600 hover:underline uppercase tracking-widest">Voir le rapport d'e-reputation</button>
            </div>

@@ -1,29 +1,44 @@
 
-import React, { useState } from 'react';
-import { X, Save, DollarSign, Calendar, User, Tag } from 'lucide-react';
-import { Member } from '../types';
+import React, { useState, useEffect } from 'react';
+import { X, Save, DollarSign, Calendar, User, Tag, Trash2 } from 'lucide-react';
+import { Member, Contribution } from '../types';
 
 interface TransactionFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   members: Member[];
+  initialData?: Contribution | null;
 }
 
-const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, onSubmit, members }) => {
+const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, onSubmit, members, initialData }) => {
   const [formData, setFormData] = useState({
-    memberId: members[0]?.id || '',
+    memberId: '',
     type: 'Adiyas',
     amount: '',
     date: new Date().toISOString().split('T')[0],
     eventLabel: ''
   });
 
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        memberId: initialData.memberId,
+        type: initialData.type,
+        amount: initialData.amount.toString(),
+        date: initialData.date,
+        eventLabel: initialData.eventLabel || ''
+      });
+    } else if (members.length > 0) {
+      setFormData(prev => ({ ...prev, memberId: members[0].id }));
+    }
+  }, [initialData, members]);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
         <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-emerald-50/50">
           <div>
-            <h3 className="text-xl font-black text-[#2E8B57]">Nouvelle Contribution</h3>
+            <h3 className="text-xl font-black text-[#2E8B57]">{initialData ? 'Modifier Transaction' : 'Nouvelle Contribution'}</h3>
             <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest mt-1">Saisie Trésorerie</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors text-emerald-700">
@@ -106,7 +121,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, onSubmit, me
           <div className="pt-6">
             <button type="submit" className="w-full py-4 bg-[#2E8B57] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 active:scale-95">
               <Save size={18} />
-              Enregistrer le paiement
+              {initialData ? 'Mettre à jour' : 'Enregistrer le paiement'}
             </button>
           </div>
         </form>

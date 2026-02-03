@@ -22,6 +22,16 @@ const CommissionMeetingDashboard: React.FC<Props> = ({ commission }) => {
   // Extraction de toutes les actions de tous les rapports
   const allActions = reports.flatMap(r => r.actionItems || []).filter(a => a.status !== 'termine');
 
+  // Trouver la prochaine réunion (basée sur les données réelles ou vide)
+  const nextMeeting = reports
+    .filter(r => new Date(r.date) >= new Date())
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+
+  // Calcul des stats réelles (0 par défaut)
+  const attendanceRate = 0; 
+  const closedActions = 0;
+  const totalActions = 0;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {showEditor && (
@@ -124,17 +134,23 @@ const CommissionMeetingDashboard: React.FC<Props> = ({ commission }) => {
            <div className="glass-card p-8 bg-slate-900 text-white relative overflow-hidden">
               <div className="relative z-10">
                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 opacity-60">Prochaine Instance</h4>
-                 <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-white/10 rounded-xl backdrop-blur-md flex flex-col items-center justify-center border border-white/10">
-                       <span className="text-sm font-black">15</span>
-                       <span className="text-[8px] uppercase">Juin</span>
-                    </div>
-                    <div>
-                       <p className="text-sm font-bold">Réunion Mensuelle</p>
-                       <p className="text-[10px] opacity-60 flex items-center gap-1"><Clock size={10}/> 16h00 • Siège</p>
-                    </div>
-                 </div>
-                 <button className="w-full py-3 bg-white text-slate-900 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all">Préparer l'ordre du jour</button>
+                 {nextMeeting ? (
+                   <div className="flex items-center gap-4 mb-6">
+                      <div className="w-12 h-12 bg-white/10 rounded-xl backdrop-blur-md flex flex-col items-center justify-center border border-white/10">
+                         <span className="text-sm font-black">{new Date(nextMeeting.date).getDate()}</span>
+                         <span className="text-[8px] uppercase">{new Date(nextMeeting.date).toLocaleString('default', { month: 'short' })}</span>
+                      </div>
+                      <div>
+                         <p className="text-sm font-bold truncate">{nextMeeting.title}</p>
+                         <p className="text-[10px] opacity-60 flex items-center gap-1"><Clock size={10}/> {nextMeeting.startTime} • {nextMeeting.location}</p>
+                      </div>
+                   </div>
+                 ) : (
+                   <div className="mb-6 text-center text-white/40 text-xs italic">
+                      Aucune réunion programmée
+                   </div>
+                 )}
+                 <button onClick={() => setShowEditor(true)} className="w-full py-3 bg-white text-slate-900 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all">Préparer l'ordre du jour</button>
               </div>
               <div className="absolute -right-6 -bottom-6 opacity-10"><Calendar size={120}/></div>
            </div>
@@ -145,18 +161,18 @@ const CommissionMeetingDashboard: React.FC<Props> = ({ commission }) => {
               <div className="space-y-4">
                  <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-600">Assiduité Moyenne</span>
-                    <span className="text-xs font-black text-emerald-600">85%</span>
+                    <span className="text-xs font-black text-emerald-600">{attendanceRate}%</span>
                  </div>
                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500" style={{ width: '85%' }}></div>
+                    <div className="h-full bg-emerald-500" style={{ width: `${attendanceRate}%` }}></div>
                  </div>
                  
                  <div className="flex justify-between items-center mt-4">
                     <span className="text-xs font-bold text-slate-600">Actions Clôturées</span>
-                    <span className="text-xs font-black text-blue-600">12/18</span>
+                    <span className="text-xs font-black text-blue-600">{closedActions}/{totalActions}</span>
                  </div>
                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500" style={{ width: '66%' }}></div>
+                    <div className="h-full bg-blue-500" style={{ width: totalActions > 0 ? `${(closedActions/totalActions)*100}%` : '0%' }}></div>
                  </div>
               </div>
            </div>

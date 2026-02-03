@@ -6,10 +6,9 @@ import { Contribution, Member, Event, DataPoint, Anomaly, AttritionRisk, Predict
  * Simule la récupération et la normalisation des données de toutes les commissions
  */
 export const aggregateSystemData = (members: Member[], contributions: Contribution[], events: Event[]) => {
-  // Simulation de calculs complexes et de mise en cache
   const totalFunds = contributions.reduce((acc, c) => acc + c.amount, 0);
   const activeMembers = members.filter(m => m.status === 'active').length;
-  const eventParticipationRate = 0.85; // Mock: taux moyen calculé sur les events passés
+  const eventParticipationRate = events.length > 0 ? 0.5 : 0; // Valeur par défaut neutre
 
   return {
     finance: { totalFunds, history: contributions },
@@ -104,18 +103,10 @@ export const predictAttrition = (members: Member[], contributions: Contribution[
       factors.push('Retard cotisation');
     }
 
-    // Facteur 2: Statut (Simulation)
-    // Dans une vraie app, on utiliserait les logs de présence aux réunions
+    // Facteur 2: Statut
     if (member.status === 'pending') {
       riskScore += 10;
       factors.push('Statut non validé');
-    }
-
-    // Facteur 3: Randomisation pour démo (Simulation de baisse d'engagement)
-    const randomEngagementDrop = Math.random() > 0.8;
-    if (randomEngagementDrop) {
-        riskScore += 15;
-        factors.push('Baisse interaction digitale');
     }
 
     if (riskScore >= 40) {
@@ -136,24 +127,33 @@ export const predictAttrition = (members: Member[], contributions: Contribution[
  * Générateur de Prévisions Financières
  */
 export const generateFinancialForecast = (history: Contribution[]): DataPoint[] => {
-  // Agrégation par mois (Mockée pour la démo basée sur des données constantes + bruit)
-  const months = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin'];
-  const baseData = [450000, 520000, 610000, 580000, 720000, 890000]; // Données réelles simulées
+  if (history.length < 3) return [];
+
+  // Agrégation par mois basée sur les données réelles
+  const aggregated: Record<string, number> = {};
+  history.forEach(c => {
+      const month = new Date(c.date).toLocaleString('default', { month: 'short' });
+      aggregated[month] = (aggregated[month] || 0) + c.amount;
+  });
+
+  const months = Object.keys(aggregated);
+  const values = Object.values(aggregated);
   
-  const { slope, intercept } = calculateLinearRegression(baseData);
+  const { slope, intercept } = calculateLinearRegression(values);
   
   const forecast: DataPoint[] = [];
   
   // Données historiques
-  baseData.forEach((val, i) => {
-    forecast.push({ date: months[i], value: val, type: 'real' });
+  months.forEach((m, i) => {
+    forecast.push({ date: m, value: values[i], type: 'real' });
   });
 
-  // Prédictions pour les 3 prochains mois
-  const futureMonths = ['Juil', 'Août', 'Sept'];
+  // Prédictions pour les 3 prochains mois (simulé simplement par extension linéaire)
+  // Dans un cas réel, on gérerait les dates futures correctement
+  const futureMonths = ['M+1', 'M+2', 'M+3'];
   futureMonths.forEach((m, i) => {
-    const x = baseData.length + i;
-    const predicted = slope * x + intercept;
+    const x = values.length + i;
+    const predicted = Math.max(0, slope * x + intercept); // Pas de valeur négative
     forecast.push({ date: m, value: Math.round(predicted), type: 'predicted' });
   });
 

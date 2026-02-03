@@ -1,0 +1,493 @@
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Ticket, QrCode, DollarSign, Users, Search, Filter, 
+  CheckCircle, XCircle, Download, Printer, ScanLine, 
+  CreditCard, RefreshCcw, Smartphone, ChevronRight, Bus,
+  Plus, Calendar, MapPin, User, X, Wallet, Share2, Trash2
+} from 'lucide-react';
+import { TransportSchedule } from '../../types';
+import { getCollection, addItem, updateItem, STORAGE_KEYS } from '../../services/storage';
+
+// Define Ticket interface for type safety with updateItem
+interface TicketItem {
+  id: string;
+  passenger: string;
+  phone: string;
+  trip: string;
+  tripId: string;
+  seat: string;
+  status: string;
+  type: string;
+  amount: number;
+  date: string;
+}
+
+const TicketingManager: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'sales' | 'scanner'>('sales');
+  const [tickets, setTickets] = useState<TicketItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // States Modales
+  const [showSellModal, setShowSellModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<TicketItem | null>(null);
+  
+  // Trips Data for dropdown
+  const [availableTrips, setAvailableTrips] = useState<TransportSchedule[]>([]);
+
+  // Scanner States
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
+
+  // New Sale Form State
+  const [newSale, setNewSale] = useState({
+    passenger: '',
+    phone: '',
+    tripId: '', // ID du trajet sélectionné
+    type: 'Espèces',
+    amount: 3500
+  });
+
+  useEffect(() => {
+    // Load data
+    setTickets(getCollection(STORAGE_KEYS.TICKETS));
+    setAvailableTrips(getCollection<TransportSchedule>(STORAGE_KEYS.TRIPS).filter(t => t.status !== 'termine'));
+
+    const handleStorageChange = () => {
+        setTickets(getCollection(STORAGE_KEYS.TICKETS));
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [showSellModal]);
+
+  // --- STATS ---
+  const stats = useMemo(() => {
+     const total = tickets.reduce((acc, t) => t.status === 'paye' ? acc + Number(t.amount) : acc, 0);
+     const sold = tickets.filter(t => t.status === 'paye').length;
+     const pending = tickets.filter(t => t.status === 'attente').length;
+     
+     // Répartition paiements
+     const byMethod = tickets.reduce((acc: any, t) => {
+         if(t.status === 'paye') acc[t.type] = (acc[t.type] || 0) + Number(t.amount);
+         return acc;
+     }, {});
+
+     return { total, sold, pending, byMethod };
+  }, [tickets]);
+
+  const filteredTickets = tickets.filter(t => 
+    t.passenger.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    t.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // --- ACTIONS ---
+
+  const handleCreateTicket = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trip = availableTrips.find(t => t.id === newSale.tripId);
+    const tripName = trip ? `${trip.origin} -> ${trip.destination}` : 'Trajet Inconnu';
+    
+    const newTicket: TicketItem = {
+        id: `T-${Math.floor(Math.random() * 10000)}`,
+        passenger: newSale.passenger,
+        phone: newSale.phone,
+        trip: tripName,
+        tripId: newSale.tripId,
+        seat: `${Math.floor(Math.random() * 20)}A`, // Mock seat allocation
+        status: 'paye',
+        type: newSale.type,
+        amount: Number(newSale.amount),
+        date: new Date().toLocaleDateString()
+    };
+    
+    addItem(STORAGE_KEYS.TICKETS, newTicket);
+    setTickets(prev => [newTicket, ...prev]);
+    
+    setShowSellModal(false);
+    setNewSale({ passenger: '', phone: '', tripId: '', type: 'Espèces', amount: 3500 });
+  };
+
+  const handleCancelTicket = (id: string) => {
+    if(confirm("Annuler ce billet ? Le montant sera remboursé ou marqué comme dû.")) {
+        updateItem<TicketItem>(STORAGE_KEYS.TICKETS, id, { status: 'annule', amount: 0 });
+        setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'annule', amount: 0 } : t));
+        setSelectedTicket(null);
+    }
+  };
+
+  const handleSimulateScan = () => {
+     setScanning(true);
+     setScanResult(null);
+     setTimeout(() => {
+        setScanning(false);
+        setScanResult(Math.random() > 0.2 ? 'success' : 'error');
+        setTimeout(() => setScanResult(null), 3000); 
+     }, 2000);
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500 relative">
+      
+      {/* --- MODAL VENTE (GUICHET) --- */}
+      {showSellModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+           <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in duration-200">
+              <div className="flex justify-between items-center mb-8">
+                 <div>
+                    <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                       <Wallet size={24} className="text-orange-600"/> Nouveau Billet
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Guichet Express</p>
+                 </div>
+                 <button onClick={() => setShowSellModal(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={20}/></button>
+              </div>
+
+              <form onSubmit={handleCreateTicket} className="space-y-6">
+                 <div className="space-y-4">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Trajet Disponible</label>
+                       <select 
+                         className="w-full p-4 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 outline-none"
+                         value={newSale.tripId}
+                         onChange={e => setNewSale({...newSale, tripId: e.target.value})}
+                         required
+                       >
+                          <option value="">Sélectionner un départ</option>
+                          {availableTrips.map(t => (
+                              <option key={t.id} value={t.id}>{t.eventTitle} ({t.departureDate})</option>
+                          ))}
+                       </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Passager</label>
+                           <input 
+                              required 
+                              type="text" 
+                              placeholder="Prénom Nom"
+                              className="w-full p-4 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none"
+                              value={newSale.passenger}
+                              onChange={e => setNewSale({...newSale, passenger: e.target.value})}
+                           />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Téléphone</label>
+                           <input 
+                              required 
+                              type="tel" 
+                              placeholder="77 000 00 00"
+                              className="w-full p-4 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none"
+                              value={newSale.phone}
+                              onChange={e => setNewSale({...newSale, phone: e.target.value})}
+                           />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paiement</label>
+                        <div className="grid grid-cols-3 gap-2">
+                           {['Espèces', 'Wave', 'Orange Money'].map(m => (
+                              <button 
+                                key={m}
+                                type="button"
+                                onClick={() => setNewSale({...newSale, type: m})}
+                                className={`py-3 rounded-xl text-[10px] font-black uppercase border transition-all ${
+                                   newSale.type === m 
+                                    ? 'bg-slate-800 text-white border-slate-800' 
+                                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                                }`}
+                              >
+                                 {m}
+                              </button>
+                           ))}
+                        </div>
+                    </div>
+
+                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex justify-between items-center">
+                        <span className="text-xs font-bold text-orange-800">Total à encaisser</span>
+                        <span className="text-2xl font-black text-orange-600">{newSale.amount.toLocaleString()} F</span>
+                    </div>
+                 </div>
+
+                 <button type="submit" className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-3">
+                    <CheckCircle size={18}/> Valider Vente
+                 </button>
+              </form>
+           </div>
+        </div>
+      )}
+
+      {/* --- MODAL TICKET DETAIL --- */}
+      {selectedTicket && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in">
+           <div className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl relative">
+              <div className="bg-slate-900 p-6 text-white text-center relative overflow-hidden">
+                 <div className="absolute top-0 right-0 p-4 opacity-10"><Bus size={80}/></div>
+                 <h3 className="text-xl font-black uppercase tracking-widest relative z-10">Billet de Transport</h3>
+                 <p className="text-[10px] opacity-60 font-mono mt-1 relative z-10">REF: {selectedTicket.id}</p>
+              </div>
+              
+              <div className="p-8 relative bg-white">
+                 {/* Ticket Notch */}
+                 <div className="absolute -left-3 top-0 w-6 h-6 bg-slate-900 rounded-full -translate-y-1/2"></div>
+                 <div className="absolute -right-3 top-0 w-6 h-6 bg-slate-900 rounded-full -translate-y-1/2"></div>
+                 <div className="absolute top-0 left-6 right-6 border-t-2 border-dashed border-slate-300"></div>
+
+                 <div className="text-center mb-8 pt-4">
+                    <QrCode size={140} className="mx-auto text-slate-800"/>
+                    <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest">Scannez pour embarquer</p>
+                 </div>
+
+                 <div className="space-y-4">
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                       <span className="text-xs font-bold text-slate-500 uppercase">Passager</span>
+                       <span className="text-sm font-black text-slate-800">{selectedTicket.passenger}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                       <span className="text-xs font-bold text-slate-500 uppercase">Trajet</span>
+                       <span className="text-sm font-black text-slate-800">{selectedTicket.trip}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                       <span className="text-xs font-bold text-slate-500 uppercase">Date</span>
+                       <span className="text-sm font-black text-slate-800">{selectedTicket.date}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                       <span className="text-xs font-bold text-slate-500 uppercase">Siège</span>
+                       <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg font-black text-sm">{selectedTicket.seat}</span>
+                    </div>
+                 </div>
+
+                 <div className="mt-8 flex gap-2">
+                    <button className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 flex items-center justify-center gap-2">
+                       <Printer size={14}/> Imprimer
+                    </button>
+                    <button className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 flex items-center justify-center gap-2">
+                       <Share2 size={14}/> Partager
+                    </button>
+                 </div>
+                 
+                 {selectedTicket.status !== 'annule' && (
+                    <button 
+                      onClick={() => handleCancelTicket(selectedTicket.id)}
+                      className="w-full mt-2 py-3 border border-rose-100 text-rose-500 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-rose-50 flex items-center justify-center gap-2"
+                    >
+                       <Trash2 size={14}/> Annuler Billet
+                    </button>
+                 )}
+
+                 <button onClick={() => setSelectedTicket(null)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-500">
+                    <X size={16}/>
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* KPI HEADER */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+         <div className="glass-card p-6 bg-slate-900 text-white relative overflow-hidden group">
+             <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2 opacity-80">
+                   <Ticket size={18}/>
+                   <span className="text-xs font-bold uppercase tracking-widest">Billets Vendus</span>
+                </div>
+                <h3 className="text-4xl font-black">{stats.sold}</h3>
+                <div className="w-full h-1 bg-white/20 rounded-full mt-4 overflow-hidden">
+                   <div className="h-full bg-emerald-400 w-[70%]"></div>
+                </div>
+             </div>
+             <div className="absolute -right-6 -bottom-6 text-white/10 rotate-12"><Ticket size={100}/></div>
+         </div>
+
+         <div className="glass-card p-6 bg-white border-slate-100">
+             <div className="flex items-center gap-3 mb-2 text-slate-500">
+                <DollarSign size={18}/>
+                <span className="text-xs font-bold uppercase tracking-widest">Recette Totale</span>
+             </div>
+             <h3 className="text-4xl font-black text-emerald-600">{stats.total.toLocaleString()} <span className="text-lg text-slate-400 font-bold">F</span></h3>
+             <div className="flex gap-2 mt-2">
+                <span className="text-[9px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded">Wave: {stats.byMethod['Wave']?.toLocaleString() || 0}</span>
+                <span className="text-[9px] font-bold px-2 py-0.5 bg-orange-50 text-orange-600 rounded">OM: {stats.byMethod['Orange Money']?.toLocaleString() || 0}</span>
+             </div>
+         </div>
+
+         <div className="glass-card p-6 bg-white border-slate-100 flex flex-col justify-center gap-3">
+            <button 
+              onClick={() => setShowSellModal(true)}
+              className="w-full py-3 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all shadow-lg active:scale-95"
+            >
+               <Plus size={16}/> Vendre Billet
+            </button>
+            <button 
+              onClick={() => setActiveTab('scanner')}
+              className={`w-full py-3 rounded-xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'scanner' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+               <ScanLine size={16}/> Scanner
+            </button>
+         </div>
+      </div>
+
+      {/* TABS NAVIGATION */}
+      <div className="flex gap-4 border-b border-slate-200">
+         <button 
+           onClick={() => setActiveTab('sales')}
+           className={`pb-4 px-4 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'sales' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+         >
+            Journal des Ventes
+         </button>
+         <button 
+           onClick={() => setActiveTab('scanner')}
+           className={`pb-4 px-4 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'scanner' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+         >
+            Contrôle d'Accès
+         </button>
+      </div>
+
+      {/* CONTENT: SALES LIST */}
+      {activeTab === 'sales' && (
+         <div className="glass-card bg-white overflow-hidden border-slate-100 shadow-sm animate-in slide-in-from-left-4">
+            <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+               <div className="relative flex-1 w-full md:w-auto group">
+                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors"/>
+                  <input 
+                     type="text" 
+                     placeholder="Rechercher ticket, passager..." 
+                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+               </div>
+               <div className="flex gap-2">
+                  <button className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 transition-colors"><Filter size={18}/></button>
+                  <button className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 transition-colors"><Download size={18}/></button>
+               </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+               <table className="w-full text-left">
+                  <thead className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                     <tr>
+                        <th className="px-6 py-4">Réf. Ticket</th>
+                        <th className="px-6 py-4">Passager</th>
+                        <th className="px-6 py-4">Trajet & Place</th>
+                        <th className="px-6 py-4">Paiement</th>
+                        <th className="px-6 py-4">Statut</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                     {filteredTickets.map(ticket => (
+                        <tr key={ticket.id} className="hover:bg-indigo-50/10 transition-colors group cursor-pointer" onClick={() => setSelectedTicket(ticket)}>
+                           <td className="px-6 py-4 text-xs font-mono text-slate-500">{ticket.id}</td>
+                           <td className="px-6 py-4">
+                              <span className="text-sm font-bold text-slate-800">{ticket.passenger}</span>
+                              <p className="text-[10px] text-slate-400">{ticket.phone}</p>
+                           </td>
+                           <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                 <span className="text-xs font-bold text-slate-700">{ticket.trip}</span>
+                                 <span className="text-[10px] text-slate-400 font-mono">Siège {ticket.seat}</span>
+                              </div>
+                           </td>
+                           <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                 <div className={`p-1.5 rounded-lg ${ticket.type === 'Wave' ? 'bg-blue-100 text-blue-600' : ticket.type === 'Orange Money' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>
+                                    {ticket.type === '-' ? <XCircle size={12}/> : <Smartphone size={12}/>}
+                                 </div>
+                                 <span className="text-xs font-black text-slate-700">{Number(ticket.amount).toLocaleString()} F</span>
+                              </div>
+                           </td>
+                           <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded text-[9px] font-black uppercase ${
+                                 ticket.status === 'paye' ? 'bg-emerald-100 text-emerald-700' : 
+                                 ticket.status === 'annule' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                 {ticket.status}
+                              </span>
+                           </td>
+                           <td className="px-6 py-4 text-right">
+                              <button className="text-slate-400 hover:text-indigo-600 transition-colors"><ChevronRight size={16}/></button>
+                           </td>
+                        </tr>
+                     ))}
+                     {filteredTickets.length === 0 && (
+                        <tr>
+                            <td colSpan={6} className="px-6 py-8 text-center text-slate-400 text-xs italic">Aucun billet trouvé.</td>
+                        </tr>
+                     )}
+                  </tbody>
+               </table>
+            </div>
+         </div>
+      )}
+
+      {/* CONTENT: SCANNER INTERFACE */}
+      {activeTab === 'scanner' && (
+         <div className="flex flex-col items-center justify-center animate-in zoom-in duration-300">
+            <div className="bg-slate-900 rounded-[3rem] p-4 shadow-2xl w-full max-w-md relative overflow-hidden border-4 border-slate-800">
+               {/* ... Scanner Visuals (unchanged) ... */}
+               <div className="text-center pt-8 pb-4">
+                  <h3 className="text-white font-black text-xl uppercase tracking-widest">Contrôle d'Accès</h3>
+                  <p className="text-slate-500 text-xs font-bold mt-1">Placez le QR Code devant la caméra</p>
+               </div>
+               
+               <div className="relative bg-black rounded-[2rem] aspect-[3/4] overflow-hidden flex flex-col items-center justify-center group cursor-pointer" onClick={handleSimulateScan}>
+                  {/* ... Camera simulation content ... */}
+                  {!scanning && !scanResult && (
+                     <>
+                        <div className="w-64 h-64 border-2 border-indigo-500/50 rounded-[2rem] relative z-10">
+                           {/* ... corners ... */}
+                           <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_15px_#6366f1] animate-pulse"></div>
+                        </div>
+                        <p className="absolute bottom-10 text-white/50 text-[10px] font-black uppercase tracking-widest animate-pulse">Toucher pour simuler scan</p>
+                     </>
+                  )}
+
+                  {scanning && (
+                     <div className="flex flex-col items-center gap-4 text-indigo-400 animate-pulse">
+                        <RefreshCcw size={48} className="animate-spin"/>
+                        <span className="font-black uppercase tracking-widest text-xs">Vérification...</span>
+                     </div>
+                  )}
+
+                  {scanResult === 'success' && (
+                     <div className="flex flex-col items-center gap-4 animate-in zoom-in">
+                        <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/50">
+                           <CheckCircle size={48} />
+                        </div>
+                        <h4 className="text-white font-black text-2xl uppercase">Billet Valide</h4>
+                     </div>
+                  )}
+
+                  {scanResult === 'error' && (
+                     <div className="flex flex-col items-center gap-4 animate-in zoom-in">
+                        <div className="w-24 h-24 bg-rose-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-rose-500/50">
+                           <XCircle size={48} />
+                        </div>
+                        <h4 className="text-white font-black text-2xl uppercase">Billet Invalide</h4>
+                     </div>
+                  )}
+               </div>
+
+               <div className="p-6 flex justify-between items-center">
+                   <div className="flex items-center gap-3">
+                      <div className="p-2 bg-slate-800 rounded-lg text-indigo-400"><Bus size={20}/></div>
+                      <div>
+                         <p className="text-white text-xs font-bold">Départ Touba</p>
+                         <p className="text-slate-500 text-[10px] uppercase font-black">08:00 • Bus 1</p>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-white font-mono text-xl font-black">{tickets.filter(t => t.status === 'paye').length}<span className="text-slate-600">/60</span></p>
+                   </div>
+               </div>
+            </div>
+         </div>
+      )}
+
+    </div>
+  );
+};
+
+export default TicketingManager;

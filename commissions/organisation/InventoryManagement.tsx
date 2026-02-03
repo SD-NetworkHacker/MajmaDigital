@@ -1,17 +1,136 @@
 
-import React from 'react';
-import { Package, Search, Filter, Plus, PenTool, ShieldAlert, ChevronRight, Activity } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Package, Search, Filter, Plus, PenTool, ShieldAlert, ChevronRight, Activity, X, Save, Box, Trash2 } from 'lucide-react';
+import { getCollection, addItem, deleteItem, STORAGE_KEYS } from '../../services/storage';
+
+interface Equipment {
+  id: string;
+  name: string;
+  qty: number;
+  condition: string;
+  sub: string;
+  nextCheck: string;
+}
 
 const InventoryManagement: React.FC = () => {
-  const equipment = [
-    { name: 'Marmite Taille 80', qty: 12, condition: 'Bon', sub: 'Cuisine', nextCheck: '15 Juin' },
-    { name: 'Bâche 10x15m', qty: 4, condition: 'Réparation', sub: 'Déco', nextCheck: 'Demain' },
-    { name: 'Machine Espresso Pro', qty: 2, condition: 'Excel.', sub: 'Café', nextCheck: '01 Juil.' },
-    { name: 'Plateaux de service', qty: 50, condition: 'Bon', sub: 'Vaisselle', nextCheck: '-' },
-  ];
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [newItem, setNewItem] = useState<Partial<Equipment>>({ condition: 'Bon état', sub: 'Cuisine' });
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Charger les données au démarrage
+  useEffect(() => {
+    setEquipment(getCollection<Equipment>(STORAGE_KEYS.INVENTORY));
+  }, []);
+
+  const handleAddItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItem.name) return;
+
+    const item: Equipment = {
+      id: Date.now().toString(),
+      name: newItem.name,
+      qty: Number(newItem.qty) || 1,
+      condition: newItem.condition || 'Bon état',
+      sub: newItem.sub || 'Autre',
+      nextCheck: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() // +1 mois
+    };
+
+    // Sauvegarde
+    const updated = addItem(STORAGE_KEYS.INVENTORY, item);
+    setEquipment(updated);
+    
+    setShowModal(false);
+    setNewItem({ condition: 'Bon état', sub: 'Cuisine' });
+  };
+
+  const handleDeleteItem = (id: string) => {
+    if(confirm("Confirmer la suppression de cet équipement ?")) {
+      const updated = deleteItem<Equipment>(STORAGE_KEYS.INVENTORY, id);
+      setEquipment(updated);
+    }
+  };
+
+  const filteredEquipment = equipment.filter(item => 
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    item.sub.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="space-y-8 animate-in zoom-in duration-700">
+    <div className="space-y-8 animate-in zoom-in duration-700 relative">
+      
+      {/* ADD ITEM MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                <Box size={24} className="text-purple-600"/> Nouveau Matériel
+              </h3>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
+            </div>
+            
+            <form onSubmit={handleAddItem} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Désignation</label>
+                <input 
+                  required 
+                  type="text" 
+                  className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-purple-500/20"
+                  value={newItem.name || ''}
+                  onChange={e => setNewItem({...newItem, name: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400">Quantité</label>
+                  <input 
+                    required 
+                    type="number" 
+                    className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none"
+                    value={newItem.qty || ''}
+                    onChange={e => setNewItem({...newItem, qty: Number(e.target.value)})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400">Pôle de Rattachement</label>
+                  <select 
+                    className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none"
+                    value={newItem.sub}
+                    onChange={e => setNewItem({...newItem, sub: e.target.value})}
+                  >
+                    <option>Cuisine</option>
+                    <option>Sonorisation</option>
+                    <option>Décoration</option>
+                    <option>Logistique</option>
+                    <option>Autre</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                 <label className="text-[10px] font-black uppercase text-slate-400">État</label>
+                 <select 
+                    className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none"
+                    value={newItem.condition}
+                    onChange={e => setNewItem({...newItem, condition: e.target.value})}
+                  >
+                    <option>Neuf</option>
+                    <option>Bon état</option>
+                    <option>Usagé</option>
+                    <option>Réparation</option>
+                  </select>
+              </div>
+
+              <div className="pt-4">
+                <button type="submit" className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                  <Save size={16} /> Ajouter au stock
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row justify-between items-end gap-6">
         <div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight">Inventaire du Matériel</h3>
@@ -21,7 +140,10 @@ const InventoryManagement: React.FC = () => {
         </div>
         <div className="flex gap-4">
            <button className="px-6 py-4 bg-white border border-slate-100 rounded-2xl text-slate-600 font-black uppercase text-[10px] tracking-widest shadow-sm">Audit Global</button>
-           <button className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center gap-3">
+           <button 
+             onClick={() => setShowModal(true)}
+             className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center gap-3 hover:bg-purple-600 transition-all"
+           >
               <Plus size={18} /> Ajouter Matériel
            </button>
         </div>
@@ -32,21 +154,30 @@ const InventoryManagement: React.FC = () => {
            <div className="glass-card p-6 flex items-center gap-4 border-slate-100 bg-white shadow-sm">
               <div className="relative flex-1 group">
                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-purple-500 transition-colors" size={20} />
-                 <input type="text" placeholder="Rechercher un équipement..." className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none rounded-[1.5rem] text-sm font-bold shadow-sm focus:ring-4 focus:ring-purple-500/5 transition-all outline-none" />
+                 <input 
+                   type="text" 
+                   value={searchTerm}
+                   onChange={(e) => setSearchTerm(e.target.value)}
+                   placeholder="Rechercher un équipement..." 
+                   className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none rounded-[1.5rem] text-sm font-bold shadow-sm focus:ring-4 focus:ring-purple-500/5 transition-all outline-none" 
+                 />
               </div>
               <button className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-purple-600 transition-all shadow-sm"><Filter size={20}/></button>
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-              {equipment.map((item, i) => (
-                <div key={i} className="glass-card p-8 group hover:border-purple-100 transition-all flex flex-col justify-between">
+              {filteredEquipment.length > 0 ? filteredEquipment.map((item) => (
+                <div key={item.id} className="glass-card p-8 group hover:border-purple-100 transition-all flex flex-col justify-between bg-white">
                    <div className="flex justify-between items-start mb-6">
                       <div className="p-4 bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-purple-50 group-hover:text-purple-600 transition-all">
                         <Package size={28} />
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
-                        item.condition === 'Réparation' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
-                      }`}>{item.condition}</span>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
+                          item.condition === 'Réparation' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+                        }`}>{item.condition}</span>
+                        <button onClick={() => handleDeleteItem(item.id)} className="p-1 text-slate-300 hover:text-rose-500 transition-colors"><Trash2 size={14}/></button>
+                      </div>
                    </div>
                    <h4 className="text-base font-black text-slate-800 leading-none mb-1">{item.name}</h4>
                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-10">Pôle : {item.sub} • Stock : {item.qty}</p>
@@ -58,7 +189,13 @@ const InventoryManagement: React.FC = () => {
                       <button className="p-2 text-slate-200 hover:text-purple-600 transition-colors"><PenTool size={18}/></button>
                    </div>
                 </div>
-              ))}
+              )) : (
+                <div className="col-span-full flex flex-col items-center justify-center p-12 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400">
+                   <Package size={32} className="mb-3 opacity-30"/>
+                   <p className="text-xs font-bold uppercase">Inventaire vide</p>
+                   <button onClick={() => setShowModal(true)} className="mt-4 text-purple-600 text-[10px] font-black uppercase hover:underline">Ajouter le premier article</button>
+                </div>
+              )}
            </div>
         </div>
 
@@ -66,25 +203,21 @@ const InventoryManagement: React.FC = () => {
            <div className="glass-card p-10 bg-indigo-900 text-white relative overflow-hidden group shadow-2xl">
               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-10 opacity-50">Alertes Logistiques</h4>
               <div className="space-y-6 relative z-10">
-                 <div className="flex items-center gap-4 text-rose-300">
+                 <div className="flex items-center gap-4 text-slate-300/50 italic">
                     <ShieldAlert size={24} />
-                    <div>
-                       <p className="text-xs font-black">Contrôle Bâche Darou</p>
-                       <p className="text-[9px] opacity-60">Déchirure signalée après le dernier Thiant.</p>
-                    </div>
+                    <p className="text-xs">Aucune alerte maintenance.</p>
                  </div>
-                 <button className="w-full py-4 bg-white/10 hover:bg-white text-white hover:text-indigo-900 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10">Planifier Réparation</button>
               </div>
            </div>
 
-           <div className="glass-card p-10">
+           <div className="glass-card p-10 bg-white">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8">Répartition par Pôle</h4>
               <div className="space-y-6">
                  {[
-                   { l: 'Cuisine', p: 45, c: 'bg-purple-500' },
-                   { l: 'Décoration', p: 30, c: 'bg-emerald-500' },
-                   { l: 'Sonorisation', p: 15, c: 'bg-blue-500' },
-                   { l: 'Autre', p: 10, c: 'bg-slate-300' },
+                   { l: 'Cuisine', p: 0, c: 'bg-purple-500' },
+                   { l: 'Décoration', p: 0, c: 'bg-emerald-500' },
+                   { l: 'Sonorisation', p: 0, c: 'bg-blue-500' },
+                   { l: 'Autre', p: 0, c: 'bg-slate-300' },
                  ].map((stat, i) => (
                    <div key={i} className="space-y-2">
                       <div className="flex justify-between text-[9px] font-black uppercase">

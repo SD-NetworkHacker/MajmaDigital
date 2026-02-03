@@ -1,36 +1,24 @@
 
-import React, { useState } from 'react';
-// Added CheckCircle to imports to fix the "Cannot find name 'CheckCircle'" error
-import { Camera, Video, Users, CheckSquare, Clock, MapPin, Plus, ChevronRight, MoreHorizontal, ShieldCheck, CheckCircle } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Camera, Video, Users, CheckSquare, Clock, MapPin, Plus, ChevronRight, MoreHorizontal, ShieldCheck, CheckCircle, Calendar, AlertCircle } from 'lucide-react';
+import { useData } from '../../contexts/DataContext';
 
 const EventCoveragePlanner: React.FC = () => {
-  const [activePlan, setActivePlan] = useState<string | null>(null);
+  const { events } = useData();
 
-  const coveragePlans = [
-    { 
-      id: '1', 
-      title: 'Grand Thiant Médina', 
-      date: '25 Mai 2024', 
-      location: 'Dakar, Médina',
-      team: [
-        { name: 'Saliou Diop', role: 'Photographe', status: 'Confirmé' },
-        { name: 'Modou Fall', role: 'Vidéaste / Drone', status: 'Confirmé' }
-      ],
-      gear: ['Sony A7IV', 'DJI Mavic 3', 'Micro HF Sennheiser'],
-      workflow: 'Prise de vue'
-    },
-    { 
-      id: '2', 
-      title: 'Conférence Pédagogique', 
-      date: '12 Juin 2024', 
-      location: 'Ucad, Dakar',
-      team: [
-        { name: 'Awa Ndiaye', role: 'Live Streaming', status: 'En attente' }
-      ],
-      gear: ['ATEM Mini Pro', '2x Lumix GH5'],
-      workflow: 'Préparation'
-    }
-  ];
+  // Génération dynamique des plans de couverture basés sur les événements réels
+  const coveragePlans = useMemo(() => {
+    return events.map(event => ({
+        id: event.id,
+        title: event.title,
+        date: new Date(event.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+        rawDate: new Date(event.date),
+        location: event.location,
+        team: [], // Équipe vide par défaut
+        gear: [],
+        workflow: new Date(event.date) > new Date() ? 'Planification' : 'Post-Prod'
+    })).sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
+  }, [events]);
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
@@ -48,18 +36,20 @@ const EventCoveragePlanner: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-6">
-          {coveragePlans.map(plan => (
+          {coveragePlans.length > 0 ? coveragePlans.map(plan => (
             <div key={plan.id} className="glass-card p-1 relative overflow-hidden group">
               <div className="p-8 flex flex-col md:flex-row gap-8 items-start">
                 <div className="w-full md:w-48 h-32 bg-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-400 group-hover:bg-amber-50 group-hover:text-amber-600 transition-all border border-transparent group-hover:border-amber-100">
                    <span className="text-2xl font-black">{plan.date.split(' ')[0]}</span>
-                   <span className="text-[10px] font-black uppercase">{plan.date.split(' ')[1]}</span>
+                   <span className="text-[10px] font-black uppercase">{plan.date.split(' ').slice(1).join(' ')}</span>
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-4">
                     <h4 className="text-xl font-black text-slate-900 truncate">{plan.title}</h4>
-                    <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-widest">{plan.workflow}</span>
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                        plan.workflow === 'Post-Prod' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'
+                    }`}>{plan.workflow}</span>
                   </div>
                   
                   <div className="flex flex-wrap gap-6 mb-8">
@@ -73,11 +63,11 @@ const EventCoveragePlanner: React.FC = () => {
 
                   <div className="pt-6 border-t border-slate-50 flex justify-between items-center">
                     <div className="flex -space-x-3">
-                      {plan.team.map((m, i) => (
-                        <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500" title={m.name}>
+                      {plan.team.length > 0 ? plan.team.map((m: any, i: number) => (
+                        <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500">
                           {m.name[0]}
                         </div>
-                      ))}
+                      )) : <span className="text-[9px] text-slate-400 italic">Aucune équipe assignée</span>}
                     </div>
                     <button className="text-amber-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all">
                       Détails de mission <ChevronRight size={14} />
@@ -86,7 +76,12 @@ const EventCoveragePlanner: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="flex flex-col items-center justify-center h-64 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400">
+                <Calendar size={48} className="opacity-20 mb-4"/>
+                <p className="text-xs font-bold uppercase">Aucun événement à couvrir</p>
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-4 space-y-8">
@@ -96,10 +91,10 @@ const EventCoveragePlanner: React.FC = () => {
               </h4>
               <div className="space-y-6">
                 {[
-                  { label: 'Caméras chargées', status: true },
-                  { label: 'Cartes SD formatées', status: true },
+                  { label: 'Caméras chargées', status: false },
+                  { label: 'Cartes SD formatées', status: false },
                   { label: 'Micros synchronisés', status: false },
-                  { label: 'Trépieds vérifiés', status: true },
+                  { label: 'Trépieds vérifiés', status: false },
                   { label: 'Backup Disque Dur', status: false },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center justify-between group cursor-pointer">
@@ -119,9 +114,9 @@ const EventCoveragePlanner: React.FC = () => {
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8">Statut des Workflow</h4>
               <div className="space-y-8">
                  {[
-                   { l: 'Sélection Photos', p: 85 },
-                   { l: 'Édition Vidéo Magal', p: 40 },
-                   { l: 'Validation Bureau', p: 10 },
+                   { l: 'Sélection Photos', p: 0 },
+                   { l: 'Édition Vidéo', p: 0 },
+                   { l: 'Validation Bureau', p: 0 },
                  ].map((w, i) => (
                    <div key={i} className="space-y-2">
                      <div className="flex justify-between items-center text-[9px] font-black uppercase">

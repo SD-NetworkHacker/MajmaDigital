@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   GraduationCap, Briefcase, School, User, Target, 
@@ -77,9 +78,9 @@ const SectorCoordinator: React.FC = () => {
 
   const stats = useMemo(() => ({
     count: sectorMembers.length,
-    presenceRate: Math.round((sectorMembers.filter(m => m.status === 'active').length / (sectorMembers.length || 1)) * 92),
-    cotisationRate: Math.floor(Math.random() * 20) + 60,
-    participation: Math.floor(Math.random() * 15) + 75
+    presenceRate: sectorMembers.length > 0 ? Math.round((sectorMembers.filter(m => m.status === 'active').length / sectorMembers.length) * 100) : 0,
+    cotisationRate: 0, // Placeholder pour future intégration finance
+    participation: 0 // Placeholder pour future intégration events
   }), [sectorMembers]);
 
   // --- ACTIONS ---

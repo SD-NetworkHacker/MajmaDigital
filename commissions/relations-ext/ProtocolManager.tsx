@@ -3,11 +3,7 @@ import React from 'react';
 import { UserCheck, ShieldCheck, Plus, Search, Filter, ChevronRight, UserPlus, FileCheck, Award, History, Clock, MapPin } from 'lucide-react';
 
 const ProtocolManager: React.FC = () => {
-  const guests = [
-    { name: 'Cheikh Ahmadou Fall', title: 'Responsable Pôle France', arrival: '15:00h', zone: 'Salon VIP A', status: 'En route' },
-    { name: 'Dr. Mariama Sy', title: 'Déléguée Académique', arrival: 'Confirmé', zone: 'Hémicycle', status: 'Présente' },
-    { name: 'Délégation Touba', title: 'Bureau Central', arrival: '12:30h', zone: 'Loge Officielle', status: 'En accueil' },
-  ];
+  const guests: any[] = [];
 
   return (
     <div className="space-y-8 animate-in zoom-in duration-500">
@@ -37,32 +33,14 @@ const ProtocolManager: React.FC = () => {
            </div>
 
            <div className="space-y-6">
-              {guests.map((guest, i) => (
-                <div key={i} className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:bg-white hover:border-slate-300 transition-all cursor-pointer">
-                   <div className="flex items-center gap-6">
-                      <div className={`w-14 h-14 bg-white rounded-2xl flex items-center justify-center font-black text-slate-700 shadow-sm border border-slate-100 group-hover:bg-slate-800 group-hover:text-white transition-all`}>
-                         {guest.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div>
-                         <p className="text-base font-black text-slate-800 leading-none mb-2">{guest.name}</p>
-                         <div className="flex items-center gap-3">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">{guest.title}</span>
-                            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                            <span className="text-[10px] text-slate-600 font-black uppercase tracking-tighter flex items-center gap-1"><MapPin size={10}/> {guest.zone}</span>
-                         </div>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-6">
-                      <div className="text-right hidden sm:block">
-                         <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Status Accueil</p>
-                         <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
-                           guest.status === 'Présente' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                         }`}>{guest.status}</span>
-                      </div>
-                      <button className="p-3 bg-white border border-slate-100 rounded-xl text-slate-200 group-hover:text-slate-800 transition-all"><ChevronRight size={18}/></button>
-                   </div>
+              {guests.length > 0 ? guests.map((guest, i) => (
+                <div key={i}></div>
+              )) : (
+                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                   <UserCheck size={40} className="mb-4 opacity-20"/>
+                   <p className="text-xs font-bold uppercase">Aucun invité en cours</p>
                 </div>
-              ))}
+              )}
            </div>
         </div>
 
@@ -85,18 +63,7 @@ const ProtocolManager: React.FC = () => {
                  <Clock size={18} /> Rappels de Vigilance
               </h4>
               <div className="space-y-4">
-                 {[
-                   { l: 'Mise à jour plan de table', s: true },
-                   { l: 'Vérification stock cadeaux', s: false },
-                   { l: 'Briefing équipe accueil', s: true },
-                 ].map((item, i) => (
-                   <div key={i} className="flex items-center justify-between group cursor-pointer">
-                      <span className={`text-[11px] font-bold ${item.s ? 'text-slate-300 line-through' : 'text-slate-600'}`}>{item.l}</span>
-                      <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${item.s ? 'bg-slate-800 text-white' : 'bg-white border-2 border-slate-100 text-transparent'}`}>
-                         <ShieldCheck size={12} />
-                      </div>
-                   </div>
-                 ))}
+                 <p className="text-xs text-slate-400 italic text-center">Aucun rappel actif.</p>
               </div>
            </div>
         </div>

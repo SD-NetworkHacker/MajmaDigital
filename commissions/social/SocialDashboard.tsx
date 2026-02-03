@@ -2,9 +2,9 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Heart, Users, Calendar, Sparkles, Smile, Target, 
-  TrendingUp, LayoutDashboard, History, BookHeart, 
+  TrendingUp, LayoutDashboard, History, Book, 
   Zap, UserCheck, ShieldCheck, Activity, Wallet, FileText,
-  BadgeCheck, Mail, User
+  BadgeCheck, Mail, User, ArrowLeft, ListTodo, Lock
 } from 'lucide-react';
 import SocialCalendar from './SocialCalendar';
 import CommunityBuilder from './CommunityBuilder';
@@ -15,87 +15,118 @@ import CommissionFinancialDashboard from '../shared/CommissionFinancialDashboard
 import CommissionMeetingDashboard from '../shared/CommissionMeetingDashboard';
 import FinancialOverviewWidget from '../shared/FinancialOverviewWidget';
 import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
+import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../context/AuthContext';
 
 const SocialDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const { members } = useData();
+  const { user } = useAuth();
 
-  // Filtrer les membres de la commission Sociale
+  // 1. Identifier le rôle dans le Social
+  const currentUserMember = useMemo(() => members.find(m => m.email === user?.email), [members, user]);
+  const myRole = useMemo(() => {
+    return currentUserMember?.commissions.find(c => c.type === CommissionType.SOCIAL)?.role_commission || 'Membre';
+  }, [currentUserMember]);
+
+  // 2. Permissions
+  const isLeader = ['Dieuwrine', 'Adjoint', 'Secrétaire', 'Responsable'].some(r => myRole.includes(r));
+  const isCasSociaux = myRole.includes('Cas Sociaux') || isLeader; // Accès aux dossiers confidentiels
+  const isAnimator = myRole.includes('Animation') || isLeader;
+
   const commissionTeam = useMemo(() => members.filter(m => 
     m.commissions.some(c => c.type === CommissionType.SOCIAL)
   ), [members]);
 
-  const getRolePriority = (role: string) => {
-    const r = role.toLowerCase();
-    if (r.includes('dieuwrine') && !r.includes('adjoint')) return 1;
-    if (r.includes('dieuwrine adjoint')) return 2;
-    if (r.includes('secrétaire') || r.includes('trésorier')) return 3;
-    if (r.includes('chargé')) return 4;
-    return 10;
-  };
-
   const navItems = [
-    { id: 'overview', label: 'Console Fraternité', icon: LayoutDashboard },
-    { id: 'finance', label: 'Budget Social', icon: Wallet },
-    { id: 'meetings', label: 'Réunions', icon: FileText },
-    { id: 'calendar', label: 'Activités & Sorties', icon: Calendar },
-    { id: 'builder', label: 'Groupes & Mentorat', icon: Users },
-    { id: 'animator', label: 'Boîte à Idées', icon: Zap },
-    { id: 'wellbeing', label: 'Bien-être & Intégr.', icon: Activity },
-    { id: 'heritage', label: 'Patrimoine & Valeurs', icon: BookHeart },
+    { id: 'overview', label: 'Console Fraternité', icon: LayoutDashboard, access: true },
+    { id: 'finance', label: 'Budget Social', icon: Wallet, access: isLeader },
+    { id: 'meetings', label: 'Réunions', icon: FileText, access: isLeader },
+    { id: 'tasks', label: 'Tâches', icon: ListTodo, access: true },
+    { id: 'calendar', label: 'Activités & Sorties', icon: Calendar, access: true },
+    { id: 'builder', label: 'Groupes & Mentorat', icon: Users, access: true },
+    { id: 'animator', label: 'Boîte à Idées', icon: Zap, access: isAnimator },
+    { id: 'wellbeing', label: 'Bien-être & Confidentialité', icon: Activity, access: isCasSociaux }, // Restreint
+    { id: 'heritage', label: 'Patrimoine & Valeurs', icon: Book, access: true },
   ];
+
+  const visibleNavItems = navItems.filter(item => item.access);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+      
+      {/* Role Badge */}
+      <div className="flex items-center gap-3 bg-rose-50/50 p-3 rounded-2xl border border-rose-100 w-fit">
+         <span className="px-3 py-1 bg-rose-600 text-white text-[10px] font-black uppercase rounded-lg tracking-widest">
+            Poste
+         </span>
+         <span className="text-xs font-bold text-rose-900">{myRole}</span>
+         {isCasSociaux && <span className="text-[10px] text-rose-600 flex items-center gap-1 font-black uppercase"><ShieldCheck size={10}/> Accès Confidentiel</span>}
+      </div>
+
       {/* Sub-Navigation Social */}
-      <div className="flex flex-wrap gap-3 bg-white/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 w-fit">
-        {navItems.map(item => (
+      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+        <div className="flex flex-wrap gap-3 bg-white/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 w-fit">
+          {visibleNavItems.map(item => (
+            <button 
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                activeTab === item.id ? 'bg-rose-600 text-white shadow-xl shadow-rose-900/10 border border-rose-500' : 'text-slate-400 hover:text-rose-600'
+              }`}
+            >
+              <item.icon size={16} />
+              <span className="hidden md:inline">{item.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Back Button for Sub-Modules */}
+        {activeTab !== 'overview' && (
           <button 
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-              activeTab === item.id ? 'bg-rose-600 text-white shadow-xl shadow-rose-900/10 border border-rose-500' : 'text-slate-400 hover:text-rose-600'
-            }`}
+            onClick={() => setActiveTab('overview')}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-all shadow-sm group"
           >
-            <item.icon size={16} />
-            <span className="hidden md:inline">{item.label}</span>
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
+            <span className="uppercase text-[10px] tracking-widest">Retour Fraternité</span>
           </button>
-        ))}
+        )}
       </div>
 
       {activeTab === 'overview' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
           
           {/* Admin Widgets Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-             <FinancialOverviewWidget commission={CommissionType.SOCIAL} onClick={() => setActiveTab('finance')} />
-             <MeetingOverviewWidget commission={CommissionType.SOCIAL} onClick={() => setActiveTab('meetings')} />
-             
-             {/* Social Specific Stats */}
-             <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                   <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl"><Users size={20}/></div>
-                   <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded-lg">+12</span>
-                </div>
-                <div>
-                   <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Nouveaux Membres</h4>
-                   <p className="text-[10px] text-slate-400 font-bold">À parrainer ce mois</p>
-                </div>
-             </div>
-             
-             <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                   <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Smile size={20}/></div>
-                   <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">94%</span>
-                </div>
-                <div>
-                   <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Satisfaction</h4>
-                   <p className="text-[10px] text-slate-400 font-bold">Dernière sortie</p>
-                </div>
-             </div>
-          </div>
+          {isLeader && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+               <FinancialOverviewWidget commission={CommissionType.SOCIAL} onClick={() => setActiveTab('finance')} />
+               <MeetingOverviewWidget commission={CommissionType.SOCIAL} onClick={() => setActiveTab('meetings')} />
+               
+               <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                     <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl"><Users size={20}/></div>
+                     <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded-lg">0</span>
+                  </div>
+                  <div>
+                     <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Nouveaux Membres</h4>
+                     <p className="text-[10px] text-slate-400 font-bold">À parrainer ce mois</p>
+                  </div>
+               </div>
+               
+               <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                     <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Smile size={20}/></div>
+                     <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">--%</span>
+                  </div>
+                  <div>
+                     <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Satisfaction</h4>
+                     <p className="text-[10px] text-slate-400 font-bold">En attente de données</p>
+                  </div>
+               </div>
+            </div>
+          )}
 
           {/* Social Health Banner */}
           <div className="bg-gradient-to-br from-rose-600 via-rose-700 to-rose-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
@@ -103,26 +134,12 @@ const SocialDashboard: React.FC = () => {
               <div className="flex justify-between items-start mb-16">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-60 mb-4">Index de Cohésion Globale</p>
-                  <h2 className="text-5xl md:text-7xl font-black tracking-tighter">88.4<span className="text-2xl opacity-30 font-bold ml-2">%</span></h2>
-                  <p className="text-rose-100/60 mt-4 text-sm font-medium">Le sentiment d'appartenance est à son plus haut historique.</p>
+                  <h2 className="text-5xl md:text-7xl font-black tracking-tighter">--<span className="text-2xl opacity-30 font-bold ml-2">%</span></h2>
+                  <p className="text-rose-100/60 mt-4 text-sm font-medium">L'index sera calculé après les premières activités.</p>
                 </div>
                 <div className="p-4 bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-inner">
                   <ShieldCheck size={48} className="text-rose-200" />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                 {[
-                   { l: 'Membres Actifs', v: '112', trend: '+12%', color: 'text-rose-200' },
-                   { l: 'Taux Matching', v: '94%', trend: 'Optimum', color: 'text-emerald-300' },
-                   { l: 'Satisfaction', v: '4.8/5', trend: 'Stable', color: 'text-amber-200' },
-                   { l: 'Projets Sociaux', v: '06', trend: 'En cours', color: 'text-blue-200' }
-                 ].map((item, i) => (
-                   <div key={i} className="p-5 bg-white/5 backdrop-blur-md rounded-3xl border border-white/5">
-                     <p className="text-[9px] font-black uppercase opacity-40 mb-2 tracking-widest">{item.l}</p>
-                     <p className="text-xl font-black mb-1">{item.v}</p>
-                     <span className={`text-[8px] font-bold ${item.color} bg-white/5 px-2 py-0.5 rounded-full`}>{item.trend}</span>
-                   </div>
-                 ))}
               </div>
             </div>
             <div className="absolute top-0 right-0 p-20 opacity-5 font-arabic text-[25rem] pointer-events-none rotate-12">ح</div>
@@ -131,30 +148,17 @@ const SocialDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Live Social Feed & Alerts */}
             <div className="lg:col-span-8 space-y-8">
-               <div className="glass-card p-10">
-                  <div className="flex justify-between items-center mb-10">
+               <div className="glass-card p-10 h-full flex flex-col justify-center items-center text-center">
+                  <div className="flex justify-between items-center mb-10 w-full">
                     <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
                       <Zap size={22} className="text-rose-500" /> Pulse de la Communauté
                     </h3>
-                    <div className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase">2 Nouveaux Membres à parrainer</div>
+                    {isCasSociaux && <div className="px-3 py-1 bg-slate-50 text-slate-400 rounded-full text-[9px] font-black uppercase">Aucune alerte confidentielle</div>}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-rose-200 transition-all cursor-pointer">
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="p-3 bg-white rounded-2xl shadow-sm text-rose-600"><Users size={20}/></div>
-                        <h4 className="font-black text-sm text-slate-800">Matching Mentorat</h4>
-                      </div>
-                      <p className="text-xs text-slate-500 leading-relaxed mb-6">Omar N. (Étudiant) attend un parrain. Profil compatible : Modou Fall.</p>
-                      <button className="w-full py-3 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-900/10">Valider le parrainage</button>
-                    </div>
-                    <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-emerald-200 transition-all cursor-pointer">
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="p-3 bg-white rounded-2xl shadow-sm text-emerald-600"><Smile size={20}/></div>
-                        <h4 className="font-black text-sm text-slate-800">Sortie de Cohésion</h4>
-                      </div>
-                      <p className="text-xs text-slate-500 leading-relaxed mb-6">La sortie au Lac Rose a atteint 85% d'inscriptions. Clôture dans 2 jours.</p>
-                      <button className="w-full py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">Gérer inscriptions</button>
-                    </div>
+                  
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-300">
+                     <Heart size={48} className="mb-4 opacity-20"/>
+                     <p className="text-xs font-bold uppercase">Aucune activité sociale récente</p>
                   </div>
                </div>
             </div>
@@ -165,9 +169,9 @@ const SocialDashboard: React.FC = () => {
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-10 opacity-50">Participation par Secteur</h4>
                   <div className="space-y-6 relative z-10">
                     {[
-                      { l: 'Étudiants', v: 95, c: 'bg-rose-500' },
-                      { l: 'Travailleurs', v: 78, c: 'bg-emerald-500' },
-                      { l: 'Élèves', v: 92, c: 'bg-blue-500' },
+                      { l: 'Étudiants', v: 0, c: 'bg-rose-500' },
+                      { l: 'Travailleurs', v: 0, c: 'bg-emerald-500' },
+                      { l: 'Élèves', v: 0, c: 'bg-blue-500' },
                     ].map((stat, i) => (
                       <div key={i} className="space-y-2">
                         <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
@@ -183,78 +187,16 @@ const SocialDashboard: React.FC = () => {
                </div>
             </div>
           </div>
-
-          {/* SECTION: ÉQUIPE DE LA COMMISSION */}
-          <div className="glass-card p-8 bg-white border border-slate-100/50 mt-8">
-             <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4 border-b border-slate-50 pb-6">
-                <div>
-                   <h4 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                      <BadgeCheck size={24} className="text-rose-600"/> Membres de la Commission
-                   </h4>
-                   <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-2">Hiérarchie et Rôles</p>
-                </div>
-                <span className="px-4 py-2 bg-rose-50 text-rose-700 rounded-full text-[10px] font-black uppercase border border-rose-100">
-                   {commissionTeam.length} Membres Affectés
-                </span>
-             </div>
-             
-             {commissionTeam.length > 0 ? (
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {commissionTeam.sort((a, b) => {
-                      const roleA = a.commissions.find(c => c.type === CommissionType.SOCIAL)?.role_commission || '';
-                      const roleB = b.commissions.find(c => c.type === CommissionType.SOCIAL)?.role_commission || '';
-                      return getRolePriority(roleA) - getRolePriority(roleB);
-                  }).map(member => {
-                      const assignment = member.commissions.find(c => c.type === CommissionType.SOCIAL);
-                      const roleName = assignment ? assignment.role_commission : 'Membre';
-                      
-                      return (
-                          <div key={member.id} className="p-6 rounded-[1.5rem] border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-rose-900/5 hover:border-rose-100 transition-all group cursor-pointer relative overflow-hidden">
-                              <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-rose-50 to-white rounded-bl-[3rem] -mr-4 -mt-4 transition-all group-hover:from-rose-100 group-hover:to-rose-50"></div>
-                              
-                              <div className="relative z-10">
-                                  <div className="flex justify-between items-start mb-4">
-                                      <div className="w-14 h-14 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-rose-700 font-black text-lg shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform">
-                                          {member.firstName[0]}{member.lastName[0]}
-                                      </div>
-                                      <span className={`w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm ${member.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                                  </div>
-                                  
-                                  <h5 className="font-black text-slate-800 text-sm leading-tight mb-1">{member.firstName} {member.lastName}</h5>
-                                  <p className="text-[10px] text-rose-600 font-black uppercase tracking-widest mb-4 bg-rose-50 inline-block px-2 py-0.5 rounded">{roleName}</p>
-                                  
-                                  <div className="pt-4 border-t border-slate-200/50 space-y-2">
-                                      <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium">
-                                          <ShieldCheck size={12} className="text-slate-400"/>
-                                          <span>{member.role}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium truncate">
-                                          <Mail size={12} className="text-slate-400"/>
-                                          <span className="truncate">{member.email}</span>
-                                      </div>
-                                  </div>
-                              </div>
-                          </div>
-                      )
-                  })}
-               </div>
-             ) : (
-                <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400">
-                   <User size={32} className="mb-3 opacity-30"/>
-                   <p className="text-xs font-bold uppercase">Aucun membre assigné</p>
-                   <p className="text-[10px] opacity-70 mt-1">Utilisez la gestion des membres pour affecter du personnel.</p>
-                </div>
-             )}
-          </div>
         </div>
       )}
 
-      {activeTab === 'finance' && <CommissionFinancialDashboard commission={CommissionType.SOCIAL} />}
-      {activeTab === 'meetings' && <CommissionMeetingDashboard commission={CommissionType.SOCIAL} />}
+      {activeTab === 'finance' && isLeader && <CommissionFinancialDashboard commission={CommissionType.SOCIAL} />}
+      {activeTab === 'meetings' && isLeader && <CommissionMeetingDashboard commission={CommissionType.SOCIAL} />}
+      {activeTab === 'tasks' && <TaskManager commission={CommissionType.SOCIAL} />}
       {activeTab === 'calendar' && <SocialCalendar />}
       {activeTab === 'builder' && <CommunityBuilder />}
-      {activeTab === 'animator' && <EventAnimator />}
-      {activeTab === 'wellbeing' && <WellbeingTracker />}
+      {activeTab === 'animator' && isAnimator && <EventAnimator />}
+      {activeTab === 'wellbeing' && isCasSociaux && <WellbeingTracker />}
       {activeTab === 'heritage' && <CulturalHeritage />}
     </div>
   );

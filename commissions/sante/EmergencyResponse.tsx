@@ -1,14 +1,9 @@
 
 import React from 'react';
-// Added Heart to the lucide-react imports
 import { Siren, Phone, MapPin, UserCheck, ShieldAlert, Zap, ChevronRight, Activity, AlertTriangle, ShieldCheck, Heart } from 'lucide-react';
 
 const EmergencyResponse: React.FC = () => {
-  const firstResponders = [
-    { name: 'Saliou Fall', zone: 'Médina', status: 'En service', spec: 'Infirmier / Secouriste' },
-    { name: 'Fatou Ndiaye', zone: 'Plateau', status: 'Pause', spec: 'Médecin Urgentiste' },
-    { name: 'Modou Cissé', zone: 'Grand Yoff', status: 'En service', spec: 'Pompier Volontaire' },
-  ];
+  const firstResponders: any[] = []; // Liste vide
 
   return (
     <div className="space-y-8 animate-in slide-in-from-top-4 duration-700 pb-10">
@@ -73,7 +68,7 @@ const EmergencyResponse: React.FC = () => {
                  <button className="px-4 py-2 bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest">Rafraîchir</button>
               </div>
               <div className="space-y-4 relative z-10">
-                 {firstResponders.map((s, i) => (
+                 {firstResponders.length > 0 ? firstResponders.map((s, i) => (
                    <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:bg-white/10 transition-all">
                       <div className="flex items-center gap-5">
                          <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center font-black text-white shadow-lg">SF</div>
@@ -87,7 +82,9 @@ const EmergencyResponse: React.FC = () => {
                          <div className={`w-2 h-2 rounded-full ${s.status === 'En service' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`}></div>
                       </div>
                    </div>
-                 ))}
+                 )) : (
+                   <p className="text-xs text-slate-500 italic text-center">Aucun secouriste connecté.</p>
+                 )}
               </div>
               <div className="absolute -right-10 -bottom-10 opacity-5 font-arabic text-[12rem] rotate-12">ص</div>
            </div>

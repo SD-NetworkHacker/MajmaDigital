@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { UtensilsCrossed, Calculator, Scale, AlertCircle, ShoppingCart, Users, ChevronRight, Zap } from 'lucide-react';
 
 const KitchenSubModule: React.FC = () => {
-  const [participants, setParticipants] = useState(150);
+  const [participants, setParticipants] = useState(0);
 
   // Simple scaling logic (kg per 100 people)
   const calculateQty = (base: number) => ((base / 100) * participants).toFixed(1);
@@ -28,6 +28,7 @@ const KitchenSubModule: React.FC = () => {
                   value={participants} 
                   onChange={(e) => setParticipants(parseInt(e.target.value) || 0)}
                   className="w-20 bg-transparent border-none outline-none font-black text-purple-700" 
+                  placeholder="0"
                  />
                  <span className="text-[10px] font-black text-purple-400 uppercase mr-2 pr-2">Talibés</span>
               </div>
@@ -55,7 +56,7 @@ const KitchenSubModule: React.FC = () => {
               <div className="flex-1">
                  <h5 className="text-sm font-black text-emerald-900 mb-1">Optimisation des Stocks (IA)</h5>
                  <p className="text-[12px] font-medium text-emerald-700/80 leading-relaxed italic">
-                   "Basé sur l'historique du Thiant précédent, une réduction de 5% sur l'huile est possible sans impacter la qualité, générant une économie de 12,000 FCFA."
+                   "Entrez un nombre de participants pour obtenir des suggestions d'optimisation."
                  </p>
               </div>
               <button className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Appliquer</button>
@@ -83,22 +84,8 @@ const KitchenSubModule: React.FC = () => {
 
            <div className="glass-card p-10 flex flex-col h-full bg-white">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-10">Missions Critiques Cuisine</h4>
-              <div className="space-y-4 flex-1">
-                 {[
-                   { label: 'Achat Légumes Marché', time: '06h30', status: 'Terminé' },
-                   { label: 'Allumage Foyers', time: '09h00', status: 'En cours' },
-                   { label: 'Début Distribution', time: '13h30', status: 'Prévu' },
-                 ].map((m, i) => (
-                   <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white transition-all">
-                      <div>
-                         <p className="text-xs font-black text-slate-800">{m.label}</p>
-                         <p className="text-[9px] text-slate-400 font-bold uppercase">{m.time}</p>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
-                        m.status === 'Terminé' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'
-                      }`}>{m.status}</span>
-                   </div>
-                 ))}
+              <div className="space-y-4 flex-1 text-center flex items-center justify-center">
+                 <p className="text-xs text-slate-400 italic">Aucune mission en cours</p>
               </div>
               <button className="w-full mt-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"><ShoppingCart size={16}/> Générer Liste d'Achat</button>
            </div>

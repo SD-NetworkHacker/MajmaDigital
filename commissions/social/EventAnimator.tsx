@@ -3,11 +3,8 @@ import React from 'react';
 import { Zap, Book, Box, LayoutGrid, Star, ChevronRight, Plus, Info, CheckCircle } from 'lucide-react';
 
 const EventAnimator: React.FC = () => {
-  const activityLibrary = [
-    { title: 'Icebreaker des Matricules', dur: '20 min', category: 'Intégration', impact: 'Élevé' },
-    { title: 'Quiz Histoire du Dahira', dur: '45 min', category: 'Culture', impact: 'Moyen' },
-    { title: 'Chaine de Fraternité', dur: '15 min', category: 'Cohésion', impact: 'Élevé' },
-  ];
+  // Liste vide
+  const activityLibrary: any[] = [];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -26,7 +23,7 @@ const EventAnimator: React.FC = () => {
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-              {activityLibrary.map((act, i) => (
+              {activityLibrary.length > 0 ? activityLibrary.map((act, i) => (
                 <div key={i} className="glass-card p-8 group hover:border-rose-100 transition-all flex flex-col justify-between">
                    <div className="flex justify-between items-start mb-6">
                       <div className="p-3 bg-rose-50 text-rose-600 rounded-xl group-hover:bg-rose-600 group-hover:text-white transition-all">
@@ -43,7 +40,12 @@ const EventAnimator: React.FC = () => {
                       <button className="p-2 text-slate-200 hover:text-amber-400 transition-colors"><Star size={16}/></button>
                    </div>
                 </div>
-              ))}
+              )) : (
+                <div className="col-span-full flex flex-col items-center justify-center h-64 glass-card border-dashed border-2 border-slate-200 text-slate-400">
+                   <Zap size={32} className="mb-4 opacity-20"/>
+                   <p className="text-xs font-bold uppercase">Aucune activité référencée</p>
+                </div>
+              )}
            </div>
         </div>
 
@@ -56,8 +58,8 @@ const EventAnimator: React.FC = () => {
               <div className="space-y-6">
                  {[
                    { l: 'Sonorisation Mobile', s: 'Dispo', c: 'text-emerald-500' },
-                   { l: 'Vidéoprojecteur HD', s: 'En prêt', c: 'text-rose-500' },
-                   { l: 'Lots de dossards (x30)', s: 'Nettoyage', c: 'text-amber-500' },
+                   { l: 'Vidéoprojecteur HD', s: 'Dispo', c: 'text-emerald-500' },
+                   { l: 'Lots de dossards', s: 'Dispo', c: 'text-emerald-500' },
                    { l: 'Jeux de société', s: 'Dispo', c: 'text-emerald-500' },
                  ].map((item, i) => (
                    <div key={i} className="flex justify-between items-center border-b border-slate-50 pb-4 last:border-none">

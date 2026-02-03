@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { 
   Megaphone, MessageSquare, Plus, Search, 
-  BarChart3, X, Trash2, CheckCircle, Vote
+  BarChart3, X, Trash2, CheckCircle, Vote, Bell, Mail, Smartphone
 } from 'lucide-react';
 
 interface Announcement {
@@ -36,6 +36,13 @@ const CommunicationHub: React.FC = () => {
   const [newAnnonce, setNewAnnonce] = useState({ title: '', content: '', urgent: false });
   const [newPoll, setNewPoll] = useState({ question: '', option1: '', option2: '' });
 
+  // Notification Channels for Announcement
+  const [selectedChannels, setSelectedChannels] = useState({
+     push: true,
+     email: false,
+     sms: false
+  });
+
   const handleCreateAnnonce = (e: React.FormEvent) => {
     e.preventDefault();
     const created: Announcement = {
@@ -48,7 +55,15 @@ const CommunicationHub: React.FC = () => {
       readCount: 0
     };
     setAnnouncements([created, ...announcements]);
+    
+    // Simulate Broadcast
+    const activeChannels = Object.keys(selectedChannels).filter(k => selectedChannels[k as keyof typeof selectedChannels]);
+    if (activeChannels.length > 0) {
+        alert(`Annonce publiée et diffusée via : ${activeChannels.join(', ').toUpperCase()}`);
+    }
+
     setNewAnnonce({ title: '', content: '', urgent: false });
+    setSelectedChannels({ push: true, email: false, sms: false });
     setShowModal('none');
   };
 
@@ -91,6 +106,40 @@ const CommunicationHub: React.FC = () => {
                   <label className="text-[10px] font-black uppercase text-slate-400">Contenu</label>
                   <textarea required rows={4} className="w-full p-3 bg-slate-50 rounded-xl text-sm" value={newAnnonce.content} onChange={e => setNewAnnonce({...newAnnonce, content: e.target.value})} />
                 </div>
+                
+                {/* Channel Selection */}
+                <div>
+                   <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">Canaux de diffusion</label>
+                   <div className="grid grid-cols-3 gap-2">
+                      <div 
+                        onClick={() => setSelectedChannels(prev => ({...prev, push: !prev.push}))}
+                        className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all ${selectedChannels.push ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-transparent text-slate-400'}`}
+                      >
+                         <Bell size={16}/>
+                         <span className="text-[9px] font-black uppercase">Push</span>
+                      </div>
+                      <div 
+                        onClick={() => setSelectedChannels(prev => ({...prev, email: !prev.email}))}
+                        className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all ${selectedChannels.email ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-slate-50 border-transparent text-slate-400'}`}
+                      >
+                         <Mail size={16}/>
+                         <span className="text-[9px] font-black uppercase">Email</span>
+                      </div>
+                      <div 
+                        onClick={() => setSelectedChannels(prev => ({...prev, sms: !prev.sms}))}
+                        className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all ${selectedChannels.sms ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-slate-50 border-transparent text-slate-400'}`}
+                      >
+                         <Smartphone size={16}/>
+                         <span className="text-[9px] font-black uppercase">SMS</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                   <input type="checkbox" id="urgent" checked={newAnnonce.urgent} onChange={e => setNewAnnonce({...newAnnonce, urgent: e.target.checked})} />
+                   <label htmlFor="urgent" className="text-xs font-bold text-slate-600">Marquer comme Urgent</label>
+                </div>
+
                 <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg">Publier</button>
               </form>
             )}
@@ -136,10 +185,14 @@ const CommunicationHub: React.FC = () => {
                 </button>
                 {announcements.length === 0 && <p className="text-center text-xs text-slate-400 italic">Aucune annonce publiée.</p>}
                 {announcements.map(item => (
-                  <div key={item.id} className="glass-card p-8">
+                  <div key={item.id} className="glass-card p-8 relative overflow-hidden">
+                     {item.urgent && <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-black uppercase px-3 py-1 rounded-bl-xl">Urgent</div>}
                      <h4 className="text-xl font-black text-slate-900 mb-2">{item.title}</h4>
                      <p className="text-sm text-slate-500 mb-4">{item.content}</p>
-                     <div className="text-[10px] text-slate-400 font-bold uppercase">{item.date} • Par {item.author}</div>
+                     <div className="text-[10px] text-slate-400 font-bold uppercase flex justify-between items-center">
+                        <span>{item.date} • Par {item.author}</span>
+                        <span className="flex items-center gap-1 text-emerald-600"><CheckCircle size={12}/> Diffusé</span>
+                     </div>
                   </div>
                 ))}
              </div>

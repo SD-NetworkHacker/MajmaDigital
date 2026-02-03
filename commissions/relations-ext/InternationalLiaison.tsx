@@ -3,12 +3,7 @@ import React from 'react';
 import { Globe, Users, Heart, Sparkles, MapPin, ChevronRight, MessageCircle, ExternalLink, GraduationCap, Briefcase, Plus, PlaneLanding } from 'lucide-react';
 
 const InternationalLiaison: React.FC = () => {
-  const hubs = [
-    { city: 'Paris', country: 'France', members: 154, activity: 'Élevé', leader: 'Omar Fall' },
-    { city: 'New York', country: 'USA', members: 42, activity: 'Moyen', leader: 'Awa Ndiaye' },
-    { city: 'Casablanca', country: 'Maroc', members: 88, activity: 'En hausse', leader: 'Saliou Diop' },
-    { city: 'Milan', country: 'Italie', members: 67, activity: 'Stable', leader: 'Modou Cissé' },
-  ];
+  const hubs: any[] = [];
 
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700 pb-10">
@@ -41,28 +36,14 @@ const InternationalLiaison: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-                 {hubs.map((hub, i) => (
-                   <div key={i} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:bg-white hover:border-blue-200 transition-all cursor-pointer">
-                      <div className="flex justify-between items-start mb-6">
-                         <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm border border-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                            <MapPin size={24} />
-                         </div>
-                         <div className="text-right">
-                            <span className="text-[8px] font-black uppercase bg-white border border-slate-100 px-2 py-1 rounded-lg text-slate-400">Activité: {hub.activity}</span>
-                         </div>
-                      </div>
-                      <h5 className="text-lg font-black text-slate-800 leading-tight mb-1">{hub.city}, {hub.country}</h5>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-6">{hub.members} Talibés enregistrés</p>
-                      
-                      <div className="pt-6 border-t border-slate-100/50 flex justify-between items-center">
-                         <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-black">AD</div>
-                            <span className="text-[9px] font-black text-slate-500 uppercase">{hub.leader}</span>
-                         </div>
-                         <button className="p-2 text-slate-300 hover:text-blue-600 transition-colors"><ChevronRight size={18}/></button>
-                      </div>
+                 {hubs.length > 0 ? hubs.map((hub, i) => (
+                   <div key={i}></div>
+                 )) : (
+                   <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
+                      <MapPin size={40} className="mb-4 opacity-20"/>
+                      <p className="text-xs font-bold uppercase">Aucun hub international enregistré</p>
                    </div>
-                 ))}
+                 )}
               </div>
            </div>
         </div>
@@ -74,30 +55,9 @@ const InternationalLiaison: React.FC = () => {
                  <Heart size={18} /> Support Desk Diaspora
               </h4>
               <div className="space-y-6 flex-1 relative z-10">
-                 <div className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-4">
-                    <p className="text-[10px] font-black uppercase opacity-40">Prochain Webinar International</p>
-                    <h5 className="text-base font-black">"Intégration & Valeurs : Le défi des études à l'étranger"</h5>
-                    <div className="flex items-center gap-3 text-[10px] text-emerald-400 font-bold uppercase tracking-widest">
-                       <PlaneLanding size={12}/> Samedi 18h GMT • Zoom
-                    </div>
-                    <button className="w-full py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">M'inscrire</button>
-                 </div>
-                 
                  <div className="space-y-4">
                     <h5 className="text-[9px] font-black uppercase opacity-30 border-b border-white/5 pb-2">Dernières Demandes Support</h5>
-                    {[
-                      { l: 'Visa Étudiant - France', s: 'Traitement' },
-                      { l: 'Aide Logement - Casa', s: 'Finalisé' },
-                      { l: 'Transport Kurels Magal', s: 'Ouvert' },
-                    ].map((req, i) => (
-                      <div key={i} className="flex items-center justify-between group cursor-pointer">
-                         <div className="flex items-center gap-3">
-                            <div className={`w-2 h-2 rounded-full ${req.s === 'Finalisé' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
-                            <span className="text-[11px] font-black leading-none">{req.l}</span>
-                         </div>
-                         <ChevronRight size={14} className="opacity-20 group-hover:opacity-100 text-emerald-400 transition-opacity" />
-                      </div>
-                    ))}
+                    <p className="text-xs text-slate-500 italic">Aucune demande en cours.</p>
                  </div>
               </div>
               <div className="absolute -right-10 -bottom-10 opacity-[0.05] font-arabic text-[12rem] rotate-12">ص</div>
@@ -109,9 +69,8 @@ const InternationalLiaison: React.FC = () => {
                  <h4 className="font-black text-xs uppercase tracking-widest">IA Diaspora Match</h4>
               </div>
               <p className="text-[12px] font-medium text-slate-700 leading-relaxed italic">
-                "Nous avons identifié 3 membres à Paris ayant le même parcours académique qu'Abdourahmane Fall qui vient d'arriver. Souhaitez-vous déclencher une mise en relation ?"
+                "En attente de données pour proposer des mises en relation."
               </p>
-              <button className="mt-6 text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">Connecter maintenant</button>
            </div>
         </div>
       </div>

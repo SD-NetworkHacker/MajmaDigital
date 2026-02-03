@@ -1,53 +1,73 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Landmark, TrendingUp, CreditCard, Wallet, Plus, Download, ChevronRight, Target, Sparkles, Filter, Search, Calendar, FileText, Share2, MoreHorizontal } from 'lucide-react';
+import { Landmark, TrendingUp, CreditCard, Wallet, Plus, Download, ChevronRight, Target, Sparkles, Filter, Search, Calendar, FileText, Share2, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { getSmartInsight } from '../services/geminiService';
 import TransactionForm from './TransactionForm';
 import MemberStatementModal from './MemberStatementModal';
 import { Contribution } from '../types';
 import { useData } from '../contexts/DataContext';
-
-const CAMPAIGN_STATS = [
-  { label: 'Magal Touba', budget: 10000000, current: 8200000, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-  { label: 'Sass Mensuel', budget: 5000000, current: 1200000, color: 'text-blue-500', bg: 'bg-blue-50' },
-  { label: 'Fond Social', budget: 2000000, current: 1850000, color: 'text-amber-500', bg: 'bg-amber-50' },
-];
+import { useAuth } from '../context/AuthContext'; // Import Auth
+import MemberFinancePortal from '../commissions/finance/MemberFinancePortal'; // Import Portal
 
 const FinanceModule: React.FC = () => {
-  const { contributions, members, addContribution, totalTreasury } = useData();
+  const { contributions, members, addContribution, updateContribution, deleteContribution, totalTreasury } = useData();
+  const { user } = useAuth(); // Get current user
+
   const [showForm, setShowForm] = useState(false);
   const [selectedMemberForStatement, setSelectedMemberForStatement] = useState<any | null>(null);
+  const [editingTx, setEditingTx] = useState<Contribution | null>(null);
   const [financeInsight, setFinanceInsight] = useState<string>('Analyse des flux en cours...');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
 
-  useEffect(() => {
-    // Petit cache pour éviter d'appeler l'IA à chaque render
-    const cachedInsight = sessionStorage.getItem('financeInsight');
-    if (cachedInsight) {
-      setFinanceInsight(cachedInsight);
-    } else {
-      const fetchInsight = async () => {
-        const msg = await getSmartInsight("conseils de transparence financière pour un dahira");
-        setFinanceInsight(msg);
-        sessionStorage.setItem('financeInsight', msg);
-      };
-      fetchInsight();
-    }
-  }, []);
+  // --- LOGIC: REDIRECT MEMBERS TO PERSONAL PORTAL ---
+  const isManager = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin';
 
-  const handleAddTx = (data: any) => {
-    const newTx: Contribution = {
-      id: Date.now().toString(),
-      memberId: data.memberId || '1',
-      type: data.type as any,
-      amount: Number(data.amount),
-      date: data.date,
-      eventLabel: data.eventLabel || 'Général',
-      status: 'paid'
-    };
-    addContribution(newTx);
+  useEffect(() => {
+    if (isManager) {
+        const cachedInsight = sessionStorage.getItem('financeInsight');
+        if (cachedInsight) {
+          setFinanceInsight(cachedInsight);
+        } else {
+          const fetchInsight = async () => {
+            const msg = await getSmartInsight("conseils de transparence financière pour un dahira");
+            setFinanceInsight(msg);
+            sessionStorage.setItem('financeInsight', msg);
+          };
+          fetchInsight();
+        }
+    }
+  }, [isManager]);
+
+  const handleSaveTx = (data: any) => {
+    if (editingTx) {
+      updateContribution(editingTx.id, {
+        memberId: data.memberId,
+        type: data.type as any,
+        amount: Number(data.amount),
+        date: data.date,
+        eventLabel: data.eventLabel
+      });
+    } else {
+      const newTx: Contribution = {
+        id: Date.now().toString(),
+        memberId: data.memberId || '1',
+        type: data.type as any,
+        amount: Number(data.amount),
+        date: data.date,
+        eventLabel: data.eventLabel || 'Général',
+        status: 'paid'
+      };
+      addContribution(newTx);
+    }
     setShowForm(false);
+    setEditingTx(null);
+  };
+
+  const handleDeleteTx = (id: string) => {
+    if(confirm("Confirmez-vous la suppression de cette transaction ?")) {
+      deleteContribution(id);
+    }
   };
 
   const filteredContributions = useMemo(() => {
@@ -55,16 +75,23 @@ const FinanceModule: React.FC = () => {
       const member = members.find(m => m.id === tx.memberId);
       const searchStr = `${member?.firstName} ${member?.lastName} ${tx.type} ${tx.eventLabel}`.toLowerCase();
       return searchStr.includes(searchTerm.toLowerCase()) && (activeFilter === 'all' || tx.type.toLowerCase() === activeFilter.toLowerCase());
-    });
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [contributions, members, searchTerm, activeFilter]);
 
+  // --- MEMBER VIEW (PORTAL) ---
+  if (!isManager) {
+      return <MemberFinancePortal />;
+  }
+
+  // --- ADMIN VIEW (LEDGER) ---
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-12">
       {showForm && (
         <TransactionForm 
-          onClose={() => setShowForm(false)} 
-          onSubmit={handleAddTx} 
+          onClose={() => { setShowForm(false); setEditingTx(null); }} 
+          onSubmit={handleSaveTx} 
           members={members}
+          initialData={editingTx}
         />
       )}
 
@@ -86,7 +113,7 @@ const FinanceModule: React.FC = () => {
         </div>
         <div className="flex gap-4 w-full md:w-auto">
           <button 
-             onClick={() => setShowForm(true)}
+             onClick={() => { setEditingTx(null); setShowForm(true); }}
              className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-2xl hover:bg-black transition-all active:scale-95"
           >
             <Plus size={18} /> Enregistrer Flux
@@ -113,10 +140,10 @@ const FinanceModule: React.FC = () => {
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                {[
-                 { l: 'Adiyas', v: '450k', trend: '+12%' },
-                 { l: 'Sass', v: '820k', trend: '+5%' },
-                 { l: 'Diayanté', v: '310k', trend: 'Stable' },
-                 { l: 'Urgence', v: '125k', trend: '-2%' }
+                 { l: 'Adiyas', v: contributions.filter(c => c.type === 'Adiyas').reduce((acc, c) => acc + c.amount, 0).toLocaleString(), trend: 'Dons' },
+                 { l: 'Sass', v: contributions.filter(c => c.type === 'Sass').reduce((acc, c) => acc + c.amount, 0).toLocaleString(), trend: 'Cotisations' },
+                 { l: 'Diayanté', v: contributions.filter(c => c.type === 'Diayanté').reduce((acc, c) => acc + c.amount, 0).toLocaleString(), trend: 'Social' },
+                 { l: 'Membres', v: members.length.toString(), trend: 'Donateurs' }
                ].map((item, i) => (
                  <div key={i} className="p-5 bg-white/5 backdrop-blur-md rounded-3xl border border-white/5 group-hover:bg-white/10 transition-colors">
                    <p className="text-[9px] font-black uppercase opacity-40 mb-2 tracking-widest">{item.l}</p>
@@ -147,35 +174,6 @@ const FinanceModule: React.FC = () => {
              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Dieuwrines Finance en ligne</p>
           </div>
         </div>
-      </div>
-
-      {/* Campagnes Actives */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {CAMPAIGN_STATS.map((camp, i) => (
-          <div key={i} className="glass-card p-8 group hover:border-emerald-100 transition-all">
-            <div className="flex justify-between items-start mb-8">
-              <div className={`p-4 rounded-[1.5rem] ${camp.bg} ${camp.color} border border-transparent group-hover:border-current/10 transition-all`}>
-                <Target size={24} />
-              </div>
-              <button className="p-2 text-slate-300 hover:text-emerald-600 transition-colors"><MoreHorizontal size={20} /></button>
-            </div>
-            <h4 className="font-black text-slate-900 text-lg mb-2">{camp.label}</h4>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-8">Objectif: {(camp.budget/1000000).toFixed(1)}M FCFA</p>
-            
-            <div className="space-y-3">
-              <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Collecté</span>
-                <span className={`text-xs font-black ${camp.color}`}>{Math.round((camp.current/camp.budget)*100)}%</span>
-              </div>
-              <div className="w-full h-2 bg-slate-50 rounded-full overflow-hidden border border-slate-100 shadow-inner">
-                <div className={`h-full ${camp.color.replace('text', 'bg')} transition-all duration-1000 ease-out`} style={{ width: `${(camp.current/camp.budget)*100}%` }}></div>
-              </div>
-              <p className="text-[14px] font-black text-slate-800 text-right mt-2">
-                {camp.current.toLocaleString()} <span className="text-[10px] opacity-30">F</span>
-              </p>
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* Table de Transaction Style Ledger */}
@@ -217,10 +215,10 @@ const FinanceModule: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredContributions.map((tx) => {
+              {filteredContributions.length > 0 ? filteredContributions.map((tx) => {
                 const member = members.find(m => m.id === tx.memberId);
                 return (
-                  <tr key={tx.id} className="hover:bg-emerald-50/30 transition-all group cursor-pointer">
+                  <tr key={tx.id} className="hover:bg-emerald-50/30 transition-all group">
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center font-black text-emerald-700 text-[10px] group-hover:scale-110 transition-transform">
@@ -249,18 +247,35 @@ const FinanceModule: React.FC = () => {
                     <td className="px-10 py-8 text-right">
                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                          <button 
+                           onClick={(e) => { e.stopPropagation(); setEditingTx(tx); setShowForm(true); }}
+                           className="p-2 bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-blue-600 transition-colors shadow-sm"
+                           title="Modifier"
+                         >
+                           <Edit size={16} />
+                         </button>
+                         <button 
+                           onClick={(e) => { e.stopPropagation(); handleDeleteTx(tx.id); }}
+                           className="p-2 bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-rose-600 transition-colors shadow-sm"
+                           title="Supprimer"
+                         >
+                           <Trash2 size={16} />
+                         </button>
+                         <button 
                            onClick={(e) => { e.stopPropagation(); if(member) setSelectedMemberForStatement(member); }}
                            className="p-2 bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-emerald-600 transition-colors shadow-sm"
                            title="Relevé individuel"
                          >
                            <FileText size={16} />
                          </button>
-                         <button className="p-2 bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-blue-600 transition-colors shadow-sm"><Share2 size={16} /></button>
                        </div>
                     </td>
                   </tr>
                 );
-              })}
+              }) : (
+                <tr>
+                  <td colSpan={6} className="text-center py-20 text-slate-400 text-xs italic">Aucune transaction enregistrée.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

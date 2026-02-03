@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { getReportsByStatus, validateReportByAdmin } from '../../services/reportService';
 import { InternalMeetingReport } from '../../types';
-import { FileText, Eye, CheckCircle, MessageSquare, Search, Filter } from 'lucide-react';
+import { FileText, Eye, CheckCircle, MessageSquare, Search, Filter, XCircle, MinusCircle } from 'lucide-react';
 
 const AdministrationReviewInterface: React.FC = () => {
   const [pendingReports, setPendingReports] = useState<InternalMeetingReport[]>(getReportsByStatus('soumis_admin'));
@@ -72,15 +72,37 @@ const AdministrationReviewInterface: React.FC = () => {
                     <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">{selectedReport.discussions}</p>
                  </div>
 
-                 <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                       <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Décisions</h5>
-                       <ul className="space-y-2">
-                          {selectedReport.decisions.map((d, i) => (
-                            <li key={i} className="flex items-start gap-2 text-xs font-bold text-slate-700">
-                               <CheckCircle size={14} className="text-emerald-500 mt-0.5 shrink-0"/> {d}
-                            </li>
-                          ))}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                       <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Décisions ({selectedReport.decisions.length})</h5>
+                       <ul className="space-y-3">
+                          {selectedReport.decisions.map((d, i) => {
+                             const totalVotes = d.votes.for + d.votes.against + d.votes.abstain;
+                             const forPercent = totalVotes ? (d.votes.for / totalVotes) * 100 : 0;
+                             const againstPercent = totalVotes ? (d.votes.against / totalVotes) * 100 : 0;
+                             
+                             return (
+                               <li key={i} className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                  <div className="flex items-start gap-2 mb-2">
+                                     {d.status === 'adopted' ? <CheckCircle size={14} className="text-emerald-500 mt-0.5 shrink-0"/> : 
+                                      d.status === 'rejected' ? <XCircle size={14} className="text-rose-500 mt-0.5 shrink-0"/> :
+                                      <MinusCircle size={14} className="text-slate-400 mt-0.5 shrink-0"/>}
+                                     <span className="font-bold">{d.description}</span>
+                                  </div>
+                                  
+                                  {/* Vote Bar */}
+                                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden flex">
+                                     <div className="h-full bg-emerald-500" style={{ width: `${forPercent}%` }}></div>
+                                     <div className="h-full bg-rose-500" style={{ width: `${againstPercent}%` }}></div>
+                                  </div>
+                                  <div className="flex justify-between mt-1 text-[8px] font-bold text-slate-400 uppercase">
+                                     <span className="text-emerald-600">{d.votes.for} Pour</span>
+                                     <span className="text-rose-600">{d.votes.against} Contre</span>
+                                     <span>{d.votes.abstain} Abs.</span>
+                                  </div>
+                               </li>
+                             );
+                          })}
                        </ul>
                     </div>
                     <div className="space-y-2">

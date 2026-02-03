@@ -1,143 +1,594 @@
 
-import React, { useState } from 'react';
-// Added TrendingUp to the list of imported icons from lucide-react to fix the 'Cannot find name' error
-import { Calculator, Users, Calendar, Filter, Search, ChevronRight, ArrowDownRight, CreditCard, Sparkles, TrendingUp } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { 
+  Calculator, Users, Calendar, Filter, Search, ChevronRight, 
+  ArrowDownRight, CreditCard, Sparkles, TrendingUp, Plus, Edit, 
+  Trash2, CheckCircle, Loader2, Crown, Target, Layers, Tent, 
+  Coins, UserCheck, X, Download, AlertCircle 
+} from 'lucide-react';
+import { useData } from '../../contexts/DataContext';
+import { 
+  MemberCategory, Contribution, AdiyaCampaign, FundraisingEvent, 
+  FundraisingGroup 
+} from '../../types';
+import TransactionForm from '../../components/TransactionForm';
+import { exportToCSV } from '../../services/analyticsEngine';
 
 const ContributionManager: React.FC = () => {
-  const [selectedType, setSelectedType] = useState('Sass');
+  const { 
+    members, contributions, addContribution, updateContribution, deleteContribution, 
+    adiyaCampaigns, addAdiyaCampaign, updateAdiyaCampaign,
+    fundraisingEvents, addFundraisingEvent, updateFundraisingEvent
+  } = useData();
+  
+  // View State
+  const [activeTab, setActiveTab] = useState<'journal' | 'elite' | 'events'>('journal');
+  
+  // Journal State
+  const [selectedType, setSelectedType] = useState('Tout');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [editingTx, setEditingTx] = useState<Contribution | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationSuccess, setGenerationSuccess] = useState(false);
+
+  // Adiya Campaign State
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [newCampaign, setNewCampaign] = useState<Partial<AdiyaCampaign>>({
+    title: '',
+    unitAmount: 50000,
+    deadline: '',
+    status: 'open'
+  });
+
+  // Fundraising Event State
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [newFundraisingEvent, setNewFundraisingEvent] = useState<Partial<FundraisingEvent>>({
+    name: '',
+    type: 'Magal',
+    status: 'active',
+    deadline: '',
+    groups: []
+  });
+  
+  // --- STATS JOURNAL ---
+  const stats = useMemo(() => {
+    const activeMembers = members.filter(m => m.status === 'active');
+    const travailleurs = activeMembers.filter(m => m.category === MemberCategory.TRAVAILLEUR).length;
+    const etudiants = activeMembers.filter(m => m.category === MemberCategory.ETUDIANT).length;
+    const eleves = activeMembers.filter(m => m.category === MemberCategory.ELEVE).length;
+    
+    // Total potentiel mensuel
+    const potential = (travailleurs * 5000) + (etudiants * 2500) + (eleves * 1000);
+    
+    return { travailleurs, etudiants, eleves, potential };
+  }, [members]);
 
   const memberCategories = [
-    { type: 'Travailleur', base: 5000, count: 44, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { type: 'Étudiant', base: 2500, count: 52, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { type: 'Élève', base: 1000, count: 28, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { type: 'Travailleur', base: 5000, count: stats.travailleurs, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { type: 'Étudiant', base: 2500, count: stats.etudiants, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { type: 'Élève', base: 1000, count: stats.eleves, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
+
+  // --- ACTIONS JOURNAL ---
+  const handleSaveTx = (data: any) => {
+    if (editingTx) {
+      updateContribution(editingTx.id, {
+        memberId: data.memberId,
+        type: data.type as any,
+        amount: Number(data.amount),
+        date: data.date,
+        eventLabel: data.eventLabel
+      });
+    } else {
+      const newTx: Contribution = {
+        id: Date.now().toString(),
+        memberId: data.memberId || '1',
+        type: data.type as any,
+        amount: Number(data.amount),
+        date: data.date,
+        eventLabel: data.eventLabel || 'Général',
+        status: 'paid'
+      };
+      addContribution(newTx);
+    }
+    setShowForm(false);
+    setEditingTx(null);
+  };
+
+  const handleDeleteTx = (id: string) => {
+    if(confirm("Confirmez-vous la suppression de cette transaction ?")) {
+      deleteContribution(id);
+    }
+  };
+
+  const handleBulkGenerateSass = () => {
+    if(!confirm("Générer les cotisations (Sass) pour tous les membres actifs ce mois-ci ? Les doublons seront évités.")) return;
+    setIsGenerating(true);
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    setTimeout(() => {
+      members.forEach(member => {
+        if (member.status !== 'active') return;
+        const existing = contributions.find(c => c.memberId === member.id && c.type === 'Sass' && c.date.startsWith(currentMonth));
+        if (!existing) {
+          let amount = 1000;
+          if (member.category === MemberCategory.TRAVAILLEUR) amount = 5000;
+          if (member.category === MemberCategory.ETUDIANT) amount = 2500;
+          addContribution({
+            id: Date.now().toString() + Math.random().toString().slice(2, 5),
+            memberId: member.id,
+            type: 'Sass',
+            amount: amount,
+            date: new Date().toISOString().split('T')[0],
+            eventLabel: `Mensualité ${new Date().toLocaleString('fr-FR', { month: 'long' })}`,
+            status: 'pending'
+          });
+        }
+      });
+      setIsGenerating(false);
+      setGenerationSuccess(true);
+      setTimeout(() => setGenerationSuccess(false), 3000);
+    }, 1500);
+  };
+
+  const handleExportJournal = () => {
+    const dataToExport = recentContributions.map(c => {
+       const m = members.find(mem => mem.id === c.memberId);
+       return {
+          ID: c.id,
+          Date: new Date(c.date).toLocaleDateString(),
+          Membre: m ? `${m.firstName} ${m.lastName}` : 'Inconnu',
+          Matricule: m?.matricule || 'N/A',
+          Type: c.type,
+          Libelle: c.eventLabel,
+          Montant: c.amount,
+          Statut: c.status
+       };
+    });
+    exportToCSV(`journal_cotisations_${new Date().toISOString().slice(0, 10)}.csv`, dataToExport);
+  };
+
+  const recentContributions = useMemo(() => {
+    let filtered = contributions;
+    if (selectedType !== 'Tout') {
+       if (['Sass', 'Adiyas', 'Diayanté', 'Adiya Élite'].includes(selectedType)) {
+          filtered = filtered.filter(c => c.type === selectedType);
+       }
+    }
+    if (searchTerm) {
+      filtered = filtered.filter(c => {
+        const m = members.find(mem => mem.id === c.memberId);
+        const name = m ? `${m.firstName} ${m.lastName}` : '';
+        return name.toLowerCase().includes(searchTerm.toLowerCase());
+      });
+    }
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [contributions, members, searchTerm, selectedType]);
+
+  // --- ACTIONS CAMPAIGNS ---
+  const handleCreateCampaign = (e: React.FormEvent) => {
+    e.preventDefault();
+    if(!newCampaign.title) return;
+    
+    addAdiyaCampaign({
+        id: Date.now().toString(),
+        title: newCampaign.title!,
+        unitAmount: Number(newCampaign.unitAmount),
+        deadline: newCampaign.deadline || '',
+        status: 'open',
+        participants: [],
+        createdBy: 'Admin', // Should come from auth context
+        description: newCampaign.description || ''
+    });
+    setShowCampaignModal(false);
+    setNewCampaign({ title: '', unitAmount: 50000, deadline: '', status: 'open' });
+  };
+
+  // --- ACTIONS EVENTS ---
+  const handleCreateFundraisingEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if(!newFundraisingEvent.name) return;
+
+    addFundraisingEvent({
+        id: Date.now().toString(),
+        name: newFundraisingEvent.name!,
+        type: newFundraisingEvent.type as any,
+        status: 'active',
+        deadline: newFundraisingEvent.deadline || '',
+        groups: newFundraisingEvent.groups || [],
+        createdAt: new Date().toISOString()
+    });
+    setShowEventModal(false);
+    setNewFundraisingEvent({ name: '', type: 'Magal', status: 'active', deadline: '', groups: [] });
+  };
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+      
+      {/* Transaction Modal */}
+      {showForm && (
+        <TransactionForm 
+          onClose={() => { setShowForm(false); setEditingTx(null); }} 
+          onSubmit={handleSaveTx} 
+          members={members}
+          initialData={editingTx}
+        />
+      )}
+
+      {/* Adiya Campaign Modal */}
+      {showCampaignModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <Crown size={24} className="text-amber-500"/> Nouvelle Campagne
+              </h3>
+              <button onClick={() => setShowCampaignModal(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
+            </div>
+            <form onSubmit={handleCreateCampaign} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Titre</label>
+                <input required type="text" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold" value={newCampaign.title} onChange={e => setNewCampaign({...newCampaign, title: e.target.value})} placeholder="Ex: Groupe 100k" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Montant Cible (par membre)</label>
+                <input required type="number" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold" value={newCampaign.unitAmount} onChange={e => setNewCampaign({...newCampaign, unitAmount: Number(e.target.value)})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Date Limite</label>
+                <input type="date" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold" value={newCampaign.deadline} onChange={e => setNewCampaign({...newCampaign, deadline: e.target.value})} />
+              </div>
+              <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg mt-4">Créer</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Fundraising Event Modal */}
+      {showEventModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <Tent size={24} className="text-indigo-600"/> Nouvel Événement
+              </h3>
+              <button onClick={() => setShowEventModal(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
+            </div>
+            <form onSubmit={handleCreateFundraisingEvent} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Nom de l'événement</label>
+                <input required type="text" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold" value={newFundraisingEvent.name} onChange={e => setNewFundraisingEvent({...newFundraisingEvent, name: e.target.value})} placeholder="Ex: Magal 2024" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Type</label>
+                <select className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold outline-none" value={newFundraisingEvent.type} onChange={e => setNewFundraisingEvent({...newFundraisingEvent, type: e.target.value as any})}>
+                   <option value="Magal">Magal</option>
+                   <option value="Ziar">Ziar</option>
+                   <option value="Gott">Gott</option>
+                   <option value="Autre">Autre</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Date de fin</label>
+                <input type="date" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold" value={newFundraisingEvent.deadline} onChange={e => setNewFundraisingEvent({...newFundraisingEvent, deadline: e.target.value})} />
+              </div>
+              <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg mt-4">Lancer la collecte</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- HEADER --- */}
       <div className="flex flex-col lg:flex-row justify-between items-end gap-6">
         <div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight">Gestionnaire de Cotisations</h3>
           <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-            <Calculator size={14} className="text-indigo-500" /> Algorithme de calcul différencié par profil
+            <Calculator size={14} className="text-indigo-500" /> Suivi des flux financiers et campagnes
           </p>
         </div>
-        <div className="flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200">
-           {['Adiyas', 'Sass', 'Diayantés'].map(t => (
-              <button 
-                key={t} 
-                onClick={() => setSelectedType(t)}
-                className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  selectedType === t ? 'bg-white text-indigo-700 shadow-md' : 'text-slate-400 hover:text-indigo-600'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+        
+        {/* Tab Switcher */}
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+           <button 
+             onClick={() => setActiveTab('journal')}
+             className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+               activeTab === 'journal' ? 'bg-white text-indigo-700 shadow-md' : 'text-slate-400 hover:text-slate-600'
+             }`}
+           >
+             Journal des Flux
+           </button>
+           <button 
+             onClick={() => setActiveTab('elite')}
+             className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+               activeTab === 'elite' ? 'bg-amber-500 text-white shadow-md' : 'text-slate-400 hover:text-amber-600'
+             }`}
+           >
+             <Crown size={14}/> Adiya Élite
+           </button>
+           <button 
+             onClick={() => setActiveTab('events')}
+             className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+               activeTab === 'events' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-indigo-600'
+             }`}
+           >
+             <Tent size={14}/> Campagnes Événement
+           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Grille Tarifaire Dynamique */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="glass-card p-8 border-indigo-100 bg-indigo-50/10">
-             <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-8 flex items-center gap-2">
-               <Sparkles size={16} /> Barème Automatique : {selectedType}
-             </h4>
-             <div className="space-y-6">
-                {memberCategories.map((cat, i) => (
-                  <div key={i} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                    <div className="flex items-center gap-4">
-                       <div className={`p-3 rounded-xl ${cat.bg} ${cat.color}`}><Users size={18}/></div>
-                       <div>
-                          <p className="text-xs font-black text-slate-800">{cat.type}</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase">{cat.count} membres</p>
-                       </div>
+      {/* --- CONTENT: JOURNAL VIEW --- */}
+      {activeTab === 'journal' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in">
+          
+          {/* Stats & Actions */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="glass-card p-8 border-indigo-100 bg-indigo-50/10">
+               <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-8 flex items-center gap-2">
+                 <Sparkles size={16} /> Barème Automatique : Sass
+               </h4>
+               <div className="space-y-6">
+                  {memberCategories.map((cat, i) => (
+                    <div key={i} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                      <div className="flex items-center gap-4">
+                         <div className={`p-3 rounded-xl ${cat.bg} ${cat.color}`}><Users size={18}/></div>
+                         <div>
+                            <p className="text-xs font-black text-slate-800">{cat.type}</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase">{cat.count} membres</p>
+                         </div>
+                      </div>
+                      <div className="text-right">
+                         <p className="text-base font-black text-slate-900">{cat.base.toLocaleString()} <span className="text-[10px] opacity-40">F</span></p>
+                         <p className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">Mensuel</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                       <p className="text-base font-black text-slate-900">{cat.base.toLocaleString()} <span className="text-[10px] opacity-40">F</span></p>
-                       <p className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">Échéance mensuelle</p>
-                    </div>
-                  </div>
-                ))}
-             </div>
-             <button className="w-full mt-10 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">
-                <Calendar size={16}/> Programmer Échéances
-             </button>
+                  ))}
+               </div>
+               
+               <button 
+                 onClick={handleBulkGenerateSass}
+                 disabled={isGenerating}
+                 className={`w-full mt-10 py-4 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all active:scale-95 ${
+                   generationSuccess ? 'bg-emerald-600' : 'bg-slate-900 hover:bg-black'
+                 }`}
+               >
+                  {isGenerating ? <Loader2 size={16} className="animate-spin"/> : generationSuccess ? <CheckCircle size={16}/> : <Calendar size={16}/>}
+                  {isGenerating ? 'Calcul en cours...' : generationSuccess ? 'Généré avec succès' : 'Générer Échéances du Mois'}
+               </button>
+            </div>
+
+            <div className="glass-card p-8 space-y-4">
+               <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Projection de Recettes (Mensuel)</h4>
+                  <TrendingUp size={16} className="text-emerald-500" />
+               </div>
+               <div className="text-center py-6">
+                  <p className="text-3xl font-black text-slate-900">{stats.potential.toLocaleString()} <span className="text-sm opacity-30">F</span></p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase mt-2">Potentiel théorique (Sass)</p>
+               </div>
+            </div>
           </div>
 
-          <div className="glass-card p-8 space-y-4">
-             <div className="flex justify-between items-center mb-4">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Projection de Recettes</h4>
-                <TrendingUp size={16} className="text-emerald-500" />
+          {/* Transaction List */}
+          <div className="lg:col-span-8 space-y-6">
+             <div className="glass-card p-6 flex flex-wrap items-center gap-4 border-slate-100 bg-white shadow-sm">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                   {['Tout', 'Sass', 'Adiyas', 'Diayanté', 'Adiya Élite'].map(t => (
+                      <button 
+                        key={t}
+                        onClick={() => setSelectedType(t)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
+                           selectedType === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-white'
+                        }`}
+                      >
+                         {t}
+                      </button>
+                   ))}
+                </div>
+                <div className="relative flex-1 group min-w-[200px]">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={16} />
+                   <input 
+                     type="text" 
+                     placeholder="Rechercher..." 
+                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-xs font-bold shadow-sm focus:ring-2 focus:ring-indigo-500/10 transition-all outline-none" 
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                   />
+                </div>
+                <button 
+                  onClick={handleExportJournal} 
+                  className="p-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl hover:text-emerald-600 transition-colors shadow-sm"
+                  title="Exporter en CSV"
+                >
+                  <Download size={16} />
+                </button>
+                <button 
+                    onClick={() => { setEditingTx(null); setShowForm(true); }}
+                    className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center gap-2 hover:bg-indigo-700 transition-all"
+                >
+                    <Plus size={14} /> Saisir
+                </button>
              </div>
-             <div className="text-center py-6">
-                <p className="text-3xl font-black text-slate-900">428,000 <span className="text-sm opacity-30">F</span></p>
-                <p className="text-[9px] font-black text-slate-400 uppercase mt-2">Potentiel mensuel consolidé</p>
-             </div>
-          </div>
-        </div>
 
-        {/* Liste des Versements & Impayés */}
-        <div className="lg:col-span-8 space-y-6">
-           <div className="glass-card p-6 flex items-center gap-4 border-slate-100 bg-white shadow-sm">
-              <div className="relative flex-1 group">
-                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
-                 <input type="text" placeholder="Rechercher un talibé par nom ou matricule..." className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none rounded-[1.5rem] text-sm font-bold shadow-sm focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none" />
-              </div>
-              <button className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Filter size={20}/></button>
-           </div>
-
-           <div className="glass-card overflow-hidden">
-              <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
-                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Suivi des Versements de Mai</h4>
-                 <div className="flex gap-4">
-                    <span className="flex items-center gap-2 text-[9px] font-black text-emerald-600 uppercase"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> 75% À jour</span>
-                    <span className="flex items-center gap-2 text-[9px] font-black text-rose-600 uppercase"><div className="w-2 h-2 rounded-full bg-rose-500"></div> 25% En retard</span>
-                 </div>
-              </div>
-              <div className="divide-y divide-slate-50 overflow-x-auto">
-                 <table className="w-full text-left">
-                    <thead>
-                       <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-white">
-                          <th className="px-8 py-5">Membre</th>
-                          <th className="px-8 py-5">Catégorie</th>
-                          <th className="px-8 py-5">Prévu</th>
-                          <th className="px-8 py-5">Statut</th>
-                          <th className="px-8 py-5 text-right">Action</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                       {[
-                         { name: 'Modou Diop', cat: 'Travailleur', due: '5,000', status: 'Payé', date: '02/05' },
-                         { name: 'Fatou Ndiaye', cat: 'Étudiant', due: '2,500', status: 'En attente', date: '-' },
-                         { name: 'Saliou Fall', cat: 'Élève', due: '1,000', status: 'Payé', date: '05/05' },
-                         { name: 'Awa Sylla', cat: 'Étudiant', due: '2,500', status: 'En retard', date: '-' },
-                       ].map((m, i) => (
-                         <tr key={i} className="hover:bg-indigo-50/20 transition-all group">
-                            <td className="px-8 py-6">
-                               <div className="flex items-center gap-4">
-                                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-xs text-slate-400">MD</div>
-                                  <span className="text-xs font-black text-slate-800">{m.name}</span>
-                               </div>
-                            </td>
-                            <td className="px-8 py-6 text-[10px] font-bold text-slate-400 uppercase">{m.cat}</td>
-                            <td className="px-8 py-6 font-black text-slate-900 text-sm">{m.due} <span className="opacity-30">F</span></td>
-                            <td className="px-8 py-6">
-                               <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
-                                 m.status === 'Payé' ? 'bg-emerald-100 text-emerald-700' : m.status === 'En retard' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'
-                               }`}>{m.status}</span>
-                            </td>
-                            <td className="px-8 py-6 text-right">
-                               <button className="p-2 text-slate-200 hover:text-indigo-600 transition-colors"><CreditCard size={18}/></button>
-                            </td>
+             <div className="glass-card overflow-hidden bg-white">
+                <div className="divide-y divide-slate-50 overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
+                   <table className="w-full text-left">
+                      <thead className="sticky top-0 z-10 bg-white shadow-sm">
+                         <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            <th className="px-6 py-4">Membre</th>
+                            <th className="px-6 py-4">Date</th>
+                            <th className="px-6 py-4">Libellé</th>
+                            <th className="px-6 py-4">Montant</th>
+                            <th className="px-6 py-4 text-right">Action</th>
                          </tr>
-                       ))}
-                    </tbody>
-                 </table>
-              </div>
-           </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                         {recentContributions.length > 0 ? recentContributions.map((c) => {
+                           const m = members.find(mem => mem.id === c.memberId);
+                           return (
+                             <tr key={c.id} className={`hover:bg-indigo-50/20 transition-all group ${c.status === 'pending' ? 'bg-amber-50/30' : ''}`}>
+                                <td className="px-6 py-4">
+                                   <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-black text-[10px] text-slate-400">
+                                         {m ? m.firstName[0] + m.lastName[0] : '?'}
+                                      </div>
+                                      <div>
+                                          <p className="text-xs font-black text-slate-800">{m ? `${m.firstName} ${m.lastName}` : 'Inconnu'}</p>
+                                      </div>
+                                   </div>
+                                </td>
+                                <td className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">{c.date}</td>
+                                <td className="px-6 py-4">
+                                   <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${
+                                      c.type === 'Sass' ? 'bg-blue-50 text-blue-600' : 
+                                      c.type === 'Adiya Élite' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-600'
+                                   }`}>{c.eventLabel || c.type}</span>
+                                </td>
+                                <td className={`px-6 py-4 font-black text-sm ${c.status === 'pending' ? 'text-amber-500' : 'text-indigo-600'}`}>
+                                  {c.amount.toLocaleString()} <span className="opacity-30">F</span>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                   <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      {c.status === 'pending' && (
+                                         <button 
+                                            onClick={() => updateContribution(c.id, { status: 'paid' })}
+                                            className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-colors shadow-sm"
+                                            title="Marquer payé"
+                                         >
+                                            <CheckCircle size={14}/>
+                                         </button>
+                                      )}
+                                      <button 
+                                          onClick={() => { setEditingTx(c); setShowForm(true); }}
+                                          className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 transition-colors shadow-sm"
+                                      >
+                                          <Edit size={14}/>
+                                      </button>
+                                      <button 
+                                          onClick={() => handleDeleteTx(c.id)}
+                                          className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-rose-600 transition-colors shadow-sm"
+                                      >
+                                          <Trash2 size={14}/>
+                                      </button>
+                                   </div>
+                                </td>
+                             </tr>
+                           );
+                         }) : (
+                           <tr>
+                             <td colSpan={5} className="text-center py-10 text-slate-400 text-xs italic">Aucune contribution trouvée.</td>
+                           </tr>
+                         )}
+                      </tbody>
+                   </table>
+                </div>
+             </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* --- CONTENT: ADIYA ELITE VIEW --- */}
+      {activeTab === 'elite' && (
+         <div className="space-y-6 animate-in fade-in">
+            <div className="flex justify-between items-center mb-4">
+               <div>
+                  <h3 className="text-lg font-black text-amber-700 flex items-center gap-2"><Crown size={20}/> Campagnes Adiya Élite</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Suivi des groupes de participation spéciaux</p>
+               </div>
+               <button onClick={() => setShowCampaignModal(true)} className="px-4 py-2 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:bg-amber-600 transition-all flex items-center gap-2">
+                  <Plus size={14}/> Créer Campagne
+               </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {adiyaCampaigns.length > 0 ? adiyaCampaigns.map(campaign => (
+                  <div key={campaign.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:border-amber-200 transition-all">
+                     <div className="absolute top-0 right-0 w-20 h-20 bg-amber-50 rounded-bl-[3rem] -mr-6 -mt-6"></div>
+                     <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-4">
+                           <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${campaign.status === 'open' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>{campaign.status}</span>
+                           <Target size={18} className="text-amber-400"/>
+                        </div>
+                        <h4 className="text-lg font-black text-slate-900 mb-1">{campaign.title}</h4>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase mb-4">{campaign.unitAmount.toLocaleString()} F / Membre</p>
+                        
+                        <div className="space-y-2">
+                           <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                              <span>Participants</span>
+                              <span>{campaign.participants.length}</span>
+                           </div>
+                           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (campaign.participants.length * 10))}%` }}></div>
+                           </div>
+                        </div>
+
+                        <div className="mt-6 pt-4 border-t border-slate-50 flex justify-end">
+                           <button className="text-[10px] font-black text-amber-600 uppercase flex items-center gap-1 hover:gap-2 transition-all">
+                              Gérer <ChevronRight size={12}/>
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+               )) : (
+                  <div className="col-span-full py-12 text-center text-slate-400 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                     <Crown size={32} className="mx-auto mb-2 opacity-20"/>
+                     <p className="text-xs font-bold uppercase">Aucune campagne active</p>
+                  </div>
+               )}
+            </div>
+         </div>
+      )}
+
+      {/* --- CONTENT: EVENTS FUNDRAISING --- */}
+      {activeTab === 'events' && (
+         <div className="space-y-6 animate-in fade-in">
+            <div className="flex justify-between items-center mb-4">
+               <div>
+                  <h3 className="text-lg font-black text-indigo-700 flex items-center gap-2"><Tent size={20}/> Collectes Événementielles</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Magal, Gott et autres mobilisations</p>
+               </div>
+               <button onClick={() => setShowEventModal(true)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:bg-indigo-700 transition-all flex items-center gap-2">
+                  <Plus size={14}/> Nouveau Levier
+               </button>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-6">
+               {fundraisingEvents.length > 0 ? fundraisingEvents.map(event => (
+                  <div key={event.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-6">
+                     <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shrink-0">
+                        <Coins size={32}/>
+                     </div>
+                     <div className="flex-1 text-center md:text-left">
+                        <h4 className="text-lg font-black text-slate-900">{event.name}</h4>
+                        <div className="flex items-center justify-center md:justify-start gap-3 mt-1">
+                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{event.type}</span>
+                           <span className={`w-2 h-2 rounded-full ${event.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                        </div>
+                     </div>
+                     <div className="w-full md:w-auto">
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                           {event.groups.map(g => (
+                              <div key={g.id} className="bg-slate-50 px-4 py-2 rounded-xl text-center border border-slate-100">
+                                 <p className="text-[9px] font-black text-slate-400 uppercase">{g.name}</p>
+                                 <p className="text-sm font-bold text-slate-800">{g.amount.toLocaleString()} F</p>
+                              </div>
+                           ))}
+                           {event.groups.length === 0 && <p className="col-span-2 text-[10px] text-slate-400 italic text-center">Aucun groupe défini</p>}
+                        </div>
+                        <button className="w-full py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">
+                           Détails Collecte
+                        </button>
+                     </div>
+                  </div>
+               )) : (
+                  <div className="py-12 text-center text-slate-400 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                     <Tent size={32} className="mx-auto mb-2 opacity-20"/>
+                     <p className="text-xs font-bold uppercase">Aucun événement de collecte</p>
+                  </div>
+               )}
+            </div>
+         </div>
+      )}
+      
     </div>
   );
 };

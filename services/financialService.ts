@@ -30,6 +30,10 @@ export const getCommissionReports = (commission: CommissionType) => {
   return loadData().reports.filter(r => r.commission === commission);
 };
 
+export const getAllFinancialReports = () => {
+  return loadData().reports;
+};
+
 export const getPendingReports = () => {
   return loadData().reports.filter(r => r.status === 'soumis' || r.status === 'revu_finance');
 };
@@ -55,6 +59,10 @@ export const getCommissionRequests = (commission: CommissionType) => {
   return loadData().requests.filter(r => r.commission === commission);
 };
 
+export const getAllBudgetRequests = () => {
+  return loadData().requests;
+};
+
 export const getAllPendingRequests = () => {
   return loadData().requests.filter(r => ['soumis_finance', 'revu_finance', 'soumis_bureau'].includes(r.status));
 };
@@ -78,8 +86,10 @@ export const createBudgetRequest = (request: Partial<BudgetRequest>) => {
 
 export const processRequestDecision = (requestId: string, decision: 'approve' | 'reject', reviewerRole: 'finance' | 'bureau', amountApproved?: number, reason?: string) => {
   const { requests } = loadData();
-  const req = requests.find(r => r.id === requestId);
-  if (!req) return false;
+  const index = requests.findIndex(r => r.id === requestId);
+  
+  if (index === -1) return null;
+  const req = requests[index];
 
   const THRESHOLD_BUREAU = 50000;
 
@@ -88,11 +98,11 @@ export const processRequestDecision = (requestId: string, decision: 'approve' | 
       req.status = 'rejete';
       req.rejectionReason = reason;
     } else {
+      req.amountApproved = amountApproved || req.amountRequested;
       if (req.amountRequested > THRESHOLD_BUREAU) {
         req.status = 'soumis_bureau';
       } else {
         req.status = 'approuve';
-        req.amountApproved = amountApproved || req.amountRequested;
       }
     }
   } else if (reviewerRole === 'bureau') {
@@ -105,6 +115,27 @@ export const processRequestDecision = (requestId: string, decision: 'approve' | 
     }
   }
 
+  requests[index] = req; // Update in array
   saveRequests(requests);
   return req;
+};
+
+export const processReportDecision = (reportId: string, decision: 'validate' | 'reject', feedback?: string) => {
+  const { reports } = loadData();
+  const index = reports.findIndex(r => r.id === reportId);
+  
+  if (index === -1) return null;
+  const report = reports[index];
+
+  if (decision === 'validate') {
+    report.status = 'cloture';
+  } else {
+    report.status = 'rejete';
+  }
+  
+  // Note: In a real app we would add feedback comments structure here
+  
+  reports[index] = report;
+  saveReports(reports);
+  return report;
 };

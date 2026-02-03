@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, Activity, Users, Database, ChevronRight, HardDrive, Cpu, Wifi, Zap, AlertTriangle, RefreshCcw, Power } from 'lucide-react';
+import { ShieldCheck, Activity, Users, Database, ChevronRight, HardDrive, Cpu, Wifi, Zap, AlertTriangle, RefreshCcw, Power, Loader2, Check, Terminal, FileJson, Lock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useData } from '../contexts/DataContext';
 
 const AdminModule: React.FC = () => {
-  const { userProfile, members, reports, budgetRequests } = useData();
+  const { userProfile, members, reports, budgetRequests, contributions, events } = useData();
   
-  // Simulation de données temps réel pour le monitoring (à connecter à une API de monitoring réelle plus tard)
+  // Simulation de données temps réel pour le monitoring
   const [performanceData] = useState([
     { time: '10:00', load: 12, ai: 45 },
     { time: '10:05', load: 15, ai: 30 },
@@ -18,14 +18,67 @@ const AdminModule: React.FC = () => {
   ]);
 
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  // Admin Actions States
+  const [actionStates, setActionStates] = useState<Record<string, 'idle' | 'loading' | 'success'>>({
+    backup: 'idle',
+    maintenance: 'idle',
+    roles: 'idle',
+    reboot: 'idle'
+  });
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   const handleManualSync = () => {
     setIsSyncing(true);
-    // Simulation de l'action de sync
     setTimeout(() => {
-        window.location.reload(); // Force refresh to get fresh data from LS
+        window.location.reload(); 
         setIsSyncing(false);
     }, 1500);
+  };
+
+  const triggerAction = async (action: string) => {
+    setActionStates(prev => ({ ...prev, [action]: 'loading' }));
+
+    // Logic based on action
+    if (action === 'backup') {
+        await new Promise(r => setTimeout(r, 2000)); // Simulate compression
+        const backupData = {
+            metadata: { date: new Date().toISOString(), version: '3.1.0', generator: 'MajmaAdmin' },
+            members,
+            contributions,
+            events,
+            reports,
+            budgetRequests
+        };
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `MAJMA_BACKUP_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } 
+    else if (action === 'maintenance') {
+        await new Promise(r => setTimeout(r, 1000));
+        setMaintenanceMode(!maintenanceMode);
+    }
+    else if (action === 'roles') {
+        await new Promise(r => setTimeout(r, 1500));
+        // Simulation of permission audit
+        console.log("Audit des rôles terminé");
+    }
+    else if (action === 'reboot') {
+        await new Promise(r => setTimeout(r, 3000));
+        // Simulation reboot
+    }
+
+    setActionStates(prev => ({ ...prev, [action]: 'success' }));
+    
+    // Reset to idle after delay
+    setTimeout(() => {
+        setActionStates(prev => ({ ...prev, [action]: 'idle' }));
+    }, 2500);
   };
 
   // Génération de logs d'activité basés sur les données réelles du contexte
@@ -37,6 +90,18 @@ const AdminModule: React.FC = () => {
 
   return (
     <div className="space-y-10 h-full flex flex-col overflow-hidden animate-in fade-in duration-1000">
+      
+      {/* Maintenance Banner */}
+      {maintenanceMode && (
+         <div className="bg-amber-500 text-white px-6 py-3 rounded-2xl flex items-center justify-between shadow-lg animate-in slide-in-from-top-4 shrink-0">
+            <div className="flex items-center gap-3">
+               <div className="p-1.5 bg-white/20 rounded-lg animate-pulse"><AlertTriangle size={18} /></div>
+               <span className="font-black text-xs uppercase tracking-widest">Mode Maintenance Système Actif</span>
+            </div>
+            <button onClick={() => setMaintenanceMode(false)} className="text-[10px] font-bold bg-black/20 hover:bg-black/30 px-3 py-1 rounded-lg transition-colors">Désactiver</button>
+         </div>
+      )}
+
       {/* Header Statutaire */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shrink-0">
         <div>
@@ -53,9 +118,9 @@ const AdminModule: React.FC = () => {
             <RefreshCcw size={16} className={isSyncing ? 'animate-spin' : ''} />
             {isSyncing ? 'Rafraîchissement...' : 'Recharger Données'}
           </button>
-          <div className="px-6 py-4 bg-emerald-50 text-emerald-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-3 shadow-sm">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></div>
-            Système : Stable
+          <div className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border flex items-center gap-3 shadow-sm transition-colors ${maintenanceMode ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
+            <div className={`w-2 h-2 rounded-full animate-pulse shadow-[0_0_10px_currentColor] ${maintenanceMode ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+            {maintenanceMode ? 'Système : Maintenance' : 'Système : Stable'}
           </div>
         </div>
       </div>
@@ -187,24 +252,90 @@ const AdminModule: React.FC = () => {
 
           {/* Quick Command Center */}
           <div className="lg:col-span-5 space-y-8">
-             <div className="glass-card p-10 bg-slate-900 text-white relative overflow-hidden group">
-                <h3 className="font-black uppercase text-[10px] tracking-widest opacity-50 mb-10">Actions Administratives Prioritaires</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <button className="p-6 bg-white/5 border border-white/10 rounded-[2rem] hover:bg-white hover:text-slate-900 transition-all flex flex-col items-center gap-4 text-center group/btn shadow-xl">
-                     <Database size={24} className="text-emerald-400 group-hover/btn:scale-110 transition-transform" />
-                     <span className="text-[9px] font-black uppercase tracking-widest">Backup Cloud</span>
+             <div className="glass-card p-10 bg-slate-900 text-white relative overflow-hidden group shadow-2xl">
+                <h3 className="font-black uppercase text-[10px] tracking-widest opacity-80 mb-10 flex items-center gap-2 text-emerald-400">
+                   <Terminal size={14} /> Actions Administratives Prioritaires
+                </h3>
+                <div className="grid grid-cols-2 gap-4 relative z-10">
+                  
+                  {/* BUTTON 1: BACKUP */}
+                  <button 
+                    onClick={() => triggerAction('backup')}
+                    disabled={actionStates.backup !== 'idle'}
+                    className={`p-6 border rounded-[2rem] transition-all flex flex-col items-center gap-4 text-center group/btn shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${
+                       actionStates.backup === 'success' 
+                         ? 'bg-emerald-600 border-emerald-500 text-white' 
+                         : 'bg-white/5 border-white/10 hover:bg-white hover:text-slate-900'
+                    }`}
+                  >
+                     {actionStates.backup === 'loading' ? (
+                        <Loader2 size={24} className="animate-spin text-emerald-400" />
+                     ) : actionStates.backup === 'success' ? (
+                        <Check size={24} className="text-white" />
+                     ) : (
+                        <Database size={24} className="text-emerald-400 group-hover/btn:scale-110 transition-transform" />
+                     )}
+                     <span className="text-[9px] font-black uppercase tracking-widest">
+                       {actionStates.backup === 'loading' ? 'Compression...' : actionStates.backup === 'success' ? 'Téléchargé' : 'Backup Cloud'}
+                     </span>
                   </button>
-                  <button className="p-6 bg-white/5 border border-white/10 rounded-[2rem] hover:bg-amber-400 hover:text-slate-900 transition-all flex flex-col items-center gap-4 text-center group/btn shadow-xl">
-                     <AlertTriangle size={24} className="text-amber-400 group-hover/btn:scale-110 transition-transform" />
-                     <span className="text-[9px] font-black uppercase tracking-widest">Maintenance</span>
+
+                  {/* BUTTON 2: MAINTENANCE */}
+                  <button 
+                    onClick={() => triggerAction('maintenance')}
+                    disabled={actionStates.maintenance !== 'idle'}
+                    className={`p-6 border rounded-[2rem] transition-all flex flex-col items-center gap-4 text-center group/btn shadow-lg active:scale-95 ${
+                        maintenanceMode ? 'bg-amber-500 border-amber-400 text-white' : 'bg-white/5 border-white/10 hover:bg-amber-400 hover:text-slate-900'
+                    }`}
+                  >
+                     {actionStates.maintenance === 'loading' ? (
+                        <Loader2 size={24} className="animate-spin text-amber-400" />
+                     ) : (
+                        <AlertTriangle size={24} className={`group-hover/btn:scale-110 transition-transform ${maintenanceMode ? 'text-white' : 'text-amber-400'}`} />
+                     )}
+                     <span className="text-[9px] font-black uppercase tracking-widest">
+                        {maintenanceMode ? 'Mode Maint. ON' : 'Maintenance'}
+                     </span>
                   </button>
-                  <button className="p-6 bg-white/5 border border-white/10 rounded-[2rem] hover:bg-white hover:text-slate-900 transition-all flex flex-col items-center gap-4 text-center group/btn shadow-xl">
-                     <Users size={24} className="text-blue-400 group-hover/btn:scale-110 transition-transform" />
-                     <span className="text-[9px] font-black uppercase tracking-widest">Gest. Rôles</span>
+
+                  {/* BUTTON 3: ROLES */}
+                  <button 
+                    onClick={() => triggerAction('roles')}
+                    disabled={actionStates.roles !== 'idle'}
+                    className={`p-6 border rounded-[2rem] transition-all flex flex-col items-center gap-4 text-center group/btn shadow-lg active:scale-95 disabled:opacity-70 ${
+                       actionStates.roles === 'success' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-white/5 border-white/10 hover:bg-white hover:text-slate-900'
+                    }`}
+                  >
+                     {actionStates.roles === 'loading' ? (
+                        <Loader2 size={24} className="animate-spin text-blue-400" />
+                     ) : actionStates.roles === 'success' ? (
+                        <Lock size={24} className="text-white" />
+                     ) : (
+                        <Users size={24} className="text-blue-400 group-hover/btn:scale-110 transition-transform" />
+                     )}
+                     <span className="text-[9px] font-black uppercase tracking-widest">
+                        {actionStates.roles === 'success' ? 'Audit OK' : 'Audit Rôles'}
+                     </span>
                   </button>
-                  <button className="p-6 bg-white/5 border border-white/10 rounded-[2rem] hover:bg-rose-500 hover:text-white transition-all flex flex-col items-center gap-4 text-center group/btn shadow-xl">
-                     <Power size={24} className="text-rose-400 group-hover/btn:scale-110 transition-transform" />
-                     <span className="text-[9px] font-black uppercase tracking-widest">Reboot IA</span>
+
+                  {/* BUTTON 4: REBOOT */}
+                  <button 
+                    onClick={() => triggerAction('reboot')}
+                    disabled={actionStates.reboot !== 'idle'}
+                    className={`p-6 border rounded-[2rem] transition-all flex flex-col items-center gap-4 text-center group/btn shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${
+                        actionStates.reboot === 'success' ? 'bg-rose-600 border-rose-500 text-white' : 'bg-white/5 border-white/10 hover:bg-rose-500 hover:text-white'
+                    }`}
+                  >
+                     {actionStates.reboot === 'loading' ? (
+                        <Loader2 size={24} className="animate-spin text-rose-400" />
+                     ) : actionStates.reboot === 'success' ? (
+                        <Power size={24} className="text-white" />
+                     ) : (
+                        <Power size={24} className="text-rose-400 group-hover/btn:scale-110 transition-transform" />
+                     )}
+                     <span className="text-[9px] font-black uppercase tracking-widest">
+                        {actionStates.reboot === 'loading' ? 'Rebooting...' : actionStates.reboot === 'success' ? 'Redémarré' : 'Reboot IA'}
+                     </span>
                   </button>
                 </div>
                 <div className="absolute -right-10 -bottom-10 text-white/5 font-arabic text-8xl">ت</div>

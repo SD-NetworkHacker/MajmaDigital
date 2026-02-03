@@ -1,17 +1,75 @@
 
-import React from 'react';
-import { Users, Calendar, Clock, MapPin, ChevronRight, Plus, UserPlus, Info, CheckCircle, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, Calendar, Clock, MapPin, ChevronRight, Plus, UserPlus, Info, CheckCircle, ShieldCheck, X, Save } from 'lucide-react';
 
 interface Props { sector: string; }
 
+interface StudyGroup {
+  id: string;
+  name: string;
+  theme: string;
+  members: number;
+}
+
 const StudyGroupManager: React.FC<Props> = ({ sector }) => {
-  const groups = [
-    { name: 'Kurel Mémorisation A', leader: 'Omar Ndiaye', members: 8, activity: 'Récitation collective', time: 'Mardi 21h', status: 'Actif' },
-    { name: 'Cercle de Réflexion', leader: 'Sokhna Fall', members: 12, activity: 'Analyse des écrits', time: 'Samedi 10h', status: 'Ouvert' },
-  ];
+  const [groups, setGroups] = useState<StudyGroup[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [newGroup, setNewGroup] = useState({ name: '', theme: '' });
+
+  const handleAddGroup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGroup.name) return;
+    setGroups([...groups, { id: Date.now().toString(), name: newGroup.name, theme: newGroup.theme, members: 1 }]);
+    setShowModal(false);
+    setNewGroup({ name: '', theme: '' });
+  };
 
   return (
-    <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
+    <div className="space-y-8 animate-in slide-in-from-left-4 duration-500 relative">
+      
+      {/* ADD GROUP MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                <Users size={24} className="text-cyan-600"/> Nouveau Groupe
+              </h3>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
+            </div>
+            
+            <form onSubmit={handleAddGroup} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Nom du groupe</label>
+                <input 
+                  required 
+                  type="text" 
+                  className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500/20"
+                  value={newGroup.name}
+                  onChange={e => setNewGroup({...newGroup, name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Thème d'étude</label>
+                <input 
+                  required 
+                  type="text" 
+                  className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500/20"
+                  value={newGroup.theme}
+                  onChange={e => setNewGroup({...newGroup, theme: e.target.value})}
+                />
+              </div>
+
+              <div className="pt-4">
+                <button type="submit" className="w-full py-4 bg-cyan-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                  <Save size={16} /> Former le groupe
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Group Management */}
         <div className="lg:col-span-8 space-y-6">
@@ -19,32 +77,36 @@ const StudyGroupManager: React.FC<Props> = ({ sector }) => {
               <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
                  <Users size={22} className="text-cyan-500" /> Mes Groupes d'Étude
               </h3>
-              <button className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl active:scale-95 transition-all"><Plus size={14}/> Créer un Groupe</button>
+              <button 
+                onClick={() => setShowModal(true)}
+                className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl active:scale-95 transition-all"
+              >
+                <Plus size={14}/> Créer un Groupe
+              </button>
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {groups.map((group, i) => (
-                <div key={i} className="glass-card p-8 group hover:border-cyan-100 transition-all flex flex-col justify-between">
-                   <div className="flex justify-between items-start mb-8">
-                      <div className="w-14 h-14 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center font-black shadow-inner group-hover:bg-cyan-600 group-hover:text-white transition-all">
-                         {group.name[0]}
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                        group.status === 'Actif' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-                      }`}>{group.status}</span>
+              {groups.length > 0 ? groups.map((group) => (
+                <div key={group.id} className="p-6 bg-white border border-slate-100 rounded-[2rem] hover:shadow-lg transition-all group">
+                   <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-cyan-50 text-cyan-600 rounded-xl group-hover:bg-cyan-600 group-hover:text-white transition-all"><Users size={20}/></div>
+                      <span className="text-[9px] font-black uppercase bg-slate-50 px-2 py-1 rounded text-slate-500">{group.members} Membres</span>
                    </div>
-                   <div>
-                      <h4 className="text-lg font-black text-slate-900 leading-tight mb-2">{group.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-10">Dieuwrine : {group.leader} • {group.members} membres</p>
-                   </div>
-                   <div className="pt-6 border-t border-slate-50 flex justify-between items-center">
-                      <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase">
-                         <Clock size={12}/> {group.time}
+                   <h4 className="text-lg font-black text-slate-800">{group.name}</h4>
+                   <p className="text-xs text-slate-500 mt-1">{group.theme}</p>
+                   <div className="mt-6 pt-4 border-t border-slate-50 flex justify-between items-center">
+                      <div className="flex -space-x-2">
+                         <div className="w-6 h-6 bg-slate-200 rounded-full border-2 border-white"></div>
                       </div>
-                      <button className="p-2 bg-slate-50 text-slate-300 rounded-xl hover:text-cyan-600 hover:bg-white hover:shadow-md transition-all"><ChevronRight size={18}/></button>
+                      <button className="text-[9px] font-black text-cyan-600 uppercase">Rejoindre</button>
                    </div>
                 </div>
-              ))}
+              )) : (
+                <div className="col-span-full flex flex-col items-center justify-center h-48 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400">
+                   <Users size={32} className="mb-4 opacity-20"/>
+                   <p className="text-xs font-bold uppercase">Aucun groupe actif</p>
+                </div>
+              )}
            </div>
         </div>
 
@@ -55,18 +117,7 @@ const StudyGroupManager: React.FC<Props> = ({ sector }) => {
                  <Calendar size={20} className="text-cyan-600" /> Prochaines Sessions
               </h4>
               <div className="space-y-6">
-                 {[
-                   { title: 'Webinaire : Tawhid', time: 'Demain 18h', type: 'Digital' },
-                   { title: 'Séance d\'Imprégnation', time: 'Vendredi 15h', type: 'Présentiel' },
-                 ].map((s, i) => (
-                   <div key={i} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm group hover:border-cyan-200 transition-all cursor-pointer">
-                      <div>
-                         <p className="text-xs font-black text-slate-800 leading-none mb-1.5">{s.title}</p>
-                         <p className="text-[9px] text-slate-400 font-bold uppercase">{s.time} • {s.type}</p>
-                      </div>
-                      <UserPlus size={16} className="text-slate-200 group-hover:text-cyan-500 transition-colors" />
-                   </div>
-                 ))}
+                 <p className="text-xs text-slate-400 italic text-center">Aucune session planifiée.</p>
               </div>
            </div>
 

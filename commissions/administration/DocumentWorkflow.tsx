@@ -24,43 +24,8 @@ interface Document {
   workflow: { step: string; date: string; actor: string }[];
 }
 
-// --- MOCK DATA ---
-const INITIAL_DOCS: Document[] = [
-  { 
-    id: '1', title: 'Règlement Intérieur 2024', type: 'Juridique', version: 'v2.1', author: 'Fatou Sylla', date: '2024-05-14', size: '2.4 MB', status: 'published',
-    description: "Version finale amendée après l'AG du 10 Mai. Inclut les nouvelles clauses sur les cotisations.",
-    workflow: [
-      { step: 'Création', date: '2024-05-01', actor: 'Fatou Sylla' },
-      { step: 'Validation Bureau', date: '2024-05-12', actor: 'Modou Diop' },
-      { step: 'Publication', date: '2024-05-14', actor: 'Admin' }
-    ]
-  },
-  { 
-    id: '2', title: 'PV Réunion Bureau Exécutif', type: 'PV', version: 'v1.0', author: 'Saliou Diop', date: '2024-05-15', size: '1.1 MB', status: 'review',
-    description: "Compte rendu de la réunion mensuelle de coordination. En attente de validation par le SG.",
-    workflow: [
-      { step: 'Rédaction', date: '2024-05-15', actor: 'Saliou Diop' },
-      { step: 'Soumission', date: '2024-05-15', actor: 'Saliou Diop' }
-    ]
-  },
-  { 
-    id: '3', title: 'Budget Prévisionnel Magal', type: 'Financier', version: 'v3.4', author: 'Comm. Finance', date: '2024-05-10', size: '4.5 MB', status: 'draft',
-    description: "Brouillon de travail pour les allocations budgétaires du prochain Magal.",
-    workflow: [
-      { step: 'Initialisation', date: '2024-05-01', actor: 'Moussa Ndiaye' }
-    ]
-  },
-  { 
-    id: '4', title: 'Liste Gott Touba (Zone A)', type: 'Opérationnel', version: 'v1.2', author: 'Comm. Organisation', date: '2024-05-01', size: '850 KB', status: 'archived',
-    description: "Liste des participants et affectations pour la zone A. Archivé suite à la mise à jour v2.0.",
-    workflow: []
-  },
-  { 
-    id: '5', title: 'Contrat Location Bâches', type: 'Juridique', version: 'v1.0', author: 'Comm. Organisation', date: '2024-05-16', size: '3.2 MB', status: 'review',
-    description: "Contrat à signer avec le prestataire EventPro.",
-    workflow: [{ step: 'Import', date: '2024-05-16', actor: 'Omar Gueye' }]
-  },
-];
+// --- MOCK DATA (EMPTY) ---
+const INITIAL_DOCS: Document[] = [];
 
 const DocumentWorkflow: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>(INITIAL_DOCS);
@@ -68,6 +33,10 @@ const DocumentWorkflow: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  
+  // Upload form state
+  const [newDocTitle, setNewDocTitle] = useState('');
+  const [newDocType, setNewDocType] = useState('Autre');
 
   // --- FILTERS ---
   const filteredDocs = useMemo(() => {
@@ -104,20 +73,22 @@ const DocumentWorkflow: React.FC = () => {
 
   const handleUpload = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulation upload
+    if (!newDocTitle) return;
+
     const newDoc: Document = {
       id: Date.now().toString(),
-      title: 'Nouveau Document Scanné',
-      type: 'Autre',
+      title: newDocTitle,
+      type: newDocType as DocType,
       version: 'v1.0',
-      author: 'Admin',
+      author: 'Admin', // In real app, current user
       date: new Date().toISOString().split('T')[0],
-      size: '1.5 MB',
+      size: '0 KB', // Placeholder until real file upload
       status: 'draft',
-      description: 'Document importé récemment.',
+      description: 'Document importé.',
       workflow: [{ step: 'Importation', date: new Date().toISOString().split('T')[0], actor: 'Admin' }]
     };
     setDocuments([newDoc, ...documents]);
+    setNewDocTitle('');
     setShowUploadModal(false);
   };
 
@@ -246,11 +217,22 @@ const DocumentWorkflow: React.FC = () => {
                  </div>
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400">Titre du document</label>
-                    <input type="text" className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="Ex: Rapport mensuel..." required />
+                    <input 
+                      type="text" 
+                      className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" 
+                      placeholder="Ex: Rapport mensuel..." 
+                      required 
+                      value={newDocTitle}
+                      onChange={(e) => setNewDocTitle(e.target.value)}
+                    />
                  </div>
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400">Catégorie</label>
-                    <select className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none">
+                    <select 
+                      className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none"
+                      value={newDocType}
+                      onChange={(e) => setNewDocType(e.target.value)}
+                    >
                        <option>PV de Réunion</option>
                        <option>Juridique</option>
                        <option>Financier</option>
@@ -320,10 +302,10 @@ const DocumentWorkflow: React.FC = () => {
               <div className="space-y-4">
                  <div className="flex justify-between text-[10px] font-black uppercase">
                     <span>Espace Utilisé</span>
-                    <span className="text-emerald-400">12.4 GB</span>
+                    <span className="text-emerald-400">0 GB</span>
                  </div>
                  <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden border border-white/10">
-                    <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: '12%' }}></div>
+                    <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: '0%' }}></div>
                  </div>
                  <p className="text-[9px] font-medium text-slate-400 leading-relaxed opacity-70">
                    Synchronisation automatique activée. Sauvegarde quotidienne à 02:00.

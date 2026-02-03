@@ -60,7 +60,7 @@ const EventForm: React.FC<EventFormProps> = ({ onClose, onSubmit }) => {
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#2E8B57]"
               >
-                {['Magal', 'Ziar', 'Gott', 'Thiant', 'Réunion'].map(t => (
+                {['Magal', 'Ziar', 'Gott', 'Thiant', 'Réunion', 'Autre'].map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>

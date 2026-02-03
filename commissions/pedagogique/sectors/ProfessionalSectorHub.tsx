@@ -18,26 +18,10 @@ const ProfessionalSectorHub: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {[
-                   { title: 'Gestion de Projet Agile', tutor: 'Awa Ndiaye', level: 'Intermédiaire', dur: '4 sessions' },
-                   { title: 'Fiscalité des PME', tutor: 'Modou Fall', level: 'Expert', dur: '1 Masterclass' },
-                   { title: 'Leadership Éthique', tutor: 'Ibrahima Fall', level: 'Tous niveaux', dur: '2 mois' },
-                   { title: 'Outils Digitaux Dahira', tutor: 'Saliou Diop', level: 'Débutant', dur: 'Continu' },
-                 ].map((skill, i) => (
-                   <div key={i} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-white hover:border-blue-200 transition-all group flex flex-col justify-between">
-                      <div className="space-y-3">
-                         <div className="flex justify-between">
-                            <h5 className="text-sm font-black text-slate-800 leading-tight">{skill.title}</h5>
-                            <Star size={14} className="text-amber-400 fill-current" />
-                         </div>
-                         <p className="text-[10px] text-slate-400 font-bold uppercase">Formateur : {skill.tutor} • {skill.dur}</p>
-                      </div>
-                      <div className="mt-6 flex justify-between items-center pt-6 border-t border-slate-50/50">
-                         <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{skill.level}</span>
-                         <button className="text-[10px] font-black text-slate-300 group-hover:text-blue-600 transition-colors flex items-center gap-1">Détails <ChevronRight size={12}/></button>
-                      </div>
-                   </div>
-                 ))}
+                 {/* Liste vide */}
+                 <div className="col-span-2 flex flex-col items-center justify-center py-10 text-slate-400 border-2 border-dashed border-slate-100 rounded-2xl">
+                    <p className="text-xs font-bold uppercase">Aucune formation disponible</p>
+                 </div>
               </div>
            </div>
 
@@ -71,20 +55,7 @@ const ProfessionalSectorHub: React.FC = () => {
                  <Users size={18} className="text-blue-500" /> Networking Professionnel
               </h4>
               <div className="space-y-6">
-                 {[
-                   { l: 'Business Dinner Médina', d: '25 Mai • 20h', s: 'Limitée' },
-                   { l: 'Conférence Management', d: '02 Juin • 10h', s: 'Ouvert' },
-                   { l: 'Afterwork Talibés-PME', d: '15 Juin • 18h', s: 'Invitations' },
-                 ].map((event, i) => (
-                   <div key={i} className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-white hover:border-blue-200 transition-all cursor-pointer group">
-                      <div className="p-2 bg-white rounded-lg text-blue-600 shadow-sm border border-slate-100 group-hover:bg-blue-50 transition-colors"><MapPin size={16}/></div>
-                      <div className="min-w-0 flex-1">
-                         <p className="text-xs font-black text-slate-800 truncate mb-1">{event.l}</p>
-                         <p className="text-[9px] text-slate-400 font-bold uppercase">{event.d}</p>
-                         <span className="text-[8px] font-black text-blue-500 uppercase mt-2 block">{event.s}</span>
-                      </div>
-                   </div>
-                 ))}
+                 <p className="text-xs text-slate-400 italic text-center">Aucun événement réseau.</p>
               </div>
               <button className="w-full mt-10 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
                  <Share2 size={16}/> Accéder à l'annuaire Pro
@@ -97,9 +68,9 @@ const ProfessionalSectorHub: React.FC = () => {
                  <h4 className="font-black text-xs uppercase tracking-widest">IA Matchmaking</h4>
               </div>
               <p className="text-[12px] font-medium text-slate-700 leading-relaxed italic">
-                "Nous avons détecté une synergie entre votre profil (Informatique) et le projet de Modou Fall (Agrobusiness). Souhaitez-vous une mise en relation ?"
+                "Complétez votre profil professionnel pour recevoir des suggestions de mise en relation ciblées."
               </p>
-              <button className="mt-6 text-[10px] font-black text-emerald-600 hover:underline uppercase tracking-widest">Connecter maintenant</button>
+              <button className="mt-6 text-[10px] font-black text-emerald-600 hover:underline uppercase tracking-widest">Mettre à jour profil</button>
            </div>
         </div>
       </div>

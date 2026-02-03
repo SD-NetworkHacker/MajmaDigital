@@ -2,9 +2,9 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Landmark, Globe, Users, FileText, LayoutDashboard, 
-  MapPinned, Handshake, MessageSquare, ChevronRight,
+  Map, Handshake, MessageSquare, ChevronRight,
   TrendingUp, Award, Zap, Sparkles, UserCheck, ShieldCheck, Wallet,
-  BadgeCheck, Mail, User
+  BadgeCheck, Mail, User, ListTodo
 } from 'lucide-react';
 import PartnerNetwork from './PartnerNetwork';
 import ProtocolManager from './ProtocolManager';
@@ -15,6 +15,7 @@ import CommissionFinancialDashboard from '../shared/CommissionFinancialDashboard
 import CommissionMeetingDashboard from '../shared/CommissionMeetingDashboard';
 import FinancialOverviewWidget from '../shared/FinancialOverviewWidget';
 import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
+import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
 
@@ -40,7 +41,8 @@ const ExternalDashboard: React.FC = () => {
     { id: 'overview', label: 'Console Diplomatique', icon: LayoutDashboard },
     { id: 'finance', label: 'Budget', icon: Wallet },
     { id: 'meetings', label: 'Réunions', icon: FileText },
-    { id: 'network', label: 'Réseau Partenaires', icon: MapPinned },
+    { id: 'tasks', label: 'Tâches', icon: ListTodo },
+    { id: 'network', label: 'Réseau Partenaires', icon: Map },
     { id: 'protocol', label: 'Protocole & VIP', icon: UserCheck },
     { id: 'partnerships', label: 'Conventions', icon: Handshake },
     { id: 'comm', label: 'Presse & Com.', icon: MessageSquare },
@@ -77,7 +79,7 @@ const ExternalDashboard: React.FC = () => {
              <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><Globe size={20}/></div>
-                   <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">24</span>
+                   <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">0</span>
                 </div>
                 <div>
                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Partenaires</h4>
@@ -88,7 +90,7 @@ const ExternalDashboard: React.FC = () => {
              <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Handshake size={20}/></div>
-                   <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">08</span>
+                   <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">0</span>
                 </div>
                 <div>
                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Accords</h4>
@@ -111,10 +113,10 @@ const ExternalDashboard: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                  {[
-                   { l: 'Dahiras Partenaires', v: '24', trend: 'Global', color: 'text-emerald-300' },
-                   { l: 'Accords Actifs', v: '08', trend: 'Signés', color: 'text-blue-300' },
-                   { l: 'VIP Protocolés', v: '15', trend: 'Registrés', color: 'text-amber-300' },
-                   { l: 'Pays Couverts', v: '06', trend: 'International', color: 'text-indigo-300' }
+                   { l: 'Dahiras Partenaires', v: '0', trend: 'Global', color: 'text-emerald-300' },
+                   { l: 'Accords Actifs', v: '0', trend: 'Signés', color: 'text-blue-300' },
+                   { l: 'VIP Protocolés', v: '0', trend: 'Registrés', color: 'text-amber-300' },
+                   { l: 'Pays Couverts', v: '0', trend: 'International', color: 'text-indigo-300' }
                  ].map((item, i) => (
                    <div key={i} className="p-6 bg-white/5 backdrop-blur-md rounded-3xl border border-white/5">
                      <p className="text-[9px] font-black uppercase opacity-40 mb-2 tracking-widest">{item.l}</p>
@@ -130,30 +132,16 @@ const ExternalDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Live Diplomatic Feed */}
             <div className="lg:col-span-8 space-y-8">
-               <div className="glass-card p-10">
-                  <div className="flex justify-between items-center mb-10">
+               <div className="glass-card p-10 flex flex-col justify-center items-center text-center">
+                  <div className="flex justify-between items-center mb-10 w-full">
                     <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
                       <Zap size={22} className="text-slate-600" /> Événements Partenaires
                     </h3>
-                    <div className="px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-[9px] font-black uppercase tracking-widest">Aujourd'hui</div>
+                    <div className="px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-[9px] font-black uppercase tracking-widest">Temps réel</div>
                   </div>
-                  <div className="space-y-4">
-                    <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-[2.5rem] flex items-center gap-6 group hover:bg-white transition-all cursor-pointer">
-                      <div className="p-4 bg-white rounded-2xl shadow-sm text-slate-600"><Landmark size={24}/></div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-black text-slate-800">Ziar Annuel - Dahira Moukhadimatul</h4>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">Délégation de 5 membres attendue à 14h00. Protocole de réception activé.</p>
-                      </div>
-                      <button className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 group-hover:text-slate-800 transition-all"><ChevronRight size={18}/></button>
-                    </div>
-                    <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-[2.5rem] flex items-center gap-6 group hover:bg-white transition-all cursor-pointer">
-                      <div className="p-4 bg-white rounded-2xl shadow-sm text-emerald-600"><Handshake size={24}/></div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-black text-slate-800">Renouvellement Convention : Mairie Dakar</h4>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">Signature de l'accord cadre pour le Gott Social 2024 prévu la semaine prochaine.</p>
-                      </div>
-                      <button className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 group-hover:text-slate-800 transition-all"><ChevronRight size={18}/></button>
-                    </div>
+                  <div className="py-12 text-slate-400">
+                     <Globe size={48} className="mx-auto mb-4 opacity-20"/>
+                     <p className="text-xs font-bold uppercase">Aucun événement externe</p>
                   </div>
                </div>
             </div>
@@ -167,7 +155,7 @@ const ExternalDashboard: React.FC = () => {
                       <h4 className="font-black text-xs uppercase tracking-widest">IA Strategic Insight</h4>
                     </div>
                     <p className="text-sm font-medium leading-relaxed opacity-80 mb-8 italic">
-                      "Nous avons détecté une opportunité de jumelage avec le Dahira de Lyon (France) pour le kurel étudiant. Voulez-vous générer un projet de convention ?"
+                      "L'IA analysera vos opportunités de partenariats basées sur les données des événements futurs."
                     </p>
                     <button className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95">Générer brouillon</button>
                   </div>
@@ -253,6 +241,7 @@ const ExternalDashboard: React.FC = () => {
 
       {activeTab === 'finance' && <CommissionFinancialDashboard commission={CommissionType.RELATIONS_EXT} />}
       {activeTab === 'meetings' && <CommissionMeetingDashboard commission={CommissionType.RELATIONS_EXT} />}
+      {activeTab === 'tasks' && <TaskManager commission={CommissionType.RELATIONS_EXT} />}
       {activeTab === 'network' && <PartnerNetwork />}
       {activeTab === 'protocol' && <ProtocolManager />}
       {activeTab === 'comm' && <InstitutionalComm />}

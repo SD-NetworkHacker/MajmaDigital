@@ -5,14 +5,8 @@ import { Search, Filter, Image as ImageIcon, Video, FolderOpen, Download, Share2
 const MultimediaLibrary: React.FC = () => {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   
-  const assets = [
-    { id: 1, title: 'Portrait Cheikh Bamba', type: 'image', size: '2.4 MB', date: 'Hier', tag: 'Spirituel' },
-    { id: 2, title: 'Drone Touba Magal 2023', type: 'video', size: '450 MB', date: 'Il y a 2j', tag: 'Magal' },
-    { id: 3, title: 'Infographie Cotisations', type: 'image', size: '1.1 MB', date: 'Semaine dernière', tag: 'Admin' },
-    { id: 4, title: 'Interview Dieuwrine SG', type: 'video', size: '120 MB', date: 'Janvier 2024', tag: 'Portrait' },
-    { id: 5, title: 'Photo Famille Majma', type: 'image', size: '5.8 MB', date: '2023', tag: 'Social' },
-    { id: 6, title: 'Teaser Prochain Thiant', type: 'video', size: '85 MB', date: 'En cours', tag: 'Event' },
-  ];
+  // Base vide, à connecter plus tard à un stockage cloud/local
+  const assets: any[] = []; 
 
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700">
@@ -41,11 +35,6 @@ const MultimediaLibrary: React.FC = () => {
         {assets.map(asset => (
           <div key={asset.id} className="glass-card group flex flex-col overflow-hidden border-transparent hover:border-amber-100 transition-all duration-500">
             <div className="h-48 bg-slate-100 relative overflow-hidden">
-               <img 
-                src={`https://picsum.photos/seed/media-${asset.id}/800/600`} 
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
-                alt={asset.title} 
-              />
                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
                   <div className="flex gap-2 w-full">
                     <button className="flex-1 py-2.5 bg-white/20 backdrop-blur-md text-white rounded-xl text-[10px] font-black uppercase hover:bg-white/30 transition-all flex items-center justify-center gap-2"><Eye size={12} /> Voir</button>
@@ -65,7 +54,7 @@ const MultimediaLibrary: React.FC = () => {
               
               <div className="pt-4 mt-4 border-t border-slate-50 flex justify-between items-center">
                  <div className="flex items-center gap-4 text-slate-300">
-                    <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase"><Heart size={12} className="text-rose-400" /> 124</div>
+                    <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase"><Heart size={12} className="text-rose-400" /> 0</div>
                     <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase"><Tag size={12} className="text-amber-400" /> Public</div>
                  </div>
                  <button className="p-2 text-slate-200 hover:text-amber-500 transition-colors"><MoreVertical size={16} /></button>
@@ -73,6 +62,14 @@ const MultimediaLibrary: React.FC = () => {
             </div>
           </div>
         ))}
+        
+        {assets.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
+                <FolderOpen size={48} className="opacity-20 mb-4"/>
+                <p className="text-xs font-bold uppercase">Médiathèque vide</p>
+            </div>
+        )}
+
         <div className="border-2 border-dashed border-slate-200 rounded-[2rem] h-full min-h-[300px] flex flex-col items-center justify-center text-center p-10 group hover:border-amber-300 transition-all cursor-pointer">
            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 group-hover:bg-amber-50 group-hover:text-amber-500 transition-all mb-6">
               <Plus size={32} />

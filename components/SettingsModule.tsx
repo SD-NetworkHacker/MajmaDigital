@@ -1,23 +1,36 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   User, Bell, Lock, Globe, Moon, ChevronRight, Save, 
   Loader2, CheckCircle, ShieldCheck, Camera, Power, 
   Mail, MessageSquare, Smartphone, Calendar, Wallet, 
   Megaphone, AlertTriangle, Key, Eye, EyeOff, Smartphone as PhoneIcon,
-  LogOut, Laptop, MapPin, RefreshCcw
+  LogOut, Laptop, MapPin, Clock, Palette, ArrowLeft, PenTool, Book
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../contexts/DataContext';
 
-const SettingsModule: React.FC = () => {
-  const { userProfile, updateUserProfile, resetData } = useData();
+interface SettingsModuleProps {
+  onBack: () => void;
+}
+
+const SettingsModule: React.FC<SettingsModuleProps> = ({ onBack }) => {
+  const { user, updateUser, logout } = useAuth();
+  // On utilise un état local initialisé avec les données du user context
+  const [formData, setFormData] = useState({
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      email: user?.email || '',
+      bio: user?.bio || '',
+      avatar: user?.avatarUrl || '',
+      role: user?.role || '',
+      matricule: user?.matricule || ''
+  });
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('profile');
-  const [formData, setFormData] = useState(userProfile);
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security' | 'preferences' | 'statutes'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  // Avatar Upload Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Security State
@@ -26,24 +39,36 @@ const SettingsModule: React.FC = () => {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
-  useEffect(() => {
-    setFormData(userProfile);
-  }, [userProfile]);
+  // Notifications State (Local simulation)
+  const [notifSettings, setNotifSettings] = useState({
+     email: true, push: true, sms: false,
+     meetings: true, contributions: true, events: true, security: true
+  });
+
+  // Local state for preferences
+  const [darkMode, setDarkMode] = useState(false);
+  const [language, setLanguage] = useState('Français (Sénégal)');
 
   const handleSave = async () => {
     setIsSaving(true);
+    // Simulation délai réseau
     await new Promise(resolve => setTimeout(resolve, 800));
-    updateUserProfile(formData);
+    
+    // Mise à jour du contexte Auth (qui persiste dans localStorage)
+    updateUser({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        bio: formData.bio,
+        avatarUrl: formData.avatar
+    });
+
     setIsSaving(false);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  // --- IDENTITY HANDLERS ---
-
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleAvatarClick = () => fileInputRef.current?.click();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -56,522 +81,403 @@ const SettingsModule: React.FC = () => {
     }
   };
 
-  const cycleLanguage = () => {
-    const languages = ['Français (Sénégal)', 'Wolof', 'Arabe', 'Anglais'];
-    const currentIndex = languages.indexOf(formData.preferences.language);
-    const nextIndex = (currentIndex + 1) % languages.length;
-    
-    const updated = {
-      ...formData,
-      preferences: { ...formData.preferences, language: languages[nextIndex] }
-    };
-    setFormData(updated);
-    // Optionnel : sauvegarde auto ou attendre le bouton Enregistrer
-  };
-
-  const toggleDarkMode = () => {
-    const updated = { ...formData, preferences: { ...formData.preferences, darkMode: !formData.preferences.darkMode } };
-    setFormData(updated);
-    updateUserProfile(updated); // Immediate effect for theme
-  };
-
-  // --- NOTIFICATION HANDLERS ---
-
-  const toggleNotificationChannel = (channel: keyof typeof formData.notifications.channels) => {
-    const updated = {
-      ...formData,
-      notifications: {
-        ...formData.notifications,
-        channels: {
-          ...formData.notifications.channels,
-          [channel]: !formData.notifications.channels[channel]
-        }
-      }
-    };
-    setFormData(updated);
-    updateUserProfile(updated);
-  };
-
-  const toggleNotificationType = (type: keyof typeof formData.notifications.types) => {
-    const updated = {
-      ...formData,
-      notifications: {
-        ...formData.notifications,
-        types: {
-          ...formData.notifications.types,
-          [type]: !formData.notifications.types[type]
-        }
-      }
-    };
-    setFormData(updated);
-    updateUserProfile(updated);
-  };
-
-  // --- SECURITY HANDLERS ---
-
-  const handlePasswordUpdate = async () => {
-    setPasswordError('');
-    setPasswordSuccess('');
-
-    if (passwordState.new.length < 6) {
-        setPasswordError("Le mot de passe doit contenir au moins 6 caractères.");
-        return;
-    }
-    if (passwordState.new !== passwordState.confirm) {
-        setPasswordError("Les nouveaux mots de passe ne correspondent pas.");
-        return;
-    }
-
-    setIsSaving(true);
-    // Simule API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Update last password change date
-    const updatedSecurity = {
-        ...userProfile.security,
-        lastPasswordUpdate: new Date().toISOString()
-    };
-    updateUserProfile({ security: updatedSecurity });
-    
-    setPasswordState({ old: '', new: '', confirm: '' });
-    setPasswordSuccess("Mot de passe mis à jour avec succès.");
-    setIsSaving(false);
-  };
-
-  const toggle2FA = async () => {
-    setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 600));
-    const updatedSecurity = {
-        ...userProfile.security,
-        twoFactorEnabled: !userProfile.security.twoFactorEnabled
-    };
-    updateUserProfile({ security: updatedSecurity });
-    setFormData(prev => ({...prev, security: updatedSecurity}));
-    setIsSaving(false);
-  };
-
-  const getLastPasswordUpdateText = () => {
-      const date = new Date(userProfile.security.lastPasswordUpdate);
-      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-  };
+  const navigationItems = [
+    { id: 'profile', label: 'Mon Profil', icon: User, desc: 'Infos personnelles & Bio' },
+    { id: 'notifications', label: 'Notifications', icon: Bell, desc: 'Canaux & Alertes' },
+    { id: 'security', label: 'Sécurité', icon: ShieldCheck, desc: 'Mot de passe & 2FA' },
+    { id: 'preferences', label: 'Préférences', icon: Palette, desc: 'Langue & Apparence' },
+    { id: 'statutes', label: 'Règlement & Statuts', icon: Book, desc: 'Textes fondateurs du Dahira' },
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Configuration Système</h2>
-          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-            <ShieldCheck size={14} className="text-emerald-500" /> Profil Administrateur & Préférences
-          </p>
+    <div className="max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
+      
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onBack} 
+            className="group flex items-center justify-center p-3.5 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-slate-900 hover:shadow-md active:scale-95 transition-all duration-300"
+            title="Retour au Tableau de Bord"
+          >
+            <ArrowLeft size={22} className="group-hover:-translate-x-1 transition-transform duration-300" />
+          </button>
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">Paramètres du Compte</h2>
+            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+              <Lock size={14} className="text-emerald-500" /> Gestion centralisée de votre identité numérique
+            </p>
+          </div>
         </div>
+        
         {showSuccess && (
-          <div className="flex items-center gap-3 bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl border border-emerald-100 animate-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl border border-emerald-100 shadow-sm animate-in slide-in-from-top-4">
             <CheckCircle size={18} />
             <span className="text-xs font-black uppercase tracking-widest">Modifications enregistrées</span>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Navigation latérale */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* LEFT COLUMN: NAVIGATION & PROFILE CARD */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="glass-card p-10 text-center relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-5 font-arabic text-8xl pointer-events-none">م</div>
-            
-            <div className="relative mx-auto w-32 h-32 mb-6 group-hover:scale-105 transition-transform duration-500">
-              {formData.avatar ? (
-                <img src={formData.avatar} alt="Profile" className="w-full h-full rounded-[2.5rem] object-cover border-4 border-white shadow-2xl" />
-              ) : (
-                <div className="w-full h-full bg-emerald-50 rounded-[2.5rem] flex items-center justify-center text-emerald-700 font-black text-4xl border-4 border-white shadow-2xl">
-                  {formData.firstName[0]}{formData.lastName[0]}
-                </div>
-              )}
-              
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handleFileChange} 
-              />
-              <button 
-                onClick={handleAvatarClick}
-                className="absolute bottom-0 right-0 p-3 bg-slate-900 text-white rounded-2xl shadow-xl hover:scale-110 hover:bg-emerald-600 transition-all border-4 border-white cursor-pointer"
-                title="Changer la photo"
-              >
-                <Camera size={16} />
-              </button>
-            </div>
+          
+          {/* User Profile Card */}
+          <div className="bg-white rounded-[2.5rem] p-2 shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden group">
+            <div className="relative bg-slate-900 rounded-[2rem] p-8 text-center overflow-hidden">
+               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+               <div className="absolute top-0 right-0 p-10 opacity-5 font-arabic text-9xl pointer-events-none rotate-12 text-white">م</div>
+               
+               <div className="relative z-10 flex flex-col items-center">
+                  <div className="relative mb-6 group-hover:scale-105 transition-transform duration-500">
+                    <div className="w-28 h-28 rounded-full border-4 border-white/10 shadow-2xl overflow-hidden bg-slate-800 relative">
+                        {formData.avatar ? (
+                          <img src={formData.avatar} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-emerald-500 font-black text-4xl">
+                            {formData.firstName[0]}{formData.lastName[0]}
+                          </div>
+                        )}
+                        {/* Overlay Edit */}
+                        <div 
+                          onClick={handleAvatarClick}
+                          className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          <PenTool size={20} className="text-white" />
+                        </div>
+                    </div>
+                    <button 
+                      onClick={handleAvatarClick}
+                      className="absolute bottom-0 right-0 p-2.5 bg-emerald-500 text-white rounded-xl shadow-lg border-4 border-slate-900 hover:bg-emerald-400 transition-colors"
+                    >
+                      <Camera size={14} />
+                    </button>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                  </div>
+                  
+                  <h3 className="text-xl font-black text-white mb-1">{formData.firstName} {formData.lastName}</h3>
+                  <div className="flex items-center gap-2 mb-6">
+                     <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[9px] font-black uppercase tracking-widest border border-emerald-500/30">
+                        {formData.role}
+                     </span>
+                     <span className="text-[10px] text-slate-400 font-mono">{formData.matricule || 'N/A'}</span>
+                  </div>
 
-            <h3 className="text-xl font-black text-slate-900">{formData.firstName} {formData.lastName}</h3>
-            <p className="text-[10px] text-emerald-600 font-black uppercase tracking-[0.2em] mb-6 mt-1">{formData.matricule}</p>
-            <div className="px-4 py-2 bg-slate-50 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest">Accès : {formData.role}</div>
+                  <div className="grid grid-cols-3 gap-2 w-full pt-6 border-t border-white/10">
+                     <div className="text-center">
+                        <p className="text-lg font-black text-white">4</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Années</p>
+                     </div>
+                     <div className="text-center border-l border-white/10 border-r">
+                        <p className="text-lg font-black text-white">12</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Activités</p>
+                     </div>
+                     <div className="text-center">
+                        <p className="text-lg font-black text-emerald-400">98%</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Fiabilité</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
           </div>
 
-          <nav className="glass-card overflow-hidden divide-y divide-slate-50">
-            <button 
-              onClick={() => setActiveTab('profile')}
-              className={`w-full p-6 flex items-center justify-between group transition-colors ${activeTab === 'profile' ? 'bg-emerald-50/50' : 'hover:bg-slate-50'}`}
-            >
-              <div className={`flex items-center gap-4 ${activeTab === 'profile' ? 'text-emerald-700' : 'text-slate-500'}`}>
-                <div className={`p-2 rounded-xl shadow-sm transition-colors ${activeTab === 'profile' ? 'bg-white' : 'bg-slate-50'}`}><User size={20} /></div>
-                <span className="text-xs font-black uppercase tracking-widest">Identité Digitale</span>
-              </div>
-              <ChevronRight size={16} className={activeTab === 'profile' ? 'text-emerald-600' : 'text-slate-300'} />
-            </button>
-            
-            <button 
-              onClick={() => setActiveTab('notifications')}
-              className={`w-full p-6 flex items-center justify-between group transition-colors ${activeTab === 'notifications' ? 'bg-emerald-50/50' : 'hover:bg-slate-50'}`}
-            >
-              <div className={`flex items-center gap-4 ${activeTab === 'notifications' ? 'text-emerald-700' : 'text-slate-500'}`}>
-                <div className={`p-2 rounded-xl shadow-sm transition-colors ${activeTab === 'notifications' ? 'bg-white' : 'bg-slate-50'}`}><Bell size={20} /></div>
-                <span className="text-xs font-black uppercase tracking-widest">Alertes & Rappels</span>
-              </div>
-              <ChevronRight size={16} className={activeTab === 'notifications' ? 'text-emerald-600' : 'text-slate-300'} />
-            </button>
-            
-            <button 
-              onClick={() => setActiveTab('security')}
-              className={`w-full p-6 flex items-center justify-between group transition-colors ${activeTab === 'security' ? 'bg-emerald-50/50' : 'hover:bg-slate-50'}`}
-            >
-              <div className={`flex items-center gap-4 ${activeTab === 'security' ? 'text-emerald-700' : 'text-slate-500'}`}>
-                <div className={`p-2 rounded-xl shadow-sm transition-colors ${activeTab === 'security' ? 'bg-white' : 'bg-slate-50'}`}><Lock size={20} /></div>
-                <span className="text-xs font-black uppercase tracking-widest">Clés de Sécurité</span>
-              </div>
-              <ChevronRight size={16} className={activeTab === 'security' ? 'text-emerald-600' : 'text-slate-300'} />
-            </button>
-          </nav>
-          
-          <div className="pt-4">
-             <button 
-               onClick={resetData}
-               className="w-full p-4 border-2 border-dashed border-rose-200 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
-             >
-                <Power size={14} /> Réinitialiser Système
-             </button>
+          {/* Navigation Menu */}
+          <div className="bg-white rounded-[2.5rem] p-4 shadow-sm border border-slate-100">
+             <div className="space-y-1">
+                {navigationItems.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id as any)}
+                    className={`w-full flex items-center p-4 rounded-2xl transition-all duration-300 group ${
+                      activeTab === item.id 
+                        ? 'bg-slate-900 text-white shadow-lg' 
+                        : 'text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                     <div className={`p-3 rounded-xl mr-4 transition-colors ${
+                        activeTab === item.id ? 'bg-white/10 text-emerald-400' : 'bg-slate-100 text-slate-400 group-hover:bg-white group-hover:text-slate-600'
+                     }`}>
+                        <item.icon size={20} />
+                     </div>
+                     <div className="flex-1 text-left">
+                        <p className={`text-sm font-black ${activeTab === item.id ? 'text-white' : 'text-slate-800'}`}>{item.label}</p>
+                        <p className={`text-[10px] font-medium ${activeTab === item.id ? 'text-slate-400' : 'text-slate-400'}`}>{item.desc}</p>
+                     </div>
+                     {activeTab === item.id && <ChevronRight size={16} className="text-emerald-500" />}
+                  </button>
+                ))}
+             </div>
+             
+             <div className="mt-4 pt-4 border-t border-slate-100 px-2">
+                <button 
+                  onClick={() => logout('Déconnexion utilisateur')}
+                  className="w-full flex items-center justify-center gap-2 p-4 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all text-[10px] font-black uppercase tracking-widest border border-transparent hover:border-rose-100"
+                >
+                   <Power size={14} /> Déconnexion
+                </button>
+             </div>
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="lg:col-span-8 space-y-8">
-          
-          {/* TAB 1: GENERAL PROFILE */}
-          {activeTab === 'profile' && (
-            <div className="animate-in slide-in-from-right-4 duration-500 space-y-8">
-              <div className="glass-card p-10 space-y-8">
-                <div className="flex items-center gap-4 border-b border-slate-50 pb-6">
-                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><User size={24} /></div>
-                  <h3 className="font-black text-slate-900 uppercase text-sm tracking-[0.15em]">Informations Générales</h3>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Prénom du Talibé</label>
-                    <input 
-                      type="text" 
-                      value={formData.firstName} 
-                      onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                      className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-4 focus:ring-emerald-500/10 focus:bg-white transition-all outline-none" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nom de famille</label>
-                    <input 
-                      type="text" 
-                      value={formData.lastName} 
-                      onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                      className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-4 focus:ring-emerald-500/10 focus:bg-white transition-all outline-none" 
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Adresse Email Institutionnelle</label>
-                  <input 
-                    type="email" 
-                    value={formData.email} 
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-4 focus:ring-emerald-500/10 focus:bg-white transition-all outline-none" 
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vocation Spirituelle (Bio)</label>
-                  <textarea 
-                    rows={4} 
-                    value={formData.bio}
-                    onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                    className="w-full bg-slate-50/50 border border-slate-100 rounded-[2rem] px-6 py-4 text-sm font-bold focus:ring-4 focus:ring-emerald-500/10 focus:bg-white resize-none outline-none leading-relaxed italic"
-                  />
-                </div>
-
-                <div className="pt-4 flex justify-end">
-                  <button 
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="w-full md:w-auto px-10 py-5 bg-[#2E8B57] text-white rounded-[2rem] font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl shadow-emerald-900/20 hover:bg-emerald-700 hover:-translate-y-1 transition-all flex items-center justify-center gap-4 disabled:opacity-70 disabled:translate-y-0 active:scale-95"
-                  >
-                    {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                    {isSaving ? 'Synchronisation...' : 'Enregistrer le Profil'}
-                  </button>
-                </div>
-              </div>
-
-              <div className="glass-card p-10 space-y-6">
-                <h3 className="font-black text-slate-900 uppercase text-sm tracking-[0.15em] border-b border-slate-50 pb-6">Préférences de l'Espace</h3>
-                
-                <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-[1.5rem] border border-slate-100">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white rounded-2xl shadow-sm text-slate-400"><Globe size={20} /></div>
-                    <div>
-                      <p className="text-xs font-black text-slate-800 uppercase tracking-widest">Langue de l'Interface</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{formData.preferences.language}</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={cycleLanguage}
-                    className="text-[10px] font-black text-emerald-600 uppercase tracking-widest px-4 py-2 bg-white rounded-xl shadow-sm border border-slate-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all flex items-center gap-2"
-                  >
-                    <RefreshCcw size={12} /> Modifier
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-[1.5rem] border border-slate-100">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-2xl shadow-sm transition-colors ${formData.preferences.darkMode ? 'bg-slate-900 text-amber-400' : 'bg-white text-slate-400'}`}>
-                      <Moon size={20} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-slate-800 uppercase tracking-widest">Mode Sérénité (Sombre)</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{formData.preferences.darkMode ? 'Actif' : 'Inactif'}</p>
-                    </div>
-                  </div>
-                  <div 
-                    onClick={toggleDarkMode}
-                    className={`w-14 h-7 rounded-full relative cursor-pointer transition-all duration-300 ${formData.preferences.darkMode ? 'bg-emerald-500' : 'bg-slate-200'}`}
-                  >
-                    <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-300 ${formData.preferences.darkMode ? 'left-8' : 'left-1'}`}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: ALERTS & REMINDERS */}
-          {activeTab === 'notifications' && (
-            <div className="animate-in slide-in-from-right-4 duration-500 space-y-8">
-              <div className="glass-card p-10 bg-white">
-                 <div className="flex items-center gap-4 border-b border-slate-50 pb-6 mb-8">
-                    <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Bell size={24} /></div>
-                    <div>
-                       <h3 className="font-black text-slate-900 uppercase text-sm tracking-[0.15em]">Canaux de Diffusion</h3>
-                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Choisissez comment vous souhaitez être contacté</p>
-                    </div>
-                 </div>
-
-                 <div className="grid grid-cols-1 gap-4">
-                    {[
-                      { key: 'email', label: 'Notifications Email', desc: 'Rapports, bilans et annonces officielles.', icon: Mail, color: 'text-blue-500' },
-                      { key: 'push', label: 'Push Mobile (App)', desc: 'Alertes en temps réel et rappels urgents.', icon: Smartphone, color: 'text-emerald-500' },
-                      { key: 'sms', label: 'SMS Prioritaires', desc: 'Uniquement pour les situations de crise.', icon: MessageSquare, color: 'text-rose-500' },
-                    ].map((channel: any) => (
-                      <div key={channel.key} className="flex items-center justify-between p-5 bg-slate-50 rounded-[2rem] border border-slate-100 hover:border-slate-200 transition-all">
-                         <div className="flex items-center gap-5">
-                            <div className={`p-3 bg-white rounded-2xl shadow-sm ${channel.color}`}>
-                               <channel.icon size={20} />
-                            </div>
-                            <div>
-                               <p className="text-sm font-black text-slate-800">{channel.label}</p>
-                               <p className="text-[10px] text-slate-400 font-bold mt-1">{channel.desc}</p>
-                            </div>
-                         </div>
-                         <div 
-                           onClick={() => toggleNotificationChannel(channel.key)}
-                           className={`w-14 h-7 rounded-full relative cursor-pointer transition-all duration-300 ${formData.notifications.channels[channel.key as keyof typeof formData.notifications.channels] ? 'bg-emerald-500' : 'bg-slate-200'}`}
-                         >
-                           <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-300 ${formData.notifications.channels[channel.key as keyof typeof formData.notifications.channels] ? 'left-8' : 'left-1'}`}></div>
-                         </div>
+        {/* RIGHT COLUMN: CONTENT AREA */}
+        <div className="lg:col-span-8 space-y-6">
+           
+           {/* TAB 1: PROFILE */}
+           {activeTab === 'profile' && (
+             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
+                   <div className="flex items-center gap-4 mb-8">
+                      <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><User size={24}/></div>
+                      <h3 className="text-xl font-black text-slate-900">Informations Personnelles</h3>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Prénom</label>
+                         <input 
+                           type="text" 
+                           value={formData.firstName}
+                           onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                           className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                         />
                       </div>
-                    ))}
-                 </div>
-              </div>
-
-              <div className="glass-card p-10 bg-white">
-                 <div className="flex items-center gap-4 border-b border-slate-50 pb-6 mb-8">
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><Megaphone size={24} /></div>
-                    <div>
-                       <h3 className="font-black text-slate-900 uppercase text-sm tracking-[0.15em]">Sujets d'Alerte</h3>
-                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Personnalisez votre flux d'information</p>
-                    </div>
-                 </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[
-                      { key: 'meetings', label: 'Réunions & Instances', icon: Calendar },
-                      { key: 'contributions', label: 'Appels de Fonds', icon: Wallet },
-                      { key: 'events', label: 'Grands Événements', icon: Megaphone },
-                      { key: 'security', label: 'Sécurité & Crises', icon: AlertTriangle },
-                    ].map((type: any) => (
-                      <div key={type.key} 
-                        className={`p-6 rounded-[2rem] border transition-all cursor-pointer flex flex-col justify-between h-32 ${
-                          formData.notifications.types[type.key as keyof typeof formData.notifications.types] 
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-xl' 
-                            : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
-                        }`}
-                        onClick={() => toggleNotificationType(type.key)}
-                      >
-                         <div className="flex justify-between items-start">
-                            <type.icon size={24} className={formData.notifications.types[type.key as keyof typeof formData.notifications.types] ? 'text-emerald-400' : 'text-slate-300'} />
-                            <div className={`w-4 h-4 rounded-full border-2 ${
-                               formData.notifications.types[type.key as keyof typeof formData.notifications.types] 
-                                 ? 'bg-emerald-500 border-emerald-500' 
-                                 : 'border-slate-200'
-                            }`}></div>
-                         </div>
-                         <p className="text-xs font-black uppercase tracking-widest">{type.label}</p>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nom</label>
+                         <input 
+                           type="text" 
+                           value={formData.lastName}
+                           onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                           className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                         />
                       </div>
-                    ))}
-                 </div>
-              </div>
-            </div>
-          )}
+                   </div>
 
-          {/* TAB 3: SECURITY */}
-          {activeTab === 'security' && (
-            <div className="animate-in slide-in-from-right-4 duration-500 space-y-8">
-               <div className="glass-card p-10 bg-white">
-                  <div className="flex items-center gap-4 border-b border-slate-50 pb-6 mb-8">
-                    <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl"><Key size={24} /></div>
-                    <div>
-                       <h3 className="font-black text-slate-900 uppercase text-sm tracking-[0.15em]">Mot de Passe</h3>
-                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                         Dernière modification : {getLastPasswordUpdateText()}
-                       </p>
-                    </div>
-                  </div>
+                   <div className="space-y-2 mb-6">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Institutionnel</label>
+                      <input 
+                        type="email" 
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                      />
+                   </div>
 
-                  <div className="space-y-6 max-w-lg">
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mot de passe actuel</label>
-                        <div className="relative">
-                           <input 
-                             type={showPassword ? "text" : "password"} 
-                             className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold outline-none focus:ring-2 focus:ring-rose-500/20" 
-                             value={passwordState.old} 
-                             onChange={e => setPasswordState({...passwordState, old: e.target.value})} 
-                           />
-                           <button onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                              {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-                           </button>
-                        </div>
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nouveau mot de passe</label>
-                        <input 
-                          type="password" 
-                          className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold outline-none focus:ring-2 focus:ring-rose-500/20" 
-                          value={passwordState.new} 
-                          onChange={e => setPasswordState({...passwordState, new: e.target.value})} 
-                        />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirmer nouveau mot de passe</label>
-                        <input 
-                          type="password" 
-                          className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold outline-none focus:ring-2 focus:ring-rose-500/20" 
-                          value={passwordState.confirm} 
-                          onChange={e => setPasswordState({...passwordState, confirm: e.target.value})} 
-                        />
-                     </div>
-                     
-                     {passwordError && (
-                       <div className="flex items-center gap-2 text-[10px] font-bold text-rose-500 bg-rose-50 p-3 rounded-xl">
-                         <AlertTriangle size={14} /> {passwordError}
-                       </div>
-                     )}
-                     
-                     {passwordSuccess && (
-                       <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 p-3 rounded-xl">
-                         <CheckCircle size={14} /> {passwordSuccess}
-                       </div>
-                     )}
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bio / Vocation</label>
+                      <textarea 
+                        rows={4}
+                        value={formData.bio}
+                        onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                        className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none leading-relaxed"
+                        placeholder="Décrivez votre rôle et votre mission..."
+                      />
+                   </div>
+                </div>
 
-                     <button 
-                       onClick={handlePasswordUpdate}
-                       disabled={isSaving || !passwordState.old || !passwordState.new}
-                       className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-black transition-all w-full flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95"
-                     >
-                       {isSaving ? <Loader2 size={16} className="animate-spin" /> : 'Mettre à jour'}
-                     </button>
-                  </div>
-               </div>
+                <div className="flex justify-end">
+                   <button 
+                     onClick={handleSave} 
+                     disabled={isSaving}
+                     className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-black transition-all flex items-center gap-3 disabled:opacity-70 active:scale-95"
+                   >
+                      {isSaving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
+                      {isSaving ? 'Enregistrement...' : 'Sauvegarder les modifications'}
+                   </button>
+                </div>
+             </div>
+           )}
 
-               <div className={`glass-card p-10 border transition-all ${userProfile.security.twoFactorEnabled ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50/50 border-rose-100'}`}>
-                  <div className="flex items-start justify-between">
-                     <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-2xl ${userProfile.security.twoFactorEnabled ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                           <PhoneIcon size={24} />
-                        </div>
-                        <div>
-                           <h4 className={`text-sm font-black uppercase mb-2 ${userProfile.security.twoFactorEnabled ? 'text-emerald-800' : 'text-rose-800'}`}>
-                             Authentification à Double Facteur (2FA)
-                           </h4>
-                           <p className="text-xs text-slate-600 leading-relaxed mb-4 max-w-md">
-                              La double authentification ajoute une couche de sécurité supplémentaire à votre compte. 
-                              {userProfile.security.twoFactorEnabled ? ' Votre compte est actuellement protégé.' : ' Une fois activée, un code SMS sera requis à chaque connexion.'}
-                           </p>
-                           <button 
-                             onClick={toggle2FA}
-                             disabled={isSaving}
-                             className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all border-2 flex items-center gap-2 active:scale-95 ${
-                               userProfile.security.twoFactorEnabled 
-                                 ? 'bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50' 
-                                 : 'bg-white border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white'
-                             }`}
+           {/* TAB 2: NOTIFICATIONS */}
+           {activeTab === 'notifications' && (
+             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
+                   <div className="flex items-center gap-4 mb-8">
+                      <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Bell size={24}/></div>
+                      <div>
+                         <h3 className="text-xl font-black text-slate-900">Canaux de Réception</h3>
+                         <p className="text-xs text-slate-400 font-medium mt-1">Où souhaitez-vous recevoir vos alertes ?</p>
+                      </div>
+                   </div>
+
+                   <div className="space-y-4">
+                      {[
+                        { id: 'email', label: 'Email', icon: Mail, color: 'text-blue-500', bg: 'bg-blue-50' },
+                        { id: 'push', label: 'Push Mobile', icon: Smartphone, color: 'text-purple-500', bg: 'bg-purple-50' },
+                        { id: 'sms', label: 'SMS (Urgence)', icon: MessageSquare, color: 'text-rose-500', bg: 'bg-rose-50' },
+                      ].map((channel: any) => (
+                        <div key={channel.id} className="flex items-center justify-between p-5 bg-slate-50/50 rounded-2xl border border-slate-100">
+                           <div className="flex items-center gap-4">
+                              <div className={`p-3 rounded-xl ${channel.bg} ${channel.color}`}>
+                                 <channel.icon size={20} />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-700 text-sm">{channel.label}</span>
+                              </div>
+                           </div>
+                           <div 
+                             onClick={() => setNotifSettings(prev => ({...prev, [channel.id]: !prev[channel.id as keyof typeof notifSettings]}))}
+                             className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-300 ${notifSettings[channel.id as keyof typeof notifSettings] ? 'bg-emerald-500' : 'bg-slate-200'}`}
                            >
-                              {isSaving ? <Loader2 size={14} className="animate-spin" /> : (userProfile.security.twoFactorEnabled ? 'Désactiver' : 'Activer maintenant')}
-                           </button>
+                              <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${notifSettings[channel.id as keyof typeof notifSettings] ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                           </div>
                         </div>
-                     </div>
-                     <div className={`w-3 h-3 rounded-full ${userProfile.security.twoFactorEnabled ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-rose-500 shadow-[0_0_10px_#f43f5e]'} animate-pulse`}></div>
-                  </div>
-               </div>
+                      ))}
+                   </div>
+                </div>
+             </div>
+           )}
 
-               {/* Login History */}
-               <div className="glass-card p-10 bg-white">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                     <Laptop size={14} /> Appareils Connectés Récemment
-                  </h4>
-                  <div className="space-y-4">
-                     {userProfile.security.loginHistory.map((login) => (
-                       <div key={login.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                          <div className="flex items-center gap-4">
-                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${login.status === 'current' ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-slate-400 border border-slate-200'}`}>
-                                {login.device.includes('iPhone') ? <PhoneIcon size={18} /> : <Laptop size={18} />}
-                             </div>
-                             <div>
-                                <p className="text-xs font-bold text-slate-800">{login.device} {login.status === 'current' && <span className="text-[9px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded ml-2 uppercase font-black">Actuel</span>}</p>
-                                <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
-                                   <MapPin size={10} /> {login.location} • {login.ip}
-                                </p>
-                             </div>
-                          </div>
-                          <div className="text-right">
-                             <p className="text-[9px] font-bold text-slate-500">{new Date(login.date).toLocaleDateString()}</p>
-                             {login.status !== 'current' && (
-                               <button className="text-[9px] font-black text-rose-500 hover:underline uppercase mt-1">Déconnecter</button>
-                             )}
-                          </div>
-                       </div>
-                     ))}
-                  </div>
-                  <button className="w-full mt-6 py-3 border-2 border-slate-100 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-rose-200 hover:text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center gap-2">
-                     <LogOut size={14} /> Déconnecter toutes les autres sessions
-                  </button>
+           {/* TAB 3: SECURITY */}
+           {activeTab === 'security' && (
+             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
+                   <div className="flex items-center gap-4 mb-8">
+                      <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl"><Key size={24}/></div>
+                      <div>
+                         <h3 className="text-xl font-black text-slate-900">Mot de Passe</h3>
+                         <p className="text-xs text-slate-400 font-medium mt-1">Dernière modification : {new Date().toLocaleDateString()}</p>
+                      </div>
+                   </div>
+
+                   <div className="space-y-4 max-w-lg">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nouveau</label>
+                         <input 
+                           type="password" 
+                           className="w-full p-4 bg-slate-50 rounded-2xl border border-transparent text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-rose-200 focus:ring-4 focus:ring-rose-500/10 transition-all" 
+                           value={passwordState.new} 
+                           onChange={e => setPasswordState({...passwordState, new: e.target.value})} 
+                         />
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirmer</label>
+                         <input 
+                           type="password" 
+                           className="w-full p-4 bg-slate-50 rounded-2xl border border-transparent text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-rose-200 focus:ring-4 focus:ring-rose-500/10 transition-all" 
+                           value={passwordState.confirm} 
+                           onChange={e => setPasswordState({...passwordState, confirm: e.target.value})} 
+                         />
+                      </div>
+
+                      <button 
+                        onClick={() => { setIsSaving(true); setTimeout(() => { setIsSaving(false); setPasswordSuccess('Mot de passe mis à jour'); }, 1000); }}
+                        className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
+                      >
+                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : 'Mettre à jour le mot de passe'}
+                      </button>
+                      {passwordSuccess && <p className="text-emerald-600 text-xs font-bold text-center mt-2">{passwordSuccess}</p>}
+                   </div>
+                </div>
+             </div>
+           )}
+
+           {/* TAB 4: PREFERENCES */}
+           {activeTab === 'preferences' && (
+             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
+                   <div className="flex items-center gap-4 mb-8">
+                      <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl"><Palette size={24}/></div>
+                      <h3 className="text-xl font-black text-slate-900">Apparence & Région</h3>
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col justify-between">
+                         <div>
+                            <div className="flex items-center gap-3 mb-2 text-slate-800">
+                               <Globe size={18} />
+                               <span className="font-bold text-sm">Langue</span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-medium">Langue de l'interface et des documents.</p>
+                         </div>
+                         <select 
+                           value={language}
+                           onChange={(e) => setLanguage(e.target.value)}
+                           className="mt-6 w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-purple-400"
+                         >
+                            <option>Français (Sénégal)</option>
+                            <option>Wolof</option>
+                            <option>Arabe</option>
+                            <option>English</option>
+                         </select>
+                      </div>
+
+                      <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col justify-between">
+                         <div>
+                            <div className="flex items-center gap-3 mb-2 text-slate-800">
+                               <Moon size={18} />
+                               <span className="font-bold text-sm">Thème</span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-medium">Apparence visuelle de l'application.</p>
+                         </div>
+                         <div className="mt-6 flex bg-white p-1 rounded-xl border border-slate-200">
+                            <button 
+                              onClick={() => setDarkMode(false)}
+                              className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!darkMode ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400'}`}
+                            >
+                               Clair
+                            </button>
+                            <button 
+                              onClick={() => setDarkMode(true)}
+                              className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${darkMode ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400'}`}
+                            >
+                               Sombre
+                            </button>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+           )}
+
+           {/* TAB 5: STATUTS & RÈGLEMENT */}
+           {activeTab === 'statutes' && (
+             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+               <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
+                 <div className="flex items-center gap-4 mb-6">
+                   <div className="p-3 bg-slate-900 text-white rounded-2xl shadow-lg"><Book size={24}/></div>
+                   <div>
+                     <h3 className="text-xl font-black text-slate-900">Textes Fondateurs</h3>
+                     <p className="text-xs text-slate-400 font-medium">Statuts et Règlement Intérieur du Dahira Madjmahoun Noreyni</p>
+                   </div>
+                 </div>
+
+                 <div className="prose prose-sm prose-slate max-w-none text-slate-600 bg-slate-50 p-8 rounded-3xl border border-slate-200 max-h-[500px] overflow-y-auto custom-scrollbar">
+                   <h3 className="text-slate-800 font-black mb-4">A: STATUT DU DAHIRA MADJMAHOUN NOREYNI LSLL</h3>
+                   
+                   <h4 className="font-bold text-slate-700 mt-4">TITRE I : HISTORIQUE ET OBJECTIFS</h4>
+                   <p className="text-xs mb-2"><strong>Article I : Historique</strong><br/>
+                   Le dahira Madjmahoun Noreyni signifie littéralement la fusion des deux lumières. En effet, il existait au départ deux(2) dahiras : Diyaa u Douri installé au Lycée Seydina Limamou Laye (LSLL) depuis 1994... fusionnés en 2005 sous l'égide de Serigne Saliou Mbacké.</p>
+                   
+                   <p className="text-xs mb-2"><strong>Article II : Objectifs</strong><br/>
+                   Le dahira se fixe pour objectifs de regrouper les musulmans, vulgariser l’enseignement de Cheikhoul Khadim, contribuer à la formation morale et religieuse, et bannir l’obscurantisme.</p>
+
+                   <h4 className="font-bold text-slate-700 mt-4">TITRE III : COMPOSITION ET STRUCTURES</h4>
+                   <p className="text-xs mb-2"><strong>Article X : Le Comité Directeur (CD)</strong><br/>
+                   Instance suprême du dahira, dirigée par le Diewrigne et le Secrétaire Général. Il veille au bon fonctionnement et à l’application du statut.</p>
+
+                   <h4 className="font-bold text-slate-700 mt-4">TITRE IV : FONCTIONNEMENT</h4>
+                   <p className="text-xs mb-2"><strong>Article XIV</strong><br/>
+                   Le secteur élève se réunit toutes les semaines. Les secteurs étudiants et travailleurs selon leur propre calendrier.</p>
+
+                   <hr className="my-6 border-slate-300"/>
+
+                   <h3 className="text-slate-800 font-black mb-4">B: LE RÈGLEMENT INTÉRIEUR</h3>
+                   
+                   <h4 className="font-bold text-slate-700 mt-4">Article V : LES COMMISSIONS</h4>
+                   <ul className="list-disc pl-5 text-xs space-y-1">
+                     <li><strong>Commission Administrative :</strong> Gère l'adhésion, l'information et le contrôle de présence.</li>
+                     <li><strong>Commission d'Organisation :</strong> Responsable de la logistique, restauration, collation et hygiène lors des événements.</li>
+                     <li><strong>Commission des Finances :</strong> Gère la trésorerie, le Sass, le Gott et les Adiyas.</li>
+                     <li><strong>Commission Culturelle :</strong> Chargée de l'enseignement religieux et de la déclamation des Xacidas.</li>
+                     <li><strong>Commission Sociale :</strong> Raffermit les liens par l'entraide et l'assistance.</li>
+                   </ul>
+
+                   <p className="text-xs mt-4 italic text-slate-400">Ce document est une version numérique simplifiée. La version physique signée fait foi.</p>
+                 </div>
                </div>
-            </div>
-          )}
+             </div>
+           )}
 
         </div>
       </div>

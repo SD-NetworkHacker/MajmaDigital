@@ -1,9 +1,9 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   LayoutDashboard, Calendar, Library, BookOpen, 
-  History, Wallet, FileText, Music, Mic, BookHeart,
-  BadgeCheck, Mail, ShieldCheck, User
+  History, Wallet, FileText, Music, Mic,
+  BadgeCheck, Mail, ShieldCheck, User, ListTodo
 } from 'lucide-react';
 import CulturalCalendar from './CulturalCalendar';
 import DigitalLibrary from './DigitalLibrary';
@@ -13,12 +13,17 @@ import CommissionFinancialDashboard from '../shared/CommissionFinancialDashboard
 import CommissionMeetingDashboard from '../shared/CommissionMeetingDashboard';
 import FinancialOverviewWidget from '../shared/FinancialOverviewWidget';
 import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
+import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../context/AuthContext';
 
 const CulturalDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('overview');
   const { members } = useData();
+  const { user } = useAuth();
+  
+  const isAdmin = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin';
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'overview' : 'library');
 
   // Filtrer les membres de la commission Culturelle
   const commissionTeam = useMemo(() => members.filter(m => 
@@ -35,11 +40,14 @@ const CulturalDashboard: React.FC = () => {
   };
 
   const navItems = [
-    { id: 'overview', label: 'Console Culture', icon: LayoutDashboard },
-    { id: 'finance', label: 'Budget', icon: Wallet },
-    { id: 'meetings', label: 'Réunions', icon: FileText },
-    { id: 'calendar', label: 'Agenda', icon: Calendar },
+    ...(isAdmin ? [
+      { id: 'overview', label: 'Console Culture', icon: LayoutDashboard },
+      { id: 'finance', label: 'Budget', icon: Wallet },
+      { id: 'meetings', label: 'Réunions', icon: FileText },
+      { id: 'tasks', label: 'Tâches', icon: ListTodo },
+    ] : []),
     { id: 'library', label: 'Médiathèque', icon: Library },
+    { id: 'calendar', label: 'Agenda', icon: Calendar },
     { id: 'academy', label: 'Académie', icon: BookOpen },
     { id: 'heritage', label: 'Patrimoine', icon: History },
   ];
@@ -62,7 +70,7 @@ const CulturalDashboard: React.FC = () => {
         ))}
       </div>
 
-      {activeTab === 'overview' && (
+      {isAdmin && activeTab === 'overview' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
           
           {/* Admin Widgets Row */}
@@ -74,7 +82,7 @@ const CulturalDashboard: React.FC = () => {
              <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><BookOpen size={20}/></div>
-                   <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">+12</span>
+                   <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">0</span>
                 </div>
                 <div>
                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Ressources</h4>
@@ -85,7 +93,7 @@ const CulturalDashboard: React.FC = () => {
              <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                    <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Music size={20}/></div>
-                   <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">85%</span>
+                   <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">--%</span>
                 </div>
                 <div>
                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Veillées</h4>
@@ -105,15 +113,15 @@ const CulturalDashboard: React.FC = () => {
                   </h2>
                 </div>
                 <div className="p-5 bg-white/10 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-inner">
-                  <BookHeart size={48} className="text-indigo-200" />
+                  <Library size={48} className="text-indigo-200" />
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                  {[
-                   { l: 'Bibliothèque', v: '1,240', trend: 'Ouvrages', color: 'text-indigo-300' },
-                   { l: 'Apprenants', v: '85', trend: 'Actifs', color: 'text-emerald-300' },
-                   { l: 'Événements', v: '12', trend: 'Annuels', color: 'text-amber-200' },
-                   { l: 'Archives', v: '450', trend: 'Numérisées', color: 'text-blue-200' }
+                   { l: 'Bibliothèque', v: '0', trend: 'Ouvrages', color: 'text-indigo-300' },
+                   { l: 'Apprenants', v: '0', trend: 'Actifs', color: 'text-emerald-300' },
+                   { l: 'Événements', v: '0', trend: 'Annuels', color: 'text-amber-200' },
+                   { l: 'Archives', v: '0', trend: 'Numérisées', color: 'text-blue-200' }
                  ].map((item, i) => (
                    <div key={i} className="p-6 bg-white/5 backdrop-blur-md rounded-3xl border border-white/5">
                      <p className="text-[9px] font-black uppercase opacity-40 mb-2 tracking-widest">{item.l}</p>
@@ -139,8 +147,8 @@ const CulturalDashboard: React.FC = () => {
                       <div className="w-16 h-16 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-md text-indigo-600">
                          <Music size={32} />
                       </div>
-                      <h5 className="font-black text-slate-800 text-sm mb-1">Les leçons de Touba</h5>
-                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-6">Épisode 42 • 45 min</p>
+                      <h5 className="font-black text-slate-800 text-sm mb-1">Aucun épisode</h5>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-6">-- min</p>
                       <button className="w-full py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-transform">Écouter</button>
                    </div>
                 </div>
@@ -212,8 +220,12 @@ const CulturalDashboard: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'finance' && <CommissionFinancialDashboard commission={CommissionType.CULTURELLE} />}
-      {activeTab === 'meetings' && <CommissionMeetingDashboard commission={CommissionType.CULTURELLE} />}
+      {/* Admin Modules */}
+      {isAdmin && activeTab === 'finance' && <CommissionFinancialDashboard commission={CommissionType.CULTURELLE} />}
+      {isAdmin && activeTab === 'meetings' && <CommissionMeetingDashboard commission={CommissionType.CULTURELLE} />}
+      {isAdmin && activeTab === 'tasks' && <TaskManager commission={CommissionType.CULTURELLE} />}
+      
+      {/* Public/Member Modules */}
       {activeTab === 'calendar' && <CulturalCalendar />}
       {activeTab === 'library' && <DigitalLibrary />}
       {activeTab === 'academy' && <KhassaideAcademy />}

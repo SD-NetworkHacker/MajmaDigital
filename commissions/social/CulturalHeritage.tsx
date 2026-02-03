@@ -1,15 +1,10 @@
 
 import React from 'react';
-// Added Camera and replaced ShieldHeart with ShieldCheck
-import { BookHeart, History, ShieldCheck, Bookmark, Sparkles, ChevronRight, Play, ExternalLink, Users, Camera } from 'lucide-react';
+import { Book, History, ShieldCheck, Bookmark, Sparkles, ChevronRight, Play, ExternalLink, Users, Camera, Plus } from 'lucide-react';
 
 const CulturalHeritage: React.FC = () => {
-  const traditions = [
-    // Replaced ShieldHeart with ShieldCheck
-    { title: 'L\'Hospitalité Majma (Teranga)', type: 'Valeur', icon: ShieldCheck },
-    { title: 'Histoire de la fondation du Dahira', type: 'Histoire', icon: History },
-    { title: 'Le Code d\'Honneur du Talibé', type: 'Éthique', icon: BookHeart },
-  ];
+  // Liste vide - Les données devront être chargées dynamiquement
+  const traditions: any[] = []; 
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
@@ -17,17 +12,22 @@ const CulturalHeritage: React.FC = () => {
         <div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight">Patrimoine Culturel & Valeurs</h3>
           <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-            <BookHeart size={14} className="text-rose-500" /> Transmettre le leg spirituel aux nouvelles générations
+            <Book size={14} className="text-rose-500" /> Transmettre le leg spirituel aux nouvelles générations
           </p>
         </div>
-        <div className="px-6 py-4 bg-amber-50 border border-amber-100 rounded-2xl text-amber-700 flex items-center gap-3">
-           <Sparkles size={18} />
-           <span className="text-[10px] font-black uppercase tracking-widest">Contenus certifiés par les Sages</span>
+        <div className="flex gap-3">
+            <button className="px-6 py-4 bg-white border border-slate-100 rounded-2xl text-slate-600 font-black uppercase text-[10px] tracking-widest shadow-sm flex items-center gap-2">
+                <Plus size={14}/> Proposer Contenu
+            </button>
+            <div className="px-6 py-4 bg-amber-50 border border-amber-100 rounded-2xl text-amber-700 flex items-center gap-3">
+                <Sparkles size={18} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Certifié par les Sages</span>
+            </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {traditions.map((t, i) => (
+        {traditions.length > 0 ? traditions.map((t, i) => (
           <div key={i} className="glass-card p-10 group hover:border-rose-100 hover:-translate-y-2 transition-all duration-500 relative overflow-hidden h-full flex flex-col">
              <div className="absolute top-0 right-0 p-8 opacity-[0.03] font-arabic text-8xl pointer-events-none rotate-12 group-hover:scale-150 transition-transform duration-1000">و</div>
              <div className="flex justify-between items-start mb-10">
@@ -44,7 +44,13 @@ const CulturalHeritage: React.FC = () => {
                 <div className="p-2 bg-slate-50 text-slate-300 rounded-lg group-hover:text-rose-400 transition-colors"><ChevronRight size={18}/></div>
              </div>
           </div>
-        ))}
+        )) : (
+          <div className="col-span-3 flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-[3rem] bg-slate-50/30">
+             <Book size={48} className="mb-4 opacity-20"/>
+             <p className="text-xs font-bold uppercase">Archives en cours de numérisation</p>
+             <p className="text-[10px] text-slate-400 mt-2">Le patrimoine du Dahira sera bientôt accessible ici.</p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -60,20 +66,12 @@ const CulturalHeritage: React.FC = () => {
                     "Chaque ancien est une bibliothèque vivante. Ce mois-ci, nous collectons les mémoires vocales des membres fondateurs du quartier Médina."
                   </p>
                   <div className="space-y-4">
-                     {[
-                       { title: 'Témoignage de El Hadj Diop', status: 'Enregistré' },
-                       { title: 'Les débuts de la mosquée', status: 'Archive Audio' },
-                     ].map((doc, i) => (
-                       <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-white transition-all border border-transparent hover:border-rose-100 cursor-pointer">
-                          <span className="text-xs font-black text-slate-700">{doc.title}</span>
-                          <ExternalLink size={14} className="text-slate-300" />
-                       </div>
-                     ))}
+                     <p className="text-xs text-slate-400 italic">Aucun témoignage enregistré pour le moment.</p>
                   </div>
                </div>
                <div className="aspect-square bg-slate-50 rounded-3xl border border-dashed border-slate-200 flex flex-col items-center justify-center p-10 text-center group-hover:bg-rose-50 group-hover:border-rose-200 transition-all cursor-pointer">
                   <div className="p-4 bg-white rounded-2xl shadow-xl text-rose-300 group-hover:text-rose-600 transition-all mb-4"><Camera size={32}/></div>
-                  <h5 className="text-sm font-black text-slate-500 uppercase tracking-widest">Atelier Souvenirs</h5>
+                  <h5 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-2">Atelier Souvenirs</h5>
                   <p className="text-[10px] text-slate-400 mt-2">Uploadez des archives historiques (Photos, Audios) pour la base de données du patrimoine.</p>
                </div>
             </div>
@@ -84,9 +82,9 @@ const CulturalHeritage: React.FC = () => {
             <h4 className="text-[11px] font-black uppercase tracking-[0.2em] mb-10 opacity-50 flex items-center gap-2">Stats Patrimoine</h4>
             <div className="space-y-8">
                {[
-                 { label: 'Récits Collectés', val: 12, target: 20 },
-                 { label: 'Archives Photos', val: 450, target: 1000 },
-                 { label: 'Vidéos Témoignages', val: 8, target: 15 },
+                 { label: 'Récits Collectés', val: 0, target: 20 },
+                 { label: 'Archives Photos', val: 0, target: 1000 },
+                 { label: 'Vidéos Témoignages', val: 0, target: 15 },
                ].map((stat, i) => (
                  <div key={i} className="space-y-3">
                     <div className="flex justify-between text-[10px] font-black uppercase">

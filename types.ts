@@ -26,6 +26,32 @@ export enum CommissionType {
   CULTURELLE = 'Culturelle'
 }
 
+// --- TASK MANAGEMENT TYPES ---
+export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done' | 'blocked' | 'waiting';
+export type TaskPriority = 'low' | 'medium' | 'high';
+
+export interface TaskComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  date: string;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  assignedTo?: string; // Member ID
+  dueDate?: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  commission: CommissionType;
+  createdBy: string;
+  createdAt: string;
+  comments?: TaskComment[]; // Added comments array
+}
+
 export interface NotificationSettings {
   channels: {
     email: boolean;
@@ -109,17 +135,57 @@ export interface SocialProject {
 export interface Contribution {
   id: string;
   memberId: string;
-  type: 'Adiyas' | 'Sass' | 'Diayanté';
+  type: 'Adiyas' | 'Sass' | 'Diayanté' | 'Adiya Élite' | 'Gott'; // Added 'Gott'
   amount: number;
   date: string;
   eventLabel?: string;
   status: 'paid' | 'pending';
+  // Optional links to specific fundraising contexts
+  fundraisingEventId?: string;
+  fundraisingGroupId?: string;
+}
+
+export interface AdiyaCampaignParticipant {
+  memberId: string;
+  pledgedAmount: number;
+  paidAmount: number;
+  status: 'pledged' | 'partial' | 'completed';
+  joinedAt: string;
+}
+
+export interface AdiyaCampaign {
+  id: string;
+  title: string; // Ex: "Groupe 100.000F - Magal"
+  description?: string;
+  unitAmount: number; // Montant attendu par personne
+  targetAmount?: number; // Objectif global (optionnel)
+  deadline: string;
+  status: 'open' | 'closed' | 'draft';
+  participants: AdiyaCampaignParticipant[];
+  createdBy: string;
+}
+
+// --- NEW TYPES FOR EVENTS FUNDRAISING ---
+export interface FundraisingGroup {
+  id: string;
+  name: string; // Ex: "Groupe 50.000F"
+  amount: number;
+}
+
+export interface FundraisingEvent {
+  id: string;
+  name: string; // Ex: "Magal Touba 2024"
+  type: 'Magal' | 'Gott' | 'Ziar' | 'Autre';
+  status: 'active' | 'closed';
+  groups: FundraisingGroup[];
+  deadline: string;
+  createdAt: string;
 }
 
 export interface Event {
   id: string;
   title: string;
-  type: 'Magal' | 'Ziar' | 'Gott' | 'Thiant' | 'Réunion';
+  type: 'Magal' | 'Ziar' | 'Gott' | 'Thiant' | 'Réunion' | 'Autre';
   date: string;
   location: string;
   organizingCommission: CommissionType;
@@ -317,6 +383,17 @@ export interface MeetingActionItem {
   status: 'a_faire' | 'en_cours' | 'termine' | 'retard';
 }
 
+export interface MeetingDecision {
+  id: string;
+  description: string;
+  votes: {
+    for: number;
+    against: number;
+    abstain: number;
+  };
+  status: 'adopted' | 'rejected' | 'pending';
+}
+
 export interface InternalMeetingReport {
   id: string;
   commission: CommissionType;
@@ -329,7 +406,7 @@ export interface InternalMeetingReport {
   attendees: MeetingAttendee[];
   agenda: AgendaItem[];
   discussions: string; // Résumé riche ou texte
-  decisions: string[];
+  decisions: MeetingDecision[]; // Updated to object array
   actionItems: MeetingActionItem[];
   nextMeetingDate?: string;
   status: MeetingReportStatus;
@@ -338,6 +415,7 @@ export interface InternalMeetingReport {
   adminFeedback?: string;
   bureauFeedback?: string;
   confidentiality: 'interne' | 'confidentiel';
+  meetingQrCode?: string; // QR code pour l'enregistrement des présences
 }
 
 // --- Types Commission Transport ---
@@ -357,6 +435,12 @@ export interface Vehicle {
     lastDate: string;
     nextDate: string;
     status: 'ok' | 'warning' | 'critical';
+  };
+  ownership?: 'internal' | 'external'; // Appartenance
+  externalDetails?: {
+    companyName: string;
+    contactPhone: string;
+    dailyCost: number;
   };
 }
 

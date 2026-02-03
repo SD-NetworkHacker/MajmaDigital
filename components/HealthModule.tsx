@@ -1,26 +1,110 @@
 
 import React, { useState } from 'react';
-import { HeartPulse, Activity, Stethoscope, ShieldPlus, Clock, ChevronRight, Apple, Pill, AlertCircle, Plus, Thermometer, UserCheck } from 'lucide-react';
+import { HeartPulse, Activity, Stethoscope, ShieldPlus, Clock, ChevronRight, Apple, Pill, AlertCircle, Plus, Thermometer, UserCheck, Calendar, ArrowLeft, Phone } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const HealthModule: React.FC = () => {
-  const [alerts] = useState([
-    { id: 1, member: 'Omar Gueye', issue: 'Suivi Tension Artérielle', priority: 'high', time: '10:45' },
-    { id: 2, member: 'Fatou Sylla', issue: 'Bilan Post-Opératoire', priority: 'medium', time: 'Hier' },
-  ]);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin';
+  
+  const [view, setView] = useState<'dashboard' | 'appointment' | 'record'>('dashboard');
 
-  const checkups = [
-    { id: 1, member: 'Modou Diagne', date: '10 Mai', type: 'Contrôle Glycémie', status: 'Terminé' },
-    { id: 2, member: 'Aissatou Ba', date: '22 Mai', type: 'Visite Prénatale', status: 'À venir' },
-    { id: 3, member: 'Ibrahima Fall', date: '25 Mai', type: 'Consultation Générale', status: 'À venir' },
-  ];
+  const [alerts] = useState<any[]>([]);
+  const checkups: any[] = [];
+  const stocks: any[] = [];
 
-  const stocks = [
-    { name: 'Paracétamol', qty: '15 B.', status: 'OK', c: 'text-emerald-500' },
-    { name: 'Pansements Stériles', qty: '4 U.', status: 'BAS', c: 'text-rose-500 animate-pulse' },
-    { name: 'Tensiomètre Digital', qty: '2 U.', status: 'OK', c: 'text-emerald-500' },
-    { name: 'Masques Chirurgicaux', qty: '100 U.', status: 'OK', c: 'text-emerald-500' },
-  ];
+  const handleBookAppointment = () => {
+      // Simulation prise de RDV
+      alert("Demande de RDV envoyée à la commission médicale.");
+      setView('dashboard');
+  };
 
+  // --- VUE MEMBRE ---
+  if (!isAdmin) {
+      if (view === 'appointment') {
+          return (
+             <div className="max-w-xl mx-auto animate-in slide-in-from-right-4">
+                <button onClick={() => setView('dashboard')} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-bold uppercase text-xs tracking-widest mb-6 transition-colors">
+                    <ArrowLeft size={16} /> Retour
+                </button>
+                <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100">
+                   <h3 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
+                      <Calendar size={24} className="text-teal-600"/> Demande de Consultation
+                   </h3>
+                   <div className="space-y-6">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase text-slate-400">Type de soin</label>
+                         <select className="w-full p-4 bg-slate-50 rounded-2xl text-sm font-bold text-slate-800 outline-none">
+                            <option>Consultation Générale</option>
+                            <option>Dentaire</option>
+                            <option>Ophtalmologie</option>
+                            <option>Autre</option>
+                         </select>
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase text-slate-400">Disponibilité préférée</label>
+                         <input type="text" className="w-full p-4 bg-slate-50 rounded-2xl text-sm font-bold text-slate-800 outline-none" placeholder="Ex: Samedi matin" />
+                      </div>
+                      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                         <p className="text-xs text-amber-800 font-medium">Note : Ce service est assuré par les médecins bénévoles du Dahira. Une confirmation vous sera envoyée.</p>
+                      </div>
+                      <button onClick={handleBookAppointment} className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-teal-700 transition-all">
+                         Envoyer la demande
+                      </button>
+                   </div>
+                </div>
+             </div>
+          );
+      }
+
+      return (
+        <div className="space-y-8 animate-in fade-in pb-10">
+            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+                <div>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">Ma Santé</h2>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+                        <HeartPulse size={14} className="text-teal-500" /> Prévention & Accès aux soins
+                    </p>
+                </div>
+                <button className="flex items-center gap-2 px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl font-black uppercase text-[10px] tracking-widest border border-rose-100 shadow-sm hover:bg-rose-100 transition-all" onClick={() => alert("Contact urgence: 77 000 00 00")}>
+                    <Phone size={14}/> SOS Médecin
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div onClick={() => setView('appointment')} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-teal-200 transition-all cursor-pointer group">
+                   <div className="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Calendar size={28}/>
+                   </div>
+                   <h3 className="text-lg font-black text-slate-900 mb-2">Prendre Rendez-vous</h3>
+                   <p className="text-xs text-slate-500 leading-relaxed">Consultez nos spécialistes bénévoles lors des journées de consultation.</p>
+                </div>
+
+                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group">
+                   <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Activity size={28}/>
+                   </div>
+                   <h3 className="text-lg font-black text-slate-900 mb-2">Mon Carnet Digital</h3>
+                   <p className="text-xs text-slate-500 leading-relaxed">Historique de vos constantes et documents médicaux sécurisés.</p>
+                </div>
+            </div>
+
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden">
+               <div className="relative z-10">
+                  <h4 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-3">
+                     <Apple size={18} className="text-emerald-400"/> Conseil Santé du Jour
+                  </h4>
+                  <p className="text-lg font-medium italic opacity-90 max-w-2xl leading-relaxed">
+                     "Buvez au moins 1.5L d'eau par jour, surtout en période de chaleur, pour maintenir votre énergie spirituelle et physique."
+                  </p>
+               </div>
+               <div className="absolute -right-10 -bottom-10 opacity-10 text-emerald-500"><HeartPulse size={150}/></div>
+            </div>
+        </div>
+      );
+  }
+
+  // --- VUE ADMIN (Legacy) ---
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -28,7 +112,7 @@ const HealthModule: React.FC = () => {
           <h2 className="text-3xl font-black text-gray-800 tracking-tight leading-none">Santé & Bien-être</h2>
           <div className="flex items-center gap-2 mt-2">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">Cellule Médicale • Prévention & Assistance</p>
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">Cellule Médicale • Vue Administrateur</p>
           </div>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
@@ -49,23 +133,13 @@ const HealthModule: React.FC = () => {
                 Alertes de Vigilance Médicale
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {alerts.map(alert => (
-                  <div key={alert.id} className="bg-white p-6 rounded-3xl shadow-sm border border-rose-100 flex justify-between items-center group/alert hover:border-rose-300 transition-all cursor-pointer">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-2xl ${alert.priority === 'high' ? 'bg-rose-500 text-white animate-pulse' : 'bg-rose-100 text-rose-600'}`}>
-                        <Thermometer size={20} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-gray-800">{alert.member}</p>
-                        <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight mt-1">{alert.issue}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                       <p className="text-[9px] font-black text-gray-300 uppercase mb-2">{alert.time}</p>
-                       <ChevronRight size={18} className="text-rose-200 group-hover/alert:translate-x-1 transition-transform" />
-                    </div>
+                {alerts.length > 0 ? alerts.map(alert => (
+                  <div key={alert.id}></div>
+                )) : (
+                  <div className="col-span-2 text-center text-slate-400 italic text-xs py-8">
+                     Aucune alerte médicale en cours.
                   </div>
-                ))}
+                )}
               </div>
             </div>
             <HeartPulse className="absolute -right-10 -bottom-10 text-rose-500/5 group-hover:scale-110 transition-transform duration-1000" size={200} />
@@ -81,28 +155,9 @@ const HealthModule: React.FC = () => {
               <button className="text-[10px] font-black text-emerald-600 uppercase tracking-widest hover:underline">Accéder aux Archives</button>
             </div>
             <div className="divide-y divide-gray-50">
-              {checkups.map((check) => (
-                <div key={check.id} className="p-8 hover:bg-emerald-50/20 transition-all flex items-center justify-between group">
-                  <div className="flex items-center gap-6">
-                    <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center border border-emerald-50 shadow-inner group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                      <Activity size={24} />
-                    </div>
-                    <div>
-                      <p className="text-base font-black text-gray-800 mb-1 leading-none">{check.member}</p>
-                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-2">{check.type}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-10">
-                    <div className="text-right">
-                      <p className="text-xs font-black text-gray-500 mb-1">{check.date}</p>
-                      <p className={`text-[9px] font-black uppercase tracking-widest ${check.status === 'Terminé' ? 'text-emerald-500' : 'text-amber-500'}`}>{check.status}</p>
-                    </div>
-                    <button className="p-3 bg-gray-50 text-gray-300 rounded-xl group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
-                       <ChevronRight size={20} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+               <div className="py-12 text-center text-slate-400 text-xs italic">
+                   Aucune consultation récente.
+               </div>
             </div>
           </div>
         </div>
@@ -118,36 +173,12 @@ const HealthModule: React.FC = () => {
                </div>
             </div>
             <div className="space-y-4 mb-8 flex-1">
-              {stocks.map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-5 bg-gray-50 rounded-[1.5rem] border border-gray-50 hover:border-emerald-100 hover:bg-white transition-all group">
-                  <div>
-                    <p className="text-xs font-black text-gray-800">{item.name}</p>
-                    <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-tighter">Quantité: {item.qty}</p>
-                  </div>
-                  <span className={`text-[9px] font-black uppercase tracking-widest ${item.c}`}>
-                    {item.status}
-                  </span>
-                </div>
-              ))}
+                <p className="text-xs text-slate-400 italic text-center">Inventaire pharmacie vide.</p>
             </div>
             <button className="w-full py-4 bg-[#2E8B57] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 group">
               <Plus size={16} className="group-hover:rotate-90 transition-transform" />
               Réapprovisionner
             </button>
-          </div>
-
-          {/* Spiritual Quote Section */}
-          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 p-10 rounded-[3rem] text-white relative overflow-hidden shadow-2xl">
-            <div className="relative z-10 flex flex-col h-full">
-              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10 w-fit mb-8">
-                <Apple size={24} className="text-emerald-300" />
-              </div>
-              <h4 className="font-black text-[10px] uppercase tracking-widest opacity-60 mb-6">Sunna & Santé</h4>
-              <p className="text-sm font-medium leading-loose italic opacity-90">
-                "L'estomac est la demeure de toutes les maladies, et la tempérance est le chef de tous les remèdes."
-              </p>
-            </div>
-            <div className="absolute -left-10 -bottom-10 text-white/5 font-arabic text-8xl">ش</div>
           </div>
         </div>
       </div>

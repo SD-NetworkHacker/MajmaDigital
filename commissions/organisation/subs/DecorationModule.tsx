@@ -1,8 +1,11 @@
 
-import React from 'react';
-import { Palette, Layers, Users, Map, CheckCircle, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Palette, Layers, Users, Map, Plus, ClipboardList } from 'lucide-react';
 
 const DecorationSubModule: React.FC = () => {
+  // Liste des tâches de déco (Vide par défaut)
+  const tasks: any[] = [];
+
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -17,24 +20,31 @@ const DecorationSubModule: React.FC = () => {
            <div className="aspect-video bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200 flex flex-col items-center justify-center text-center p-12 group-hover:bg-white transition-all cursor-pointer">
               <div className="p-5 bg-white rounded-2xl shadow-xl text-slate-300 mb-6 group-hover:text-fuchsia-400 transition-all"><Layers size={40} /></div>
               <p className="text-sm font-black text-slate-500 uppercase tracking-widest mb-2">Charger le Plan 3D / Photo</p>
-              <p className="text-[10px] text-slate-400 font-medium">Visualisation de l'agencement des bâches et du podium officiel pour le Magal.</p>
+              <p className="text-[10px] text-slate-400 font-medium">Aucun plan chargé pour le moment.</p>
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
-                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-fuchsia-600 shadow-sm font-black text-xs">85%</div>
-                 <div>
-                    <p className="text-xs font-black text-slate-800">Montage Podium</p>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Équipe A en action</p>
+           <div className="mt-10">
+              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><ClipboardList size={12}/> Tâches en cours</h5>
+              {tasks.length > 0 ? (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {tasks.map((task, i) => (
+                       <div key={i} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
+                          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm font-black text-xs">--</div>
+                          <div>
+                             <p className="text-xs font-black text-slate-800">{task.name}</p>
+                             <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">En attente</p>
+                          </div>
+                       </div>
+                    ))}
                  </div>
-              </div>
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
-                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm font-black text-xs">OK</div>
-                 <div>
-                    <p className="text-xs font-black text-slate-800">Moquettes & Tapis</p>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Installation validée</p>
+              ) : (
+                 <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 text-center text-slate-400 text-xs italic">
+                    Aucune tâche de décoration ou d'aménagement définie.
                  </div>
-              </div>
+              )}
+              <button className="w-full mt-4 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-fuchsia-200 hover:text-fuchsia-600 transition-all flex items-center justify-center gap-2">
+                 <Plus size={12}/> Ajouter une tâche
+              </button>
            </div>
         </div>
 
@@ -42,22 +52,7 @@ const DecorationSubModule: React.FC = () => {
            <div className="glass-card p-10 bg-slate-900 text-white relative overflow-hidden">
               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-10 opacity-50 flex items-center gap-2"><Users size={14}/> Équipe de Montage (Setup Crew)</h4>
               <div className="space-y-6">
-                 {[
-                   { name: 'Ousmane Cissé', role: 'Coord. Montage' },
-                   { name: 'Birane Sarr', role: 'Technicien Sono' },
-                   { name: 'Assane Ba', role: 'Éclairage' },
-                 ].map((m, i) => (
-                   <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center font-black text-xs">OC</div>
-                         <div>
-                            <p className="text-xs font-black">{m.name}</p>
-                            <p className="text-[9px] opacity-60 uppercase tracking-widest">{m.role}</p>
-                         </div>
-                      </div>
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                   </div>
-                 ))}
+                 <p className="text-xs text-slate-500 italic text-center">Aucun membre assigné au montage</p>
               </div>
               <button className="w-full mt-10 py-4 bg-white/10 hover:bg-white text-white hover:text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 active:scale-95">Affecter Nouveau Bénévole</button>
            </div>
@@ -67,19 +62,7 @@ const DecorationSubModule: React.FC = () => {
                  <Palette size={18} /> Matériel de Déco Requis
               </h4>
               <div className="space-y-4">
-                 {[
-                   { l: 'Fleurs Fraîches (Autel)', s: true },
-                   { l: 'Guirlandes LED 50m', s: true },
-                   { l: 'Peinture blanche (5L)', s: false },
-                   { l: 'Tissus satin blanc/vert', s: true },
-                 ].map((item, i) => (
-                   <div key={i} className="flex items-center justify-between group cursor-pointer">
-                      <span className={`text-[11px] font-bold ${item.s ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{item.l}</span>
-                      <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${item.s ? 'bg-fuchsia-500 text-white' : 'bg-white border-2 border-slate-200 text-transparent'}`}>
-                         <CheckCircle size={12} />
-                      </div>
-                   </div>
-                 ))}
+                 <p className="text-xs text-slate-400 italic text-center">Liste de matériel vide</p>
               </div>
               <button className="w-full mt-10 py-4 bg-fuchsia-50 text-fuchsia-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-fuchsia-100 hover:bg-fuchsia-100 transition-all">Commander Matériel</button>
            </div>

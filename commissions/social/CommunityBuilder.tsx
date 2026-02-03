@@ -3,11 +3,8 @@ import React from 'react';
 import { Users, UserPlus, Heart, Sparkles, Search, Filter, ChevronRight, MessageCircle, Star, Target } from 'lucide-react';
 
 const CommunityBuilder: React.FC = () => {
-  const matchingPool = [
-    { name: 'Modou Ndiaye', role: 'Mentor', expertise: 'Entrepreneuriat', level: 'Ancien', matches: 3 },
-    { name: 'Khady Diop', role: 'Filleule', interest: 'Xassaids', level: 'Nouvelle', matches: 1 },
-    { name: 'Saliou Fall', role: 'Mentor', expertise: 'Études Tech', level: 'Ancien', matches: 5 },
-  ];
+  // Liste vide
+  const matchingPool: any[] = [];
 
   return (
     <div className="space-y-8 animate-in zoom-in duration-500">
@@ -28,11 +25,11 @@ const CommunityBuilder: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                 {matchingPool.map((p, i) => (
+                 {matchingPool.length > 0 ? matchingPool.map((p, i) => (
                    <div key={i} className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:bg-white hover:border-rose-100 hover:shadow-xl hover:shadow-rose-900/5 transition-all">
                       <div className="flex items-center gap-6">
                          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center font-black text-rose-700 text-xl shadow-sm border border-slate-100 group-hover:bg-rose-600 group-hover:text-white transition-all">
-                            {p.name.split(' ').map(n => n[0]).join('')}
+                            {p.name.split(' ').map((n: string) => n[0]).join('')}
                          </div>
                          <div>
                             <p className="text-base font-black text-slate-800 leading-none mb-2">{p.name}</p>
@@ -52,7 +49,12 @@ const CommunityBuilder: React.FC = () => {
                          <button className="px-5 py-3 bg-white border border-slate-100 text-slate-400 rounded-xl group-hover:bg-rose-600 group-hover:text-white transition-all shadow-sm font-black text-[10px] uppercase">Contacter</button>
                       </div>
                    </div>
-                 ))}
+                 )) : (
+                   <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                      <UserPlus size={40} className="mb-4 opacity-20"/>
+                      <p className="text-xs font-bold uppercase">Aucune demande de parrainage</p>
+                   </div>
+                 )}
               </div>
               <button className="w-full mt-10 py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
                  <Sparkles size={18} /> Lancer Nouveau Cycle de Matching
@@ -66,10 +68,10 @@ const CommunityBuilder: React.FC = () => {
               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-10 opacity-50 flex items-center gap-2"><Target size={14}/> Kurels d'Intérêt</h4>
               <div className="space-y-8 relative z-10">
                  {[
-                   { l: 'Foot & Sport', c: 32, i: '⚽' },
-                   { l: 'Business & Networking', c: 18, i: '💼' },
-                   { l: 'Lecture & Poésie', c: 24, i: '📚' },
-                   { l: 'Cuisine Fraternelle', c: 15, i: '🍲' },
+                   { l: 'Foot & Sport', c: 0, i: '⚽' },
+                   { l: 'Business & Networking', c: 0, i: '💼' },
+                   { l: 'Lecture & Poésie', c: 0, i: '📚' },
+                   { l: 'Cuisine Fraternelle', c: 0, i: '🍲' },
                  ].map((g, i) => (
                    <div key={i} className="flex items-center justify-between group cursor-pointer hover:translate-x-2 transition-transform">
                       <div className="flex items-center gap-4">

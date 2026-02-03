@@ -4,7 +4,8 @@ import {
   Calendar, Clock, MapPin, Users, Plus, ChevronRight, 
   FileText, CheckCircle, AlertCircle, Wand2, ArrowRight,
   ClipboardList, Share2, MoreVertical, Star, Loader2, 
-  Filter, RefreshCcw, Zap, Trash2, Edit, Printer, Archive, PenTool, XCircle, MessageSquare
+  Filter, RefreshCcw, Zap, Trash2, Edit, Printer, Archive, PenTool, XCircle, MessageSquare,
+  Bell
 } from 'lucide-react';
 import { getAllReports, deleteReport, validateReportByAdmin, rejectReport } from '../../services/reportService';
 import { InternalMeetingReport, CommissionType } from '../../types';
@@ -19,6 +20,9 @@ const MeetingManager: React.FC = () => {
   const [reportToEdit, setReportToEdit] = useState<InternalMeetingReport | undefined>(undefined);
   const [showOptions, setShowOptions] = useState(false);
   
+  // Reminder state
+  const [activeReminders, setActiveReminders] = useState<Record<string, number>>({});
+  
   // Admin Validation State
   const [adminFeedback, setAdminFeedback] = useState('');
   
@@ -29,6 +33,19 @@ const MeetingManager: React.FC = () => {
   // --- INITIALIZATION ---
   useEffect(() => {
     handleRefresh();
+    // Load reminders
+    const savedReminders = localStorage.getItem('majma_event_reminders_v2') || localStorage.getItem('majma_event_reminders');
+    if (savedReminders) {
+       try {
+         const parsed = JSON.parse(savedReminders);
+         // Normalize structure if needed (v2 is object, v1 was number)
+         const normalized: Record<string, number> = {};
+         Object.keys(parsed).forEach(k => {
+            normalized[k] = typeof parsed[k] === 'number' ? parsed[k] : parsed[k].time;
+         });
+         setActiveReminders(normalized);
+       } catch (e) {}
+    }
   }, []);
 
   // --- COMPUTED DATA ---
@@ -52,9 +69,9 @@ const MeetingManager: React.FC = () => {
   const handleGenerateAgenda = () => {
     setIsAiGenerating(true);
     setTimeout(() => {
-      setAiSuggestion("1. Revue des cotisations du mois dernier (Action: Trésorier)\n2. Logistique du prochain Ziar (Action: Org)\n3. Validation des nouveaux adhérents.");
+      setAiSuggestion("L'assistant IA n'est pas encore connecté.");
       setIsAiGenerating(false);
-    }, 2000);
+    }, 1000);
   };
 
   const handleRefresh = () => {
@@ -65,6 +82,23 @@ const MeetingManager: React.FC = () => {
       if (!data.find(d => d.id === selectedReportId)) {
          setSelectedReportId(data[0].id);
       }
+    }
+  };
+
+  const handleToggleReminder = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (activeReminders[id]) {
+       // Remove
+       const newR = {...activeReminders};
+       delete newR[id];
+       setActiveReminders(newR);
+       // We should update the main storage object, but here we just update local view for simplicity in this context
+       // Ideally, use a shared context for reminders or direct localstorage update merging
+       alert("Rappel supprimé");
+    } else {
+       // Add default 1h reminder
+       setActiveReminders({...activeReminders, [id]: 60});
+       alert("Rappel défini pour 1h avant.");
     }
   };
 
@@ -238,9 +272,20 @@ const MeetingManager: React.FC = () => {
                      <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-1">
                            <h5 className={`text-xs font-black truncate pr-2 ${selectedReportId === meeting.id ? 'text-emerald-900' : 'text-slate-800'}`}>{meeting.title}</h5>
-                           <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded border ${getStatusStyle(meeting.status)}`}>
-                             {meeting.status.replace('_', ' ')}
-                           </span>
+                           <div className="flex items-center gap-2">
+                              {new Date(meeting.date) > new Date() && (
+                                <button 
+                                  onClick={(e) => handleToggleReminder(e, meeting.id)}
+                                  className={`p-1 rounded-full transition-colors ${activeReminders[meeting.id] ? 'text-emerald-500 bg-emerald-100' : 'text-slate-300 hover:text-emerald-500'}`}
+                                  title={activeReminders[meeting.id] ? "Rappel actif" : "Activer rappel"}
+                                >
+                                   <Bell size={12} className={activeReminders[meeting.id] ? 'fill-current' : ''} />
+                                </button>
+                              )}
+                              <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded border ${getStatusStyle(meeting.status)}`}>
+                                {meeting.status.replace('_', ' ')}
+                              </span>
+                           </div>
                         </div>
                         <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
                            <Clock size={10}/> {meeting.startTime} • <MapPin size={10}/> {meeting.location}

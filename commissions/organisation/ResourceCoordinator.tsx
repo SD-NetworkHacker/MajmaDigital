@@ -3,11 +3,7 @@ import React from 'react';
 import { Users, UserPlus, Calendar, ArrowRight, ShieldCheck, CheckCircle, XCircle } from 'lucide-react';
 
 const ResourceCoordinator: React.FC = () => {
-  const teams = [
-    { name: 'Kurel Cuisine', leader: 'Modou Fall', members: 12, status: 'Complet' },
-    { name: 'Kurel Café', leader: 'Saliou Diop', members: 8, status: 'Besoins: 2' },
-    { name: 'Kurel Hygiène', leader: 'Awa Ndiaye', members: 15, status: 'Complet' },
-  ];
+  const teams: any[] = []; // Liste vide
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
@@ -23,8 +19,8 @@ const ResourceCoordinator: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {teams.map((team, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 min-h-[200px]">
+        {teams.length > 0 ? teams.map((team, i) => (
           <div key={i} className="glass-card p-8 group hover:border-purple-100 transition-all relative overflow-hidden">
              <div className="flex justify-between items-start mb-8">
                 <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-[1.5rem] flex items-center justify-center shadow-inner group-hover:bg-purple-600 group-hover:text-white transition-all">
@@ -45,7 +41,12 @@ const ResourceCoordinator: React.FC = () => {
                 <button className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-purple-600 transition-all"><ArrowRight size={18} /></button>
              </div>
           </div>
-        ))}
+        )) : (
+          <div className="col-span-full flex flex-col items-center justify-center p-12 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400">
+             <Users size={32} className="mb-4 opacity-30"/>
+             <p className="text-xs font-bold uppercase">Aucune équipe constituée</p>
+          </div>
+        )}
       </div>
 
       <div className="glass-card p-10">
@@ -64,21 +65,10 @@ const ResourceCoordinator: React.FC = () => {
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-50">
-                  {[
-                    { time: '08:00 - 12:00', team: 'Vaisselle A', mission: 'Nettoyage post-petit déj', count: '5/6', status: 'OK' },
-                    { time: '12:00 - 14:00', team: 'Cuisine B', mission: 'Service Déjeuner Touba', count: '10/10', status: 'ACTIF' },
-                    { time: '14:00 - 18:00', team: 'Café C', mission: 'Accueil Kurels', count: '4/4', status: 'PRÊT' },
-                  ].map((shift, i) => (
-                    <tr key={i} className="group hover:bg-slate-50 transition-all">
-                       <td className="py-6 px-4 text-xs font-black text-slate-900">{shift.time}</td>
-                       <td className="py-6 px-4 text-xs font-bold text-slate-600">{shift.team}</td>
-                       <td className="py-6 px-4 text-xs text-slate-500 italic">"{shift.mission}"</td>
-                       <td className="py-6 px-4 text-xs font-black text-purple-600">{shift.count}</td>
-                       <td className="py-6 px-4 text-right">
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[9px] font-black uppercase">{shift.status}</span>
-                       </td>
-                    </tr>
-                  ))}
+                  {/* Planning vide */}
+                  <tr>
+                     <td colSpan={5} className="py-10 text-center text-xs text-slate-400 italic">Aucun shift planifié pour aujourd'hui</td>
+                  </tr>
                </tbody>
             </table>
          </div>
