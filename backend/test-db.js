@@ -2,44 +2,55 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const colors = require('colors');
+const path = require('path');
 
-// Charge les variables d'environnement
-dotenv.config();
+// Force le chargement du .env local
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const testConnection = async () => {
   console.log('\n--- TEST DE CONNEXION MONGODB ATLAS ---'.cyan.bold);
+
+  const password = process.env.DB_PASSWORD;
+  let uri = process.env.MONGODB_URI;
+
+  if (password) {
+    console.log('🔑 Utilisation de DB_PASSWORD détectée'.yellow);
+    uri = `mongodb+srv://majmadigital:${password}@cluster0.ja0grya.mongodb.net/majma_db?retryWrites=true&w=majority&appName=Cluster0`;
+  } else {
+    console.log('⚠️ DB_PASSWORD manquant, utilisation de MONGODB_URI brute'.yellow);
+  }
   
-  if (!process.env.MONGODB_URI) {
-    console.error('❌ ERREUR : Variable MONGODB_URI manquante dans le fichier .env'.red.bold);
+  if (!uri) {
+    console.error('❌ ERREUR : Aucune configuration de connexion disponible.'.red.bold);
     process.exit(1);
   }
 
-  // Masquer le mot de passe pour l'affichage
-  const maskedUri = process.env.MONGODB_URI.replace(/:([^:@]+)@/, ':****@');
-  console.log(`📡 URI détectée : ${maskedUri}`.gray);
-  console.log('⏳ Tentative de connexion en cours...'.yellow);
+  // Masquage pour affichage
+  const maskedUri = uri.replace(/:([^:@]+)@/, ':****@');
+  console.log(`📡 URI Cible : ${maskedUri}`.gray);
+  console.log('⏳ Connexion en cours...'.yellow);
 
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000 // Timeout après 5s
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
+      family: 4 // Force IPv4
     });
 
-    console.log(`\n✅ SUCCÈS !`.green.bold);
+    console.log(`\n✅ SUCCÈS - AUTHENTIFICATION RÉUSSIE`.green.bold);
     console.log(`🔗 Hôte : ${conn.connection.host}`.white);
-    console.log(`📂 Base de données : ${conn.connection.name}`.white);
+    console.log(`📂 Base : ${conn.connection.name}`.white);
     console.log(`---------------------------------------\n`.cyan.bold);
     
-    // Fermeture propre
     await mongoose.connection.close();
     process.exit(0);
   } catch (error) {
     console.error(`\n❌ ÉCHEC DE LA CONNEXION`.red.bold);
-    console.error(`Message d'erreur : ${error.message}`.red);
+    console.error(`Erreur : ${error.message}`.red);
     
-    if (error.message.includes('bad auth')) {
-        console.log('\n💡 CONSEIL : Vérifiez votre nom d\'utilisateur et mot de passe dans le fichier .env'.yellow);
-    } else if (error.message.includes('querySrv')) {
-        console.log('\n💡 CONSEIL : Vérifiez votre connexion internet ou le whitelist IP sur Atlas'.yellow);
+    if (error.message.includes('bad auth') || error.message.includes('Authentication failed')) {
+        console.log('\n💡 DIAGNOSTIC : Mot de passe incorrect.'.yellow.bold);
+        console.log('   Le mot de passe "majmadigital" semble rejeté par Atlas.'.yellow);
+        console.log('   Vérifiez vos accès dans l\'onglet "Database Access" sur cloud.mongodb.com'.yellow);
     }
     
     console.log(`---------------------------------------\n`.cyan.bold);
