@@ -213,7 +213,7 @@ export const SEED_CONTRIBUTIONS: Contribution[] = [
     id: 'TX-1004',
     memberId: 'admin-sidy',
     type: 'Diayanté',
-    amount: 2500000000,
+    amount: 25000,
     date: '2024-03-15',
     eventLabel: 'Soutien Social',
     status: 'paid'

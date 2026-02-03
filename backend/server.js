@@ -2,12 +2,10 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const path = require('path'); // Import nécessaire pour les chemins
 const connectDB = require('./config/database');
 
-// Configuration : Charge le .env situé dans le même dossier que server.js
-dotenv.config({ path: path.resolve(__dirname, '.env') });
-
+// Configuration
+dotenv.config();
 connectDB();
 
 const app = express();

@@ -3,13 +3,13 @@
   "name": "majma-digital-backend",
   "version": "1.0.0",
   "description": "API Backend pour Dahira Majmahoun Nourayni",
-  "main": "server.js",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "node server.js",
-    "server": "nodemon server.js",
-    "test:db": "node test-db.js",
-    "data:import": "node seeder.js",
-    "data:destroy": "node seeder.js -d"
+    "start": "node backend/server.js",
+    "server": "nodemon backend/server.js",
+    "test:db": "node backend/test-db.js",
+    "data:import": "node backend/seeder.js",
+    "data:destroy": "node backend/seeder.js -d"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
