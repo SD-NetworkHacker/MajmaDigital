@@ -5,7 +5,7 @@ const connectDB = async () => {
   try {
     // Vérification de la variable d'environnement
     if (!process.env.MONGODB_URI) {
-      throw new Error("La variable MONGODB_URI est manquante dans le fichier backend/.env");
+      throw new Error("La variable MONGODB_URI est introuvable. Vérifiez le fichier .env (local) ou les Variables de Configuration (Railway/Heroku).");
     }
 
     const conn = await mongoose.connect(process.env.MONGODB_URI, {

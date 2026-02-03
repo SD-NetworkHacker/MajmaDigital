@@ -2,15 +2,17 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const colors = require('colors');
+const path = require('path');
 
-// Charge les variables d'environnement
-dotenv.config();
+// Charge les variables d'environnement de manière robuste
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const testConnection = async () => {
   console.log('\n--- TEST DE CONNEXION MONGODB ATLAS ---'.cyan.bold);
   
   if (!process.env.MONGODB_URI) {
-    console.error('❌ ERREUR : Variable MONGODB_URI manquante dans le fichier .env'.red.bold);
+    console.error('❌ ERREUR : Variable MONGODB_URI manquante.'.red.bold);
+    console.log('Assurez-vous que le fichier .env est dans le dossier backend.'.yellow);
     process.exit(1);
   }
 
