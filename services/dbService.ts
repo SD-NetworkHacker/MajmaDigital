@@ -6,8 +6,8 @@ const SEED_TASKS: Task[] = [];
 
 // --- CONFIGURATION API & CIRCUIT BREAKER ---
 const USE_MONGO_API = true;
-// URL de production Railway
-const API_URL = 'https://majmadigital-production.up.railway.app/api';
+// URL du serveur (Ngrok Tunnel)
+const API_URL = 'https://ab45-41-82-148-7.ngrok-free.app/api';
 
 // Le Circuit Breaker empêche de spammer le serveur s'il est éteint
 let isApiOnline = true; 
@@ -31,7 +31,10 @@ async function mongoFetch<T>(endpoint: string, options: RequestInit = {}): Promi
 
     try {
         const token = localStorage.getItem('jwt_token');
-        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        const headers: HeadersInit = { 
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true' // Souvent nécessaire pour les tunnels Ngrok free
+        };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         // Timeout augmenté pour la production (10s) pour compenser la latence réseau ou le "cold start" de Railway
