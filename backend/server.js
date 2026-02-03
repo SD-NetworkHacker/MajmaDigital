@@ -2,26 +2,19 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const connectDB = require('./config/database');
+const { connectDB, getConnectionStatus } = require('./config/database');
 
 // Configuration
 dotenv.config();
 
-// Logs de démarrage pour le débogage sur Railway
 console.log("🚀 Démarrage du serveur MajmaDigital...");
-console.log(`ℹ️  Environnement : ${process.env.NODE_ENV || 'production'}`);
-console.log(`ℹ️  Vérification Variables :`);
-console.log(`   - PORT: ${process.env.PORT || 5000}`);
-console.log(`   - DB_PASSWORD: ${process.env.DB_PASSWORD ? 'Défini ✅' : 'MANQUANT ❌'}`);
-console.log(`   - JWT_SECRET: ${process.env.JWT_SECRET ? 'Défini ✅' : 'MANQUANT ❌'}`);
 
-// Connexion à la base de données
+// Connexion à la base de données (Non bloquant)
 connectDB();
 
 const app = express();
 
-// Middleware
-app.use(cors()); // Autorise toutes les origines
+app.use(cors());
 app.use(express.json());
 
 // --- ROUTES API ---
@@ -33,17 +26,33 @@ app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/resources', require('./routes/resourceRoutes'));
 
-// Route de santé (Health Check) - Importante pour Railway
+// Route de santé améliorée pour le débogage Railway
 app.get('/', (req, res) => {
-  res.status(200).send('API MajmaDigital is operational 🟢');
+  const dbStatus = getConnectionStatus();
+  
+  if (dbStatus.isConnected) {
+    res.status(200).json({
+      status: 'operational',
+      database: 'connected',
+      message: 'API MajmaDigital is running 🟢'
+    });
+  } else {
+    // Renvoie 200 OK pour que Railway considère le service comme "En ligne"
+    // mais affiche l'erreur critique à l'utilisateur
+    res.status(200).json({
+      status: 'degraded',
+      database: 'disconnected',
+      error: dbStatus.error,
+      tip: "Vérifiez vos variables d'environnement (DB_USER, DB_PASSWORD) sur Railway."
+    });
+  }
 });
 
 // Gestion des erreurs globale
 app.use((err, req, res, next) => {
   console.error('🔥 Erreur Serveur :', err.message);
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  res.status(statusCode);
-  res.json({
+  res.status(statusCode).json({
     message: err.message,
     stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
@@ -52,9 +61,5 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`
-  ################################################
-  🛡️  Server listening on port: ${PORT} 🛡️
-  ################################################
-  `);
+  console.log(`🛡️  Server listening on port: ${PORT}`);
 });
