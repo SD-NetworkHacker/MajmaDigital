@@ -1,24 +1,9 @@
 
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
-// Utilisation de import.meta.env pour Vite au lieu de process.env
-// Fix: Safely access env to prevent crash if undefined
-const env = (import.meta as any).env || {};
-const apiKey = env.VITE_GEMINI_API_KEY;
+// Initialization with process.env.API_KEY per guidelines
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-// Initialisation sécurisée : ne pas crasher si la clé est absente
-let ai: GoogleGenAI | null = null;
-if (apiKey) {
-  try {
-    ai = new GoogleGenAI({ apiKey });
-  } catch (e) {
-    console.warn("Erreur init Gemini:", e);
-  }
-} else {
-  console.warn("Clé API Gemini manquante (VITE_GEMINI_API_KEY). Le mode hors ligne IA est activé.");
-}
-
-// Bibliothèque de secours en cas d'erreur ou d'absence de clé
 const SPIRITUAL_FALLBACKS = [
   "La fraternité est le socle de notre Dahira. Cultivons l'entraide et la discipline.",
   "La science sans la pratique est comme un arbre sans fruits. Étudions pour agir.",
@@ -29,85 +14,44 @@ const SPIRITUAL_FALLBACKS = [
 
 const getRandomFallback = () => SPIRITUAL_FALLBACKS[Math.floor(Math.random() * SPIRITUAL_FALLBACKS.length)];
 
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
-  try {
-    return await fn();
-  } catch (error: any) {
-    if (!ai) throw new Error("AI_OFFLINE");
-    
-    const errBody = error.error || error;
-    const errorCode = errBody?.code || error?.status;
-    const errorMessage = errBody?.message || error?.message || '';
-    
-    const isQuotaError = 
-      errorCode === 429 || 
-      errorMessage.includes('429') || 
-      errorMessage.includes('quota') ||
-      errorMessage.includes('RESOURCE_EXHAUSTED');
-
-    if (isQuotaError) {
-      console.warn("Quota Gemini atteint.");
-      throw new Error("QUOTA_EXHAUSTED");
-    }
-
-    if (retries > 0) {
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return withRetry(fn, retries - 1, delay * 2);
-    }
-    throw error;
-  }
-}
-
 export const getSmartInsight = async (topic: string) => {
-  if (!ai) return getRandomFallback();
-  
   try {
-    return await withRetry(async () => {
-      const response = await ai!.models.generateContent({
-        model: 'gemini-2.5-flash', // Utilisation d'un modèle plus stable/rapide
-        contents: `En tant qu'assistant spirituel du Dahira, donne un court conseil (max 2 phrases) sur : ${topic}.`,
-      });
-      return response.text || getRandomFallback();
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `En tant qu'assistant spirituel du Dahira, donne un court conseil (max 2 phrases) sur : ${topic}.`,
     });
+    return response.text || getRandomFallback();
   } catch (error) {
+    console.error("IA Insight Error:", error);
     return getRandomFallback();
   }
 };
 
 export const explainXassaid = async (title: string) => {
-  if (!ai) return "Service d'explication indisponible (Mode hors ligne).";
-
   try {
-    return await withRetry(async () => {
-      const response = await ai!.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `Explique brièvement le Xassaid "${title}".`,
-      });
-      return response.text || "Explication indisponible.";
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Explique brièvement le Xassaid "${title}".`,
     });
+    return response.text || "Explication indisponible.";
   } catch (error) {
     return "Le service d'analyse est momentanément indisponible.";
   }
 };
 
 export const translateXassaid = async (text: string) => {
-  if (!ai) return "Traduction indisponible (Mode hors ligne).";
-
   try {
-    return await withRetry(async () => {
-      const response = await ai!.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `Traduis en français : "${text}"`,
-      });
-      return response.text || "Traduction impossible.";
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Traduis en français : "${text}"`,
     });
+    return response.text || "Traduction impossible.";
   } catch (error) {
     return "La traduction n'a pas pu être générée.";
   }
 };
 
 export const startChat = () => {
-  if (!ai) return null;
   try {
     return ai.chats.create({
       model: 'gemini-2.5-flash',
@@ -116,25 +60,40 @@ export const startChat = () => {
       }
     });
   } catch (e) {
+    console.error("Chat Error:", e);
     return null;
   }
 };
 
 export const transcribeAudio = async (base64Audio: string) => {
-  if (!ai) return "Transcription indisponible.";
-  // Implémentation simplifiée pour éviter les crashs si le modèle vision n'est pas dispo
-  return "Fonctionnalité audio désactivée temporairement.";
+  try {
+      // Placeholder: The actual implementation would use a multimodal model if available
+      // or specific audio model. For 'gemini-2.5-flash', we can send audio parts.
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+            parts: [
+                { inlineData: { mimeType: 'audio/wav', data: base64Audio } },
+                { text: "Transcribe this audio." }
+            ]
+        }
+      });
+      return response.text || "Transcription vide.";
+  } catch (e) {
+      console.error("Transcription Error:", e);
+      return "Fonctionnalité audio indisponible."; 
+  }
 };
 
 export const generateSpeech = async (text: string) => {
-  // TTS souvent instable ou payant, retour null par défaut pour sécurité
+  // TTS implementation placeholder as 2.5-flash doesn't support TTS natively via generateContent in the same way 
+  // without specific config, or requires 'gemini-2.5-flash-preview-tts'.
+  // Returning null to be safe as per previous code behavior
   return null;
 };
 
 export const getMapsLocationInfo = async (query: string, lat?: number, lng?: number) => {
-  if (!ai) return { text: "Service de cartographie indisponible." };
   try {
-      // Version simplifiée sans outils complexes pour éviter les erreurs de config
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: `Donne des infos touristiques et religieuses brèves sur ce lieu : ${query}`,
@@ -146,7 +105,6 @@ export const getMapsLocationInfo = async (query: string, lat?: number, lng?: num
 };
 
 export const generateSocialPost = async (topic: string, platform: string, tone: string) => {
-  if (!ai) return "Génération impossible (IA Hors ligne).";
   try {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -157,18 +115,16 @@ export const generateSocialPost = async (topic: string, platform: string, tone: 
 };
 
 export const generateReplyToComment = async (comment: string, context: string) => {
-    if (!ai) return "Réponse impossible.";
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Réponds à ce commentaire : "${comment}"`,
+            contents: `Réponds à ce commentaire : "${comment}". Contexte: ${context}`,
         });
         return response.text || "";
     } catch (e) { return "Erreur."; }
 };
 
 export const generateHooks = async (topic: string) => {
-    if (!ai) return "Hooks impossibles.";
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -180,7 +136,7 @@ export const generateHooks = async (topic: string) => {
 
 export async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
   const buffer = ctx.createBuffer(numChannels, 1, sampleRate);
-  return buffer; // Dummy return pour éviter crash
+  return buffer; // Dummy return
 }
 
 export function decodeBase64(base64: string) {
