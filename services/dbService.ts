@@ -1,337 +1,217 @@
 
 import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase } from '../types';
-import { API_URL } from '../constants';
+import { supabase } from '../src/lib/supabase';
 
-// --- CONFIGURATION API ---
-const BASE_API = `${API_URL}/api`;
+// --- HELPERS ---
 
-// Helper pour les headers avec token JWT
-const getHeaders = () => {
-  const token = localStorage.getItem('jwt_token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true'
-  };
-};
-
-// Helper générique pour la réponse
-const handleResponse = async (res: Response) => {
-  if (res.status === 401) {
-    // Optionnel: Redirection login
+const handleSupabaseError = (error: any) => {
+  if (error) {
+    console.error("Supabase Error:", error);
+    throw new Error(error.message);
   }
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(error.message || `Erreur API: ${res.status}`);
-  }
-  return res.json();
 };
-
-// ... (Membres, Finance, Events, Reports existants conservés, ajout Social ci-dessous) ...
 
 // --- MEMBERS ---
 export const dbFetchMembers = async (): Promise<Member[]> => {
-  const res = await fetch(`${BASE_API}/members`, { headers: getHeaders() });
-  const json = await handleResponse(res);
-  return json.data || [];
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*');
+  
+  if (error) {
+      console.warn("Erreur fetch members (peut être vide):", error.message);
+      return [];
+  }
+
+  // Mapping DB -> Frontend Types
+  return (data || []).map((p: any) => ({
+      id: p.id,
+      firstName: p.first_name,
+      lastName: p.last_name,
+      email: p.email,
+      phone: p.phone,
+      role: p.role,
+      matricule: p.matricule,
+      category: p.category,
+      status: p.status || 'active',
+      commissions: p.commissions || [], // Supposant un champ JSONB
+      joinDate: p.created_at,
+      address: p.address,
+      coordinates: p.coordinates || { lat: 14.7167, lng: -17.4677 }
+  }));
 };
 
 export const dbCreateMember = async (member: Member) => {
-  const res = await fetch(`${BASE_API}/members`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(member)
-  });
-  return handleResponse(res);
+    // Note: La création se fait généralement via Auth.register
+    // Cette fonction insère directement dans profiles (pour admin)
+    const { data, error } = await supabase
+        .from('profiles')
+        .insert([{
+            first_name: member.firstName,
+            last_name: member.lastName,
+            email: member.email,
+            phone: member.phone,
+            role: member.role,
+            category: member.category,
+            matricule: member.matricule,
+            commissions: member.commissions
+        }])
+        .select();
+    handleSupabaseError(error);
+    return data;
 };
 
 export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
-  const res = await fetch(`${BASE_API}/members/${id}`, {
-    method: 'PATCH',
-    headers: getHeaders(),
-    body: JSON.stringify(updates)
-  });
-  return handleResponse(res);
+  // Mapping inverse pour update
+  const dbUpdates: any = {};
+  if (updates.firstName) dbUpdates.first_name = updates.firstName;
+  if (updates.lastName) dbUpdates.last_name = updates.lastName;
+  if (updates.role) dbUpdates.role = updates.role;
+  if (updates.status) dbUpdates.status = updates.status;
+  // ... autres champs
+  
+  const { error } = await supabase
+    .from('profiles')
+    .update(dbUpdates)
+    .eq('id', id);
+  handleSupabaseError(error);
 };
 
 export const dbDeleteMember = async (id: string) => {
-  const res = await fetch(`${BASE_API}/members/${id}`, {
-    method: 'DELETE',
-    headers: getHeaders()
-  });
-  return handleResponse(res);
+  const { error } = await supabase.from('profiles').delete().eq('id', id);
+  handleSupabaseError(error);
 };
 
 // --- FINANCE ---
 export const dbFetchContributions = async (): Promise<Contribution[]> => {
-  const res = await fetch(`${BASE_API}/finance`, { headers: getHeaders() });
-  const json = await handleResponse(res);
-  return json.data || [];
+  const { data, error } = await supabase.from('contributions').select('*');
+  if (error) return [];
+  
+  return (data || []).map((c: any) => ({
+      id: c.id,
+      memberId: c.member_id,
+      type: c.type,
+      amount: c.amount,
+      date: c.date,
+      eventLabel: c.event_label,
+      status: c.status
+  }));
 };
 
 export const dbCreateContribution = async (contribution: Contribution) => {
-  const res = await fetch(`${BASE_API}/finance/pay`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({
-       memberId: contribution.memberId,
-       type: contribution.type,
-       amount: contribution.amount,
-       eventLabel: contribution.eventLabel,
-       date: contribution.date
-    })
-  });
-  return handleResponse(res);
+  const { error } = await supabase.from('contributions').insert([{
+      member_id: contribution.memberId,
+      type: contribution.type,
+      amount: contribution.amount,
+      date: contribution.date,
+      event_label: contribution.eventLabel,
+      status: contribution.status
+  }]);
+  handleSupabaseError(error);
 };
 
 // --- EVENTS ---
 export const dbFetchEvents = async (): Promise<Event[]> => {
-  const res = await fetch(`${BASE_API}/events`, { headers: getHeaders() });
-  const json = await handleResponse(res);
-  return json.data || [];
+  const { data, error } = await supabase.from('events').select('*');
+  if (error) return [];
+  return data || [];
 };
 
 export const dbCreateEvent = async (event: Event) => {
-  const res = await fetch(`${BASE_API}/events`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(event)
-  });
-  return handleResponse(res);
+  const { error } = await supabase.from('events').insert([event]);
+  handleSupabaseError(error);
 };
 
 // --- REPORTS ---
 export const dbFetchReports = async (): Promise<InternalMeetingReport[]> => {
-  const res = await fetch(`${BASE_API}/reports`, { headers: getHeaders() });
-  const json = await handleResponse(res);
-  return json.data || [];
+   const { data, error } = await supabase.from('meeting_reports').select('*');
+   if (error) return [];
+   return data || [];
 };
 
 export const dbCreateReport = async (report: InternalMeetingReport) => {
-  const res = await fetch(`${BASE_API}/reports`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(report)
-  });
-  return handleResponse(res);
+   const { error } = await supabase.from('meeting_reports').insert([report]);
+   handleSupabaseError(error);
 };
 
 // --- TASKS ---
 export const dbFetchTasks = async (): Promise<Task[]> => {
-  try {
-     const res = await fetch(`${BASE_API}/tasks`, { headers: getHeaders() });
-     if(res.ok) {
-         const json = await res.json();
-         return json.data || [];
-     }
-  } catch(e) {}
-  return [];
+    const { data, error } = await supabase.from('tasks').select('*');
+    if (error) return [];
+    return data || [];
 };
 
 export const dbCreateTask = async (task: Task) => {
-    const res = await fetch(`${BASE_API}/tasks`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(task)
-    });
-    return handleResponse(res);
+    const { error } = await supabase.from('tasks').insert([task]);
+    handleSupabaseError(error);
 };
 
 export const dbUpdateTask = async (id: string, updates: Partial<Task>) => {
-    const res = await fetch(`${BASE_API}/tasks/${id}`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(updates)
-    });
-    return handleResponse(res);
+    const { error } = await supabase.from('tasks').update(updates).eq('id', id);
+    handleSupabaseError(error);
 };
 
 export const dbDeleteTask = async (id: string) => {
-    const res = await fetch(`${BASE_API}/tasks/${id}`, {
-        method: 'DELETE',
-        headers: getHeaders()
-    });
-    return handleResponse(res);
+    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    handleSupabaseError(error);
 };
 
-// --- CAMPAIGNS ---
+// --- SOCIAL / ADIYA / RESOURCES ---
+// Fallbacks safe si les tables n'existent pas encore
 export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
-    try {
-        const res = await fetch(`${BASE_API}/campaigns`, { headers: getHeaders() });
-        const json = await res.json();
-        return json.data || [];
-    } catch(e) { return []; }
+    const { data } = await supabase.from('adiya_campaigns').select('*');
+    return data || [];
+};
+export const dbCreateAdiyaCampaign = async (c: AdiyaCampaign) => {
+    await supabase.from('adiya_campaigns').insert([c]);
+};
+export const dbUpdateAdiyaCampaign = async (id: string, u: Partial<AdiyaCampaign>) => {
+    await supabase.from('adiya_campaigns').update(u).eq('id', id);
 };
 
-export const dbCreateAdiyaCampaign = async (campaign: AdiyaCampaign) => {
-    const res = await fetch(`${BASE_API}/campaigns`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(campaign)
-    });
-    return handleResponse(res);
-};
-
-export const dbUpdateAdiyaCampaign = async (id: string, updates: Partial<AdiyaCampaign>) => {
-    const res = await fetch(`${BASE_API}/campaigns/${id}`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(updates)
-    });
-    return handleResponse(res);
-};
-
-// --- RESOURCES ---
+// Resources
 export const dbFetchResources = async (): Promise<LibraryResource[]> => {
-    try {
-        const res = await fetch(`${BASE_API}/resources`, { headers: getHeaders() });
-        const json = await res.json();
-        return json.data || [];
-    } catch(e) { return []; }
+    const { data } = await supabase.from('library_resources').select('*');
+    return data || [];
 };
-
-export const dbCreateResource = async (resource: LibraryResource) => {
-    const res = await fetch(`${BASE_API}/resources`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(resource)
-    });
-    return handleResponse(res);
+export const dbCreateResource = async (r: LibraryResource) => {
+    await supabase.from('library_resources').insert([r]);
 };
-
 export const dbDeleteResource = async (id: string) => {
-    const res = await fetch(`${BASE_API}/resources/${id}`, {
-        method: 'DELETE',
-        headers: getHeaders()
-    });
-    return handleResponse(res);
+    await supabase.from('library_resources').delete().eq('id', id);
 };
 
-// --- TRANSPORT ---
-export const dbFetchFleet = async (): Promise<Vehicle[]> => {
-    try {
-        const res = await fetch(`${BASE_API}/transport/fleet`, { headers: getHeaders() });
-        const json = await res.json();
-        return json.data || [];
-    } catch(e) { return []; }
-};
-
-export const dbCreateVehicle = async (vehicle: Vehicle) => {
-    const res = await fetch(`${BASE_API}/transport/fleet`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(vehicle)
-    });
-    return handleResponse(res);
-};
-
-export const dbUpdateVehicle = async (id: string, updates: Partial<Vehicle>) => {
-    const res = await fetch(`${BASE_API}/transport/fleet/${id}`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(updates)
-    });
-    return handleResponse(res);
-};
-
-export const dbDeleteVehicle = async (id: string) => {
-    const res = await fetch(`${BASE_API}/transport/fleet/${id}`, {
-        method: 'DELETE',
-        headers: getHeaders()
-    });
-    return handleResponse(res);
-};
-
-export const dbFetchDrivers = async (): Promise<Driver[]> => {
-    try {
-        const res = await fetch(`${BASE_API}/transport/drivers`, { headers: getHeaders() });
-        const json = await res.json();
-        return json.data || [];
-    } catch(e) { return []; }
-};
-
-export const dbCreateDriver = async (driver: Driver) => {
-    const res = await fetch(`${BASE_API}/transport/drivers`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(driver)
-    });
-    return handleResponse(res);
-};
-
-export const dbUpdateDriver = async (id: string, updates: Partial<Driver>) => {
-    const res = await fetch(`${BASE_API}/transport/drivers/${id}`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(updates)
-    });
-    return handleResponse(res);
-};
-
-export const dbDeleteDriver = async (id: string) => {
-    const res = await fetch(`${BASE_API}/transport/drivers/${id}`, {
-        method: 'DELETE',
-        headers: getHeaders()
-    });
-    return handleResponse(res);
-};
-
-export const dbFetchSchedules = async (): Promise<TransportSchedule[]> => {
-    try {
-        const res = await fetch(`${BASE_API}/transport/trips`, { headers: getHeaders() });
-        const json = await res.json();
-        return json.data || [];
-    } catch(e) { return []; }
-};
-
-export const dbCreateSchedule = async (trip: TransportSchedule) => {
-    const res = await fetch(`${BASE_API}/transport/trips`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(trip)
-    });
-    return handleResponse(res);
-};
-
-// --- SOCIAL ---
+// Social Cases
 export const dbFetchSocialCases = async (): Promise<SocialCase[]> => {
-    try {
-        const res = await fetch(`${BASE_API}/social/cases`, { headers: getHeaders() });
-        const json = await res.json();
-        return json.data || [];
-    } catch(e) { return []; }
+    const { data } = await supabase.from('social_cases').select('*');
+    return data || [];
+};
+export const dbCreateSocialCase = async (sc: Partial<SocialCase>) => {
+    await supabase.from('social_cases').insert([sc]);
 };
 
-export const dbCreateSocialCase = async (socialCase: Partial<SocialCase>) => {
-    const res = await fetch(`${BASE_API}/social/cases`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(socialCase)
-    });
-    return handleResponse(res);
-};
-
+// Social Projects
 export const dbFetchSocialProjects = async (): Promise<SocialProject[]> => {
-    try {
-        const res = await fetch(`${BASE_API}/social/projects`, { headers: getHeaders() });
-        const json = await res.json();
-        return json.data || [];
-    } catch(e) { return []; }
+    const { data } = await supabase.from('social_projects').select('*');
+    return data || [];
+};
+export const dbCreateSocialProject = async (p: Partial<SocialProject>) => {
+    await supabase.from('social_projects').insert([p]);
 };
 
-export const dbCreateSocialProject = async (project: Partial<SocialProject>) => {
-    const res = await fetch(`${BASE_API}/social/projects`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(project)
-    });
-    return handleResponse(res);
-};
-
-
-// --- PLACEHOLDERS (Non implémentés Backend) ---
+// --- PLACEHOLDERS / MOCKS ---
+// Ces fonctions simulent des retours vides pour les parties non encore migrées en DB
+export const dbFetchFleet = async (): Promise<Vehicle[]> => [];
+export const dbFetchDrivers = async (): Promise<Driver[]> => [];
+export const dbFetchSchedules = async (): Promise<TransportSchedule[]> => [];
+export const dbCreateVehicle = async (v: Vehicle) => {};
+export const dbUpdateVehicle = async (id: string, u: Partial<Vehicle>) => {};
+export const dbDeleteVehicle = async (id: string) => {};
+export const dbCreateDriver = async (d: Driver) => {};
+export const dbUpdateDriver = async (id: string, u: Partial<Driver>) => {};
+export const dbDeleteDriver = async (id: string) => {};
+export const dbCreateSchedule = async (s: TransportSchedule) => {};
 export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => [];
 export const dbFetchBudgetRequests = async (): Promise<BudgetRequest[]> => [];
 export const dbFetchFundraisingEvents = async (): Promise<FundraisingEvent[]> => [];
-export const dbUpdateContribution = async (id: string, updates: Partial<Contribution>) => Promise.resolve();
-export const dbDeleteContribution = async (id: string) => Promise.resolve();
+export const dbUpdateContribution = async (id: string, updates: Partial<Contribution>) => {};
+export const dbDeleteContribution = async (id: string) => {};

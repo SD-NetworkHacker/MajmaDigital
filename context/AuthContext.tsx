@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
 import { Member } from '../types';
-import { API_URL } from '../constants';
+import { supabase } from '../src/lib/supabase';
 
 export interface UserProfile {
   id: string;
@@ -14,8 +14,8 @@ export interface UserProfile {
   avatarUrl?: string;
   originalRole?: string;
   matricule?: string;
-  bio?: string;
   category?: string;
+  bio?: string;
 }
 
 interface AuthContextType {
@@ -39,84 +39,97 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('jwt_token'));
+  const [session, setSession] = useState<any | null>(null);
   
-  const [originalAdminSession, setOriginalAdminSession] = useState<{user: UserProfile, token: string} | null>(null);
+  const [originalAdminSession, setOriginalAdminSession] = useState<UserProfile | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
 
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  // Tentative de reconnexion au chargement si token existe
-  useEffect(() => {
-    const initAuth = async () => {
-      if (token && !user) {
-        try {
-          const response = await fetch(`${API_URL}/api/members/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) {
-            const data = await response.json();
-             // Adaptation des données API vers UserProfile
-            setUser({ 
-                id: data._id, 
-                ...data 
-            });
-          } else {
-            // Token invalide
-            logout();
-          }
-        } catch (e) {
-          console.error("Erreur validation session", e);
-        }
-      }
-    };
-    initAuth();
-  }, [token]);
+  // Fonction pour récupérer le profil étendu depuis la table 'profiles'
+  const fetchProfile = async (userId: string, email: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-  const logout = useCallback((reason?: string) => {
-    localStorage.removeItem('jwt_token');
-    setUser(null);
-    setToken(null);
-    setOriginalAdminSession(null);
-    if (reason) addNotification(reason, 'info');
-  }, [addNotification]);
+      if (error) {
+        console.error('Erreur chargement profil (peut être normal lors de la 1ère connexion):', error);
+        // Fallback minimal si le profil n'existe pas encore (pourrait rediriger vers page completion)
+        return {
+           id: userId,
+           email: email,
+           firstName: 'Nouveau',
+           lastName: 'Membre',
+           role: 'SYMPATHISANT'
+        };
+      }
+
+      // Mapping snake_case (DB) vers camelCase (App)
+      return {
+        id: data.id,
+        email: email,
+        firstName: data.first_name || 'Membre',
+        lastName: data.last_name || '',
+        role: data.role || 'SYMPATHISANT', // Rôle par défaut
+        matricule: data.matricule,
+        category: data.category,
+        avatarUrl: data.avatar_url,
+        bio: data.bio
+      };
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  };
+
+  // Initialisation de la session Supabase
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        fetchProfile(session.user.id, session.user.email!).then(profile => {
+          if (profile) setUser(profile);
+        });
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      if (session?.user) {
+         const profile = await fetchProfile(session.user.id, session.user.email!);
+         setUser(profile);
+      } else {
+         setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
       showLoading();
-      
-      const response = await fetch(`${API_URL}/api/members/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const data = await response.json();
+      if (error) throw error;
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Échec de la connexion');
-      }
-      
-      const userProfile = { 
-          id: data._id,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          role: data.role,
-          matricule: data.matricule,
-          category: data.category
-      };
-      
-      setUser(userProfile);
-      setToken(data.token);
-      localStorage.setItem('jwt_token', data.token);
-      addNotification(`Heureux de vous revoir, ${userProfile.firstName}`, 'success');
+      const profile = await fetchProfile(data.user.id, data.user.email!);
+      setUser(profile);
+      addNotification(`Heureux de vous revoir, ${profile?.firstName}`, 'success');
 
     } catch (error: any) {
       console.error("Login Error:", error);
-      addNotification(error.message, 'error');
-      throw error; // Propager l'erreur pour le formulaire
+      addNotification(error.message || "Erreur de connexion", 'error');
+      throw error;
     } finally {
       hideLoading();
     }
@@ -125,19 +138,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (formData: any) => {
     try {
       showLoading();
-      const response = await fetch(`${API_URL}/api/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
       
-      const data = await response.json();
+      // 1. Création du compte Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+      });
 
-      if (!response.ok) {
-        throw new Error(data.message || "Erreur lors de l'inscription");
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Erreur création utilisateur");
+
+      // 2. Création du profil dans la table 'profiles'
+      // Note: Assurez-vous que RLS autorise l'insert ou utilisez une Edge Function si nécessaire.
+      // Ici on assume que l'utilisateur authentifié peut créer son propre profil.
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: authData.user.id,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          role: 'SYMPATHISANT', // Rôle par défaut imposé
+          category: formData.category,
+          created_at: new Date().toISOString()
+        }]);
+
+      if (profileError) {
+         console.error("Erreur création profil DB:", profileError);
+         // On ne bloque pas l'inscription, mais on log l'erreur.
+         // L'utilisateur pourra compléter son profil plus tard.
       }
 
-      addNotification("Inscription réussie ! Vous pouvez vous connecter.", "success");
+      addNotification("Compte créé ! Connectez-vous.", "success");
       
     } catch (error: any) {
       addNotification(error.message, 'error');
@@ -147,18 +180,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateUser = (data: Partial<UserProfile>) => {
+  const logout = useCallback(async (reason?: string) => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setOriginalAdminSession(null);
+    if (reason) addNotification(reason, 'info');
+  }, [addNotification]);
+
+  const updateUser = async (data: Partial<UserProfile>) => {
     if (!user) return;
+    
+    // Update local state optimistic
     setUser({ ...user, ...data });
+
+    // Update Supabase
+    try {
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                first_name: data.firstName,
+                last_name: data.lastName,
+                bio: data.bio
+                // mapper les autres champs au besoin
+            })
+            .eq('id', user.id);
+            
+        if (error) throw error;
+        addNotification("Profil mis à jour", "success");
+    } catch (e: any) {
+        addNotification("Erreur sauvegarde profil", "error");
+    }
   };
 
   const impersonate = (member: Member) => {
     if (!user) return;
     setIsSwitching(true);
-    // Simulation visuelle uniquement, pas d'appel API pour l'impersonation pour l'instant
     setTimeout(() => {
-        if (!originalAdminSession) setOriginalAdminSession({ user, token: token || '' });
-        setUser({
+        if (!originalAdminSession) setOriginalAdminSession(user);
+        
+        // Simuler le user à partir du membre sélectionné
+        const simulatedUser: UserProfile = {
           id: member.id,
           email: member.email,
           firstName: member.firstName,
@@ -167,7 +228,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           matricule: member.matricule,
           category: member.category,
           originalRole: member.role 
-        });
+        };
+        
+        setUser(simulatedUser);
         setIsSwitching(false);
         addNotification(`Vue: ${member.firstName} (${member.role})`, 'info');
     }, 500); 
@@ -177,8 +240,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!originalAdminSession) return;
     setIsSwitching(true);
     setTimeout(() => {
-        setUser(originalAdminSession.user);
-        setToken(originalAdminSession.token);
+        setUser(originalAdminSession);
         setOriginalAdminSession(null);
         setIsSwitching(false);
         addNotification("Retour vue Admin", 'success');
@@ -189,14 +251,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return '/app';
   }, []);
 
-  const refreshProfile = async () => {};
+  const refreshProfile = async () => {
+      if(user) {
+          const p = await fetchProfile(user.id, user.email);
+          if(p) setUser(p);
+      }
+  };
+  
   const loginAsGuest = () => {
-      addNotification("Mode invité désactivé en production.", "warning");
+      addNotification("Mode invité limité.", "info");
   };
 
   return (
     <AuthContext.Provider 
-      value={{ user, token, isAuthenticated: !!user, isImpersonating: !!originalAdminSession, isSwitching, login, register, logout, updateUser, impersonate, stopImpersonation, getRedirectPath, refreshProfile, loginAsGuest }}
+      value={{ user, token: session?.access_token, isAuthenticated: !!user, isImpersonating: !!originalAdminSession, isSwitching, login, register, logout, updateUser, impersonate, stopImpersonation, getRedirectPath, refreshProfile, loginAsGuest }}
     >
       {children}
     </AuthContext.Provider>

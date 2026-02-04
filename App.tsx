@@ -1,5 +1,5 @@
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 
@@ -20,6 +20,10 @@ const WarRoomLayout = React.lazy(() => import('./components/bureau/WarRoomLayout
 const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
 const TransportDashboard = React.lazy(() => import('./commissions/transport/TransportDashboard'));
 const CulturalDashboard = React.lazy(() => import('./commissions/culturelle/CulturalDashboard'));
+// Dashboards spécifiques demandés
+const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
+const MemberDashboard = React.lazy(() => import('./components/member/MemberDashboard'));
+
 import GuestDashboard from './components/GuestDashboard';
 
 import { Menu, Power, Eye, VenetianMask, Loader2 } from 'lucide-react';
@@ -28,13 +32,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { supabase } from './src/lib/supabase'; // Import direct pour le realtime
 
 // Fallback Loader (Gold Color #D4AF37)
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-slate-50">
      <div className="flex flex-col items-center gap-4">
         <Loader2 size={48} className="animate-spin text-[#D4AF37]" />
-        <p className="text-xs font-black uppercase tracking-widest text-slate-500">Connexion Sécurisée...</p>
+        <p className="text-xs font-black uppercase tracking-widest text-slate-500">Synchronisation Supabase...</p>
      </div>
   </div>
 );
@@ -45,17 +50,59 @@ const MainContent: React.FC = () => {
   const [viewProfileId, setViewProfileId] = useState<string | null>(null);
   
   const { members, events, contributions, isLoading } = useData();
-  const { user, isImpersonating, stopImpersonation } = useAuth();
+  const { user, isImpersonating, stopImpersonation, updateUser } = useAuth();
 
-  // Si l'utilisateur n'est pas connecté, afficher le Dashboard Invité
+  // --- SUPABASE REALTIME ROLE LISTENER ---
+  useEffect(() => {
+    if (!user) return;
+
+    // Écoute les changements sur la table 'profiles' pour l'utilisateur courant
+    const channel = supabase
+      .channel('public:profiles')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`, // Filtre sur l'ID de l'utilisateur connecté
+        },
+        (payload) => {
+          console.log("⚡ Changement de rôle détecté en temps réel :", payload.new);
+          // Mise à jour immédiate du contexte Auth
+          // Supabase envoie les noms de colonnes en snake_case (role), notre context attend role
+          updateUser({ 
+              role: payload.new.role,
+              firstName: payload.new.first_name,
+              lastName: payload.new.last_name
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, updateUser]);
+
+  // --- LOGIQUE DE ROUTING AUTOMATIQUE ---
+  // Si l'utilisateur n'est pas connecté
   if (!user) {
     return <GuestDashboard />;
   }
-  
-  // Afficher le loader si les données sont en cours de chargement
-  if (isLoading) {
-      return <PageLoader />;
-  }
+
+  // Dashboard Switching Logic (Facebook Style)
+  // Cette logique est prioritaire sur le routage manuel pour le "Dashboard"
+  const getDashboardComponent = () => {
+     if (user.role === 'SG' || user.role === 'ADMIN') {
+         return <AdminDashboard setActiveTab={setActiveTab} members={members} events={events} contributions={contributions} />;
+     } else if (user.role === 'MEMBRE' || user.role === 'SYMPATHISANT') {
+         return <MemberDashboard setActiveTab={setActiveTab} />;
+     } else {
+         // Fallback par défaut
+         return <Dashboard members={members} events={events} contributions={contributions} setActiveTab={setActiveTab} />;
+     }
+  };
 
   const isAdminOrManager = ['ADMIN', 'SG', 'ADJOINT_SG', 'DIEUWRINE'].includes(user.role);
 
@@ -80,7 +127,7 @@ const MainContent: React.FC = () => {
       <Suspense fallback={<PageLoader />}>
         {(() => {
           switch (activeTab) {
-            case 'dashboard': return <Dashboard {...commonProps} setActiveTab={setActiveTab} />;
+            case 'dashboard': return getDashboardComponent(); // Utilisation de la logique dynamique
             case 'members': return <MemberModule onViewProfile={navigateToProfile} />;
             case 'map': return <MemberMapModule members={members} />;
             case 'commissions': return <CommissionModule members={members} events={events} />;
@@ -92,15 +139,19 @@ const MainContent: React.FC = () => {
             case 'transport': return <TransportDashboard />;
             case 'culturelle': return <CulturalDashboard />;
             case 'messages': return <MessagesModule />;
-            case 'admin': return isAdminOrManager ? <AdminModule /> : <Dashboard {...commonProps} setActiveTab={setActiveTab} />;
+            case 'admin': return isAdminOrManager ? <AdminModule /> : getDashboardComponent();
             case 'settings': return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
             case 'profile': return <UserProfile targetId={viewProfileId} onBack={() => { setViewProfileId(null); setActiveTab('members'); }} />;
-            default: return <Dashboard {...commonProps} setActiveTab={setActiveTab} />;
+            default: return getDashboardComponent();
           }
         })()}
       </Suspense>
     );
   };
+
+  if (isLoading) {
+      return <PageLoader />;
+  }
 
   return (
     <div className={`flex h-screen w-full bg-[#f8fafc] overflow-hidden relative transition-all duration-500 ${isImpersonating ? 'border-[8px] border-amber-500/50' : ''}`}>

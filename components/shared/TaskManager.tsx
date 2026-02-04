@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   CheckCircle, Circle, Clock, MoreHorizontal, Plus, 
@@ -264,7 +263,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase text-slate-400">Échéance</label>
-                            <input type="date" className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none" value={newTask.dueDate ? new Date(newTask.dueDate).toISOString().split('T')[0] : ''} onChange={e => setNewTask({...newTask, dueDate: new Date(e.target.value)})} />
+                            <input type="date" className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none" value={newTask.dueDate ? new Date(newTask.dueDate).toISOString().split('T')[0] : ''} onChange={e => setNewTask({...newTask, dueDate: e.target.value})} />
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase text-slate-400">Assigner à</label>
