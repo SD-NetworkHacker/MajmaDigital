@@ -16,7 +16,7 @@ interface MemberModuleProps {
 }
 
 const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
-  const { members, addMember, deleteMember, updateMemberStatus } = useData();
+  const { members, addMember, deleteMember, updateMemberStatus, isLoading } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   
@@ -61,8 +61,8 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
       if (!lowerSearchTerm) return true;
 
       const fullName = `${member.firstName} ${member.lastName}`.toLowerCase();
-      const matricule = member.matricule.toLowerCase();
-      const address = member.address.toLowerCase();
+      const matricule = member.matricule ? member.matricule.toLowerCase() : '';
+      const address = member.address ? member.address.toLowerCase() : '';
 
       return (
         fullName.includes(lowerSearchTerm) || 
@@ -126,6 +126,47 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
       }
   };
 
+  if (!isLoading && members.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-6 animate-in fade-in">
+         <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center border-4 border-white shadow-xl">
+            <Users size={48} className="text-slate-300" />
+         </div>
+         <div className="text-center max-w-md space-y-2">
+            <h3 className="text-xl font-black text-slate-800">Base de données vide</h3>
+            <p className="text-sm text-slate-500">Aucun membre enregistré dans la base réelle. Veuillez inviter des membres pour commencer.</p>
+         </div>
+         <button 
+           onClick={() => setShowForm(true)}
+           className="px-8 py-3 bg-[#D4AF37] hover:bg-[#c5a028] text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all"
+         >
+           Ajouter le premier membre
+         </button>
+         {showForm && (
+            <MemberForm 
+              onClose={() => setShowForm(false)} 
+              onSubmit={(data) => {
+                const newMember: Member = {
+                  ...data,
+                  id: Date.now().toString(),
+                  matricule: `MAJ-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+                  joinDate: new Date().toISOString(),
+                  status: 'active',
+                  commissions: data.commissionAssignments?.map((ca: any) => ({
+                    type: ca.type,
+                    role_commission: ca.role,
+                    permissions: []
+                  })) || []
+                };
+                addMember(newMember);
+                setShowForm(false);
+              }}
+            />
+          )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       
@@ -139,11 +180,11 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
               matricule: `MAJ-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
               joinDate: new Date().toISOString(),
               status: 'active',
-              commissions: data.commissionAssignments.map((ca: any) => ({
+              commissions: data.commissionAssignments?.map((ca: any) => ({
                 type: ca.type,
                 role_commission: ca.role,
                 permissions: []
-              }))
+              })) || []
             };
             addMember(newMember);
             setShowForm(false);
@@ -312,7 +353,7 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
                    </div>
                    <div className="flex items-center gap-3">
                       <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400"><MapPin size={12}/></div>
-                      <span className="text-xs font-bold text-slate-600 truncate">{member.address}</span>
+                      <span className="text-xs font-bold text-slate-600 truncate">{member.address || 'Adresse inconnue'}</span>
                    </div>
                 </div>
               </div>
@@ -385,7 +426,7 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
                            </td>
                            <td className="px-6 py-4">
                               <div className="flex gap-1 flex-wrap">
-                                 {member.commissions.length > 0 ? member.commissions.map((c, i) => (
+                                 {member.commissions && member.commissions.length > 0 ? member.commissions.map((c, i) => (
                                     <span key={i} className="px-2 py-0.5 bg-slate-100 rounded text-[8px] font-bold text-slate-500 uppercase border border-slate-200">{c.type.substring(0, 3)}</span>
                                  )) : <span className="text-[9px] text-slate-300 italic">Aucune</span>}
                               </div>

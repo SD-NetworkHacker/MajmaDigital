@@ -1,7 +1,8 @@
 
 import { MemberCategory, GlobalRole, CommissionType, Member, Commission, Contribution, Event, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
-// URL du Backend (Production Railway ou Local via ENV)
+// URL du Backend (Production Railway)
+// Force l'URL de production si la variable d'env n'est pas définie
 const env = (import.meta as any).env || {};
 export const API_URL = env.VITE_API_URL || 'https://majmadigital-production.up.railway.app';
 
