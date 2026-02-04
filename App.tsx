@@ -20,6 +20,7 @@ const WarRoomLayout = React.lazy(() => import('./components/bureau/WarRoomLayout
 const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
 const TransportDashboard = React.lazy(() => import('./commissions/transport/TransportDashboard'));
 const CulturalDashboard = React.lazy(() => import('./commissions/culturelle/CulturalDashboard'));
+import GuestDashboard from './components/GuestDashboard';
 
 import { Menu, Power, Eye, VenetianMask, Loader2 } from 'lucide-react';
 import { DataProvider, useData } from './contexts/DataContext';
@@ -27,7 +28,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { GlobalRole } from './types';
 
 // Fallback Loader
 const PageLoader = () => (
@@ -47,7 +47,12 @@ const MainContent: React.FC = () => {
   const { members, events, contributions } = useData();
   const { user, isImpersonating, stopImpersonation } = useAuth();
 
-  const isAdminOrManager = user && ['ADMIN', 'SG', 'ADJOINT_SG', 'DIEUWRINE'].includes(user.role);
+  // Si l'utilisateur n'est pas connecté, afficher le Dashboard Invité
+  if (!user) {
+    return <GuestDashboard />;
+  }
+
+  const isAdminOrManager = ['ADMIN', 'SG', 'ADJOINT_SG', 'DIEUWRINE'].includes(user.role);
 
   const navigateToProfile = (id: string | null) => {
     setViewProfileId(id);

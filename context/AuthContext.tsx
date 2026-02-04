@@ -32,6 +32,7 @@ interface AuthContextType {
   stopImpersonation: () => void;
   getRedirectPath: () => string;
   refreshProfile: () => Promise<void>;
+  loginAsGuest: () => void; // Nouvelle fonction pour le mode démo
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,29 +45,27 @@ const DEFAULT_SG_PROFILE: UserProfile = {
   email: 'sg@majma.sn',
   bio: "Compte Secrétaire Général - Mode Démo",
   matricule: 'MAJ-SG-001',
-  role: GlobalRole.SG, // FORCE LE RÔLE SG
+  role: GlobalRole.SG,
   category: 'Travailleur'
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialisation directe avec le profil SG pour éviter l'écran blanc
-  const [user, setUser] = useState<UserProfile | null>(DEFAULT_SG_PROFILE);
-  const [token, setToken] = useState<string | null>('demo-token');
+  // Initialisation à NULL pour afficher le GuestDashboard par défaut
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   
   const [originalAdminSession, setOriginalAdminSession] = useState<{user: UserProfile, token: string} | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(true); // Toujours true pour afficher l'app
 
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
   const logout = useCallback((reason?: string) => {
     localStorage.removeItem('jwt_token');
-    // En mode démo/fix, on ne nullifie pas tout pour éviter de bloquer l'utilisateur
-    // setUser(null); 
-    // setToken(null);
+    setUser(null);
+    setToken(null);
     if (reason) addNotification(reason, 'info');
-    window.location.href = '/'; // Simple reload
+    // Pas de reload forcé, on laisse le state React gérer l'affichage du GuestDashboard
   }, [addNotification]);
 
   const login = async (email: string, password: string) => {
@@ -90,16 +89,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addNotification(`Connexion réussie: ${userProfile.firstName}`, 'success');
 
     } catch (error: any) {
-      console.warn("Backend unreachable, staying in Demo Mode:", error);
-      addNotification("Mode Hors Ligne / Démo activé", "warning");
-      // On reste sur le profil par défaut SG
+      console.warn("Backend unreachable, engaging Demo Mode fallback:", error);
+      // Fallback automatique si échec connexion réelle (pour dev/demo)
+      loginAsGuest(); 
     } finally {
       hideLoading();
     }
   };
 
+  // Fonction explicite pour activer le mode démo (depuis le GuestDashboard)
+  const loginAsGuest = () => {
+    setUser(DEFAULT_SG_PROFILE);
+    setToken('demo-token');
+    addNotification("Mode Démo SG activé", "success");
+  };
+
   const register = async (formData: any) => {
-    // Simulation pour le mode démo
     addNotification("Inscription simulée réussie (Mode Démo)", "success");
   };
 
@@ -148,7 +153,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <AuthContext.Provider 
-      value={{ user, token, isAuthenticated: !!user, isImpersonating: !!originalAdminSession, isSwitching, login, register, logout, updateUser, impersonate, stopImpersonation, getRedirectPath, refreshProfile }}
+      value={{ user, token, isAuthenticated: !!user, isImpersonating: !!originalAdminSession, isSwitching, login, register, logout, updateUser, impersonate, stopImpersonation, getRedirectPath, refreshProfile, loginAsGuest }}
     >
       {children}
     </AuthContext.Provider>

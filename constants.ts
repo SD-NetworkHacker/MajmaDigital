@@ -1,8 +1,10 @@
 
 import { MemberCategory, GlobalRole, CommissionType, Member, Commission, Contribution, Event, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
-// URL du Backend (Ngrok) - Source unique de vérité
-export const API_URL = 'https://e899-41-82-148-7.ngrok-free.app';
+// URL du Backend (Ngrok ou Local) - Utilisation de import.meta.env pour Vite
+// Fix: Safely access env to prevent crash if undefined
+const env = (import.meta as any).env || {};
+export const API_URL = env.VITE_API_URL || 'http://localhost:5000';
 
 // La structure des commissions est structurelle, on la garde.
 export const INITIAL_COMMISSIONS: Commission[] = [
