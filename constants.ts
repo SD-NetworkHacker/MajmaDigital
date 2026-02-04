@@ -2,7 +2,7 @@
 import { MemberCategory, GlobalRole, CommissionType, Member, Commission, Contribution, Event, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
 // URL du Backend (Ngrok) - Source unique de vérité
-export const API_URL = 'https://ab45-41-82-148-7.ngrok-free.app';
+export const API_URL = 'https://e899-41-82-148-7.ngrok-free.app';
 
 // La structure des commissions est structurelle, on la garde.
 export const INITIAL_COMMISSIONS: Commission[] = [
@@ -78,9 +78,21 @@ export const INITIAL_COMMISSIONS: Commission[] = [
   },
 ];
 
-// --- DONNÉES DE SIMULATION (SEED) ---
-// Ces données servent de fallback si le backend est vide au démarrage
-export const SEED_MEMBERS: Member[] = [];
+// --- DONNÉES DE SIMULATION (SEED) - ROBUSTES POUR LE FALLBACK ---
+export const SEED_MEMBERS: Member[] = [
+  {
+    id: '1', matricule: 'MAJ-SG-001', firstName: 'Sidy', lastName: 'Sow', email: 'sg@majma.sn', phone: '770000000',
+    category: MemberCategory.TRAVAILLEUR, level: 'Senior', role: GlobalRole.SG,
+    commissions: [{ type: CommissionType.ADMINISTRATION, role_commission: 'Secrétaire Général', permissions: ['all'] }],
+    joinDate: new Date().toISOString(), status: 'active', address: 'Dakar', coordinates: { lat: 14.7, lng: -17.4 }
+  },
+  {
+    id: '2', matricule: 'MAJ-MBR-002', firstName: 'Fatou', lastName: 'Diop', email: 'fatou@majma.sn', phone: '770000001',
+    category: MemberCategory.ETUDIANT, level: 'Junior', role: GlobalRole.MEMBRE,
+    commissions: [],
+    joinDate: new Date().toISOString(), status: 'active', address: 'Thies', coordinates: { lat: 14.79, lng: -16.92 }
+  }
+];
 export const SEED_EVENTS: Event[] = [];
 export const SEED_CONTRIBUTIONS: Contribution[] = [];
 export const SEED_REPORTS: InternalMeetingReport[] = [];

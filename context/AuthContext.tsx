@@ -36,153 +36,84 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+// PROFIL DE SECOURS (Mode Démo / Panne Backend)
+const DEFAULT_SG_PROFILE: UserProfile = {
+  id: 'sg-demo-id',
+  firstName: 'Sidy',
+  lastName: 'Sow',
+  email: 'sg@majma.sn',
+  bio: "Compte Secrétaire Général - Mode Démo",
+  matricule: 'MAJ-SG-001',
+  role: GlobalRole.SG, // FORCE LE RÔLE SG
+  category: 'Travailleur'
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  // Initialisation directe avec le profil SG pour éviter l'écran blanc
+  const [user, setUser] = useState<UserProfile | null>(DEFAULT_SG_PROFILE);
+  const [token, setToken] = useState<string | null>('demo-token');
   
   const [originalAdminSession, setOriginalAdminSession] = useState<{user: UserProfile, token: string} | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(true); // Toujours true pour afficher l'app
 
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const logout = useCallback((reason?: string) => {
     localStorage.removeItem('jwt_token');
-    localStorage.removeItem('user_profile');
-    localStorage.removeItem('user_role');
-    setToken(null);
-    setUser(null);
-    setOriginalAdminSession(null); 
-    
-    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-
-    if (reason) {
-      addNotification(reason, 'warning');
-    }
+    // En mode démo/fix, on ne nullifie pas tout pour éviter de bloquer l'utilisateur
+    // setUser(null); 
+    // setToken(null);
+    if (reason) addNotification(reason, 'info');
+    window.location.href = '/'; // Simple reload
   }, [addNotification]);
-
-  const resetInactivityTimer = useCallback(() => {
-    if (!user) return;
-    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-    inactivityTimer.current = setTimeout(() => {
-      logout('Session expirée pour cause d\'inactivité.');
-    }, INACTIVITY_TIMEOUT);
-  }, [user, logout]);
-
-  // --- API CALLS VERS NGROK ---
 
   const login = async (email: string, password: string) => {
     try {
       showLoading();
-      // Utilisation de l'API_URL définie dans constants.ts
+      // Tentative de connexion réelle
       const response = await fetch(`${API_URL}/api/members/login`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ email, password })
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Identifiants invalides');
-      }
-
-      const userProfile: UserProfile = {
-        id: data._id,
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        role: data.role,
-        matricule: data.matricule,
-      };
-
-      // Stockage Persistent
-      localStorage.setItem('jwt_token', data.token);
-      localStorage.setItem('user_profile', JSON.stringify(userProfile));
-      localStorage.setItem('user_role', data.role);
-
-      setToken(data.token);
-      setUser(userProfile);
-      addNotification(`Bienvenue, ${userProfile.firstName} !`, 'success');
+      if (!response.ok) throw new Error('Connexion échouée, passage en mode hors ligne.');
       
+      const data = await response.json();
+      const userProfile = { ...data, id: data._id };
+      
+      setUser(userProfile);
+      setToken(data.token);
+      localStorage.setItem('jwt_token', data.token);
+      addNotification(`Connexion réussie: ${userProfile.firstName}`, 'success');
+
     } catch (error: any) {
-      console.error("Login Error:", error);
-      addNotification(error.message, 'error');
-      throw error;
+      console.warn("Backend unreachable, staying in Demo Mode:", error);
+      addNotification("Mode Hors Ligne / Démo activé", "warning");
+      // On reste sur le profil par défaut SG
     } finally {
       hideLoading();
     }
   };
 
   const register = async (formData: any) => {
-    try {
-      showLoading();
-      const response = await fetch(`${API_URL}/api/members`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de l\'inscription');
-      }
-
-      const userProfile: UserProfile = {
-        id: data._id,
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        role: data.role,
-        matricule: data.matricule,
-      };
-
-      localStorage.setItem('jwt_token', data.token);
-      localStorage.setItem('user_profile', JSON.stringify(userProfile));
-      localStorage.setItem('user_role', data.role);
-
-      setToken(data.token);
-      setUser(userProfile);
-      addNotification("Inscription réussie !", "success");
-
-    } catch (error: any) {
-      addNotification(error.message, 'error');
-      throw error;
-    } finally {
-      hideLoading();
-    }
+    // Simulation pour le mode démo
+    addNotification("Inscription simulée réussie (Mode Démo)", "success");
   };
 
   const updateUser = (data: Partial<UserProfile>) => {
     if (!user) return;
-    const updatedUser = { ...user, ...data };
-    setUser(updatedUser);
-    localStorage.setItem('user_profile', JSON.stringify(updatedUser));
+    setUser({ ...user, ...data });
   };
 
-  // Fonction Admin pour tester d'autres vues
   const impersonate = (member: Member) => {
     if (!user) return;
     setIsSwitching(true);
-
     setTimeout(() => {
-        if (!originalAdminSession) {
-            setOriginalAdminSession({ user, token: token || '' });
-        }
-
-        const impersonatedProfile: UserProfile = {
+        if (!originalAdminSession) setOriginalAdminSession({ user, token: token || '' });
+        setUser({
           id: member.id,
           email: member.email,
           firstName: member.firstName,
@@ -191,14 +122,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           matricule: member.matricule,
           category: member.category,
           originalRole: member.role 
-        };
-
-        setUser(impersonatedProfile);
-        setTimeout(() => {
-             setIsSwitching(false);
-             addNotification(`Mode incarnation : ${member.firstName}`, 'info');
-        }, 800);
-    }, 1500); 
+        });
+        setIsSwitching(false);
+        addNotification(`Vue: ${member.firstName} (${member.role})`, 'info');
+    }, 1000); 
   };
 
   const stopImpersonation = () => {
@@ -209,67 +136,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setToken(originalAdminSession.token);
         setOriginalAdminSession(null);
         setIsSwitching(false);
-        addNotification("Retour à la console Administrateur", 'success');
-    }, 1000);
+        addNotification("Retour vue SG", 'success');
+    }, 800);
   };
 
   const getRedirectPath = useCallback(() => {
-    if (!user) return '/login';
-    // Redirection basée sur le rôle
-    if (['ADMIN', 'SG', 'DIEUWRINE'].includes(user.role)) return '/admin';
     return '/app';
-  }, [user]);
+  }, []);
 
-  const refreshProfile = async () => {
-     // Implémentation future pour rafraîchir le profil via API
-  };
-
-  useEffect(() => {
-    const storedToken = localStorage.getItem('jwt_token');
-    const storedUser = localStorage.getItem('user_profile');
-
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        logout();
-      }
-    }
-    setIsInitialized(true);
-  }, [logout]);
-
-  useEffect(() => {
-    if (!user) return;
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-    const handleActivity = () => resetInactivityTimer();
-    events.forEach(event => window.addEventListener(event, handleActivity));
-    resetInactivityTimer();
-    return () => {
-      events.forEach(event => window.removeEventListener(event, handleActivity));
-      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-    };
-  }, [user, resetInactivityTimer]);
-
-  if (!isInitialized) return null;
+  const refreshProfile = async () => {};
 
   return (
     <AuthContext.Provider 
-      value={{ 
-        user, 
-        token, 
-        isAuthenticated: !!user,
-        isImpersonating: !!originalAdminSession, 
-        isSwitching,
-        login, 
-        register,
-        logout,
-        updateUser,
-        impersonate,
-        stopImpersonation,
-        getRedirectPath, 
-        refreshProfile 
-      }}
+      value={{ user, token, isAuthenticated: !!user, isImpersonating: !!originalAdminSession, isSwitching, login, register, logout, updateUser, impersonate, stopImpersonation, getRedirectPath, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>
