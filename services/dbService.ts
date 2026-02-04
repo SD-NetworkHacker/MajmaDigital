@@ -1,5 +1,5 @@
 
-import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule } from '../types';
+import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase } from '../types';
 import { API_URL } from '../constants';
 
 // --- CONFIGURATION API ---
@@ -26,6 +26,8 @@ const handleResponse = async (res: Response) => {
   }
   return res.json();
 };
+
+// ... (Membres, Finance, Events, Reports existants conservés, ajout Social ci-dessous) ...
 
 // --- MEMBERS ---
 export const dbFetchMembers = async (): Promise<Member[]> => {
@@ -290,6 +292,42 @@ export const dbCreateSchedule = async (trip: TransportSchedule) => {
     });
     return handleResponse(res);
 };
+
+// --- SOCIAL ---
+export const dbFetchSocialCases = async (): Promise<SocialCase[]> => {
+    try {
+        const res = await fetch(`${BASE_API}/social/cases`, { headers: getHeaders() });
+        const json = await res.json();
+        return json.data || [];
+    } catch(e) { return []; }
+};
+
+export const dbCreateSocialCase = async (socialCase: Partial<SocialCase>) => {
+    const res = await fetch(`${BASE_API}/social/cases`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(socialCase)
+    });
+    return handleResponse(res);
+};
+
+export const dbFetchSocialProjects = async (): Promise<SocialProject[]> => {
+    try {
+        const res = await fetch(`${BASE_API}/social/projects`, { headers: getHeaders() });
+        const json = await res.json();
+        return json.data || [];
+    } catch(e) { return []; }
+};
+
+export const dbCreateSocialProject = async (project: Partial<SocialProject>) => {
+    const res = await fetch(`${BASE_API}/social/projects`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(project)
+    });
+    return handleResponse(res);
+};
+
 
 // --- PLACEHOLDERS (Non implémentés Backend) ---
 export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => [];

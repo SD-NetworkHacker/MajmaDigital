@@ -27,7 +27,8 @@ app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/resources', require('./routes/resourceRoutes'));
-app.use('/api/transport', require('./routes/transportRoutes')); // Ajouté
+app.use('/api/transport', require('./routes/transportRoutes'));
+app.use('/api/social', require('./routes/socialRoutes')); // Ajouté
 
 // Route de santé API dédiée
 app.get('/api/health', (req, res) => {

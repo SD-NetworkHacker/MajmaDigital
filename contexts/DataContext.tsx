@@ -1,14 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Member, Event, Contribution, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, UserProfile, AdiyaCampaign, FundraisingEvent, Task, Vehicle, Driver, TransportSchedule, LibraryResource } from '../types';
+import { Member, Event, Contribution, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, UserProfile, AdiyaCampaign, FundraisingEvent, Task, Vehicle, Driver, TransportSchedule, LibraryResource, SocialCase, SocialProject } from '../types';
 import { 
   dbFetchMembers, dbFetchContributions, dbFetchEvents, dbFetchReports, 
   dbCreateMember, dbUpdateMember, dbDeleteMember,
   dbCreateContribution, dbCreateEvent, dbCreateReport, dbFetchTasks, 
   dbFetchAdiyaCampaigns, dbFetchFleet, dbFetchDrivers, dbFetchSchedules, dbFetchResources,
+  dbFetchSocialCases, dbFetchSocialProjects,
   dbCreateVehicle, dbCreateDriver, dbCreateSchedule, dbCreateResource, dbUpdateVehicle, 
   dbDeleteVehicle, dbUpdateDriver, dbDeleteDriver, dbDeleteResource,
-  dbCreateTask, dbUpdateTask, dbDeleteTask, dbCreateAdiyaCampaign, dbUpdateAdiyaCampaign
+  dbCreateTask, dbUpdateTask, dbDeleteTask, dbCreateAdiyaCampaign, dbUpdateAdiyaCampaign,
+  dbCreateSocialCase, dbCreateSocialProject
 } from '../services/dbService';
 import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +31,8 @@ interface DataContextType {
   drivers: Driver[];
   schedules: TransportSchedule[];
   library: LibraryResource[];
+  socialCases: SocialCase[];
+  socialProjects: SocialProject[];
   
   updateUserProfile: (data: Partial<UserProfile>) => void;
   addMember: (member: Member) => void;
@@ -65,6 +69,10 @@ interface DataContextType {
   updateTask: (id: string, data: Partial<Task>) => void;
   deleteTask: (id: string) => void;
 
+  // Social
+  addSocialCase: (socialCase: Partial<SocialCase>) => void;
+  addSocialProject: (project: Partial<SocialProject>) => void;
+
   // Placeholders
   addFundraisingEvent: (event: FundraisingEvent) => void;
   updateFundraisingEvent: (id: string, data: Partial<FundraisingEvent>) => void;
@@ -93,11 +101,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [tasks, setTasks] = useState<Task[]>([]);
   const [adiyaCampaigns, setAdiyaCampaigns] = useState<AdiyaCampaign[]>([]);
   
-  // Transport & Culture Data
+  // Transport & Culture & Social Data
   const [fleet, setFleet] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [schedules, setSchedules] = useState<TransportSchedule[]>([]);
   const [library, setLibrary] = useState<LibraryResource[]>([]);
+  const [socialCases, setSocialCases] = useState<SocialCase[]>([]);
+  const [socialProjects, setSocialProjects] = useState<SocialProject[]>([]);
 
   // Placeholders
   const [financialReports] = useState<CommissionFinancialReport[]>([]);
@@ -113,7 +123,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     try {
       // Chargement parallèle de toutes les collections
-      const [m, c, e, r, t, a, f, d, s, l] = await Promise.all([
+      const [m, c, e, r, t, a, f, d, s, l, sc, sp] = await Promise.all([
         dbFetchMembers(),
         dbFetchContributions(),
         dbFetchEvents(),
@@ -123,7 +133,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         dbFetchFleet(),
         dbFetchDrivers(),
         dbFetchSchedules(),
-        dbFetchResources()
+        dbFetchResources(),
+        dbFetchSocialCases(),
+        dbFetchSocialProjects()
       ]);
       
       setMembers(m);
@@ -136,6 +148,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setDrivers(d);
       setSchedules(s);
       setLibrary(l);
+      setSocialCases(sc);
+      setSocialProjects(sp);
       
     } catch (error: any) {
       console.error("ERREUR CRITIQUE API:", error);
@@ -339,6 +353,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch(e: any) { addNotification(e.message, "error"); }
   };
 
+  // --- SOCIAL ACTIONS ---
+  const addSocialCase = async (socialCase: Partial<SocialCase>) => {
+    try {
+        await dbCreateSocialCase(socialCase);
+        setSocialCases(await dbFetchSocialCases());
+        addNotification("Demande d'assistance transmise", "success");
+    } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const addSocialProject = async (project: Partial<SocialProject>) => {
+     try {
+        await dbCreateSocialProject(project);
+        setSocialProjects(await dbFetchSocialProjects());
+        addNotification("Projet social créé", "success");
+     } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
   // --- PLACEHOLDERS ACTIONS (Local only for demo) ---
   const addFundraisingEvent = (event: FundraisingEvent) => {
       setFundraisingEvents(prev => [...prev, event]);
@@ -392,7 +423,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <DataContext.Provider value={{
       userProfile, members, events, contributions, reports, financialReports, budgetRequests, adiyaCampaigns, fundraisingEvents, tasks,
-      fleet, drivers, schedules, library,
+      fleet, drivers, schedules, library, socialCases, socialProjects,
       updateUserProfile, addMember, updateMember, deleteMember, importMembers, updateMemberStatus,
       addEvent, addContribution, updateContribution, deleteContribution, addReport,
       addVehicle, updateVehicleStatus, deleteVehicle, addDriver, updateDriver, deleteDriver, addSchedule, 
@@ -400,6 +431,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addAdiyaCampaign, updateAdiyaCampaign,
       addFundraisingEvent, updateFundraisingEvent,
       addTask, updateTask, deleteTask,
+      addSocialCase, addSocialProject,
       totalTreasury, activeMembersCount, resetData, isLoading, serverError
     }}>
       {children}

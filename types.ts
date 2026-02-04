@@ -125,11 +125,27 @@ export interface Member {
 export interface SocialProject {
   id: string;
   title: string;
+  theme?: string;
   category: 'Gott' | 'Secours' | 'Education' | 'Infrastructure';
+  description?: string;
   targetAmount: number;
   currentAmount: number;
   deadline: string;
-  status: 'active' | 'completed' | 'on_hold';
+  status: 'active' | 'completed' | 'on_hold' | 'actif' | 'termine' | 'pause';
+  color?: string;
+}
+
+export interface SocialCase {
+  id: string;
+  member: string | any;
+  type: 'Soutien Médical' | 'Appui Scolaire / Universitaire' | 'Urgence Sociale' | 'Autre';
+  description?: string;
+  status: 'nouveau' | 'en_cours' | 'valide' | 'rejete' | 'cloture';
+  amountRequested?: number;
+  amountGranted?: number;
+  priority?: 'basse' | 'moyenne' | 'haute' | 'critique';
+  notes?: { author: string; text: string; date: string }[];
+  createdAt?: string;
 }
 
 export interface Contribution {
