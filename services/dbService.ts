@@ -1,18 +1,15 @@
 
 import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource } from '../types';
-import { SEED_MEMBERS, SEED_CONTRIBUTIONS, SEED_EVENTS, SEED_REPORTS, SEED_BUDGET_REQUESTS, SEED_FINANCIAL_REPORTS, SEED_ADIYA_CAMPAIGNS, SEED_FUNDRAISING_EVENTS, SEED_LIBRARY } from '../constants';
+import { SEED_MEMBERS, SEED_CONTRIBUTIONS, SEED_EVENTS, SEED_REPORTS, SEED_BUDGET_REQUESTS, SEED_FINANCIAL_REPORTS, SEED_ADIYA_CAMPAIGNS, SEED_FUNDRAISING_EVENTS, SEED_LIBRARY, API_URL } from '../constants';
 
 const SEED_TASKS: Task[] = []; 
 
-// --- CONFIGURATION API & CIRCUIT BREAKER ---
-const USE_MONGO_API = true;
-// URL du serveur (Ngrok Tunnel)
-const API_URL = 'https://ab45-41-82-148-7.ngrok-free.app/api';
+// --- CONFIGURATION API ---
+const BASE_API = `${API_URL}/api`;
 
-// Le Circuit Breaker empêche de spammer le serveur s'il est éteint
 let isApiOnline = true; 
 
-// --- LOCAL STORAGE HELPERS ---
+// --- LOCAL STORAGE HELPERS (FALLBACK) ---
 const getLocal = <T>(key: string, seed: T): T => {
     try {
         const stored = localStorage.getItem(key);
@@ -24,24 +21,22 @@ const setLocal = (key: string, data: any) => {
     try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
 };
 
-// --- API WRAPPER ROBUSTE ---
+// --- API FETCH WRAPPER ---
 async function mongoFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T | null> {
-    // Si l'API a déjà échoué, on passe directement en local (Circuit Ouvert)
-    if (!USE_MONGO_API || !isApiOnline) return null;
+    if (!isApiOnline) return null;
 
     try {
         const token = localStorage.getItem('jwt_token');
         const headers: HeadersInit = { 
             'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true' // Souvent nécessaire pour les tunnels Ngrok free
+            'ngrok-skip-browser-warning': 'true'
         };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        // Timeout augmenté pour la production (10s) pour compenser la latence réseau ou le "cold start" de Railway
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-        const res = await fetch(`${API_URL}${endpoint}`, { 
+        const res = await fetch(`${BASE_API}${endpoint}`, { 
             headers, 
             signal: controller.signal,
             ...options 
@@ -50,17 +45,17 @@ async function mongoFetch<T>(endpoint: string, options: RequestInit = {}): Promi
         clearTimeout(timeoutId);
 
         if (!res.ok) {
+           if (res.status === 401) {
+               // Token expiré ou invalide
+               console.warn("Session expirée");
+           }
            return null; 
         }
         
         const json = await res.json();
         return json.data !== undefined ? json.data : json;
     } catch (e) {
-        // Au premier échec réseau, on log l'erreur mais on laisse une chance de reconnexion (pas de désactivation brutale en prod)
-        if (isApiOnline) {
-            console.warn(`Serveur Backend injoignable (${API_URL}). Passage temporaire en mode HORS-LIGNE. Erreur: ${e}`);
-            // isApiOnline = false; // On ne désactive pas définitivement en prod pour permettre les retries
-        }
+        console.warn(`Erreur API (${endpoint}):`, e);
         return null;
     }
 }
@@ -74,6 +69,7 @@ export const dbFetchMembers = async (): Promise<Member[]> => {
 
 export const dbCreateMember = async (member: Member) => {
     await mongoFetch('/members', { method: 'POST', body: JSON.stringify(member) });
+    // Optimistic Update local
     const current = getLocal<Member[]>('MAJMA_MEMBERS', SEED_MEMBERS);
     setLocal('MAJMA_MEMBERS', [member, ...current]);
 };
@@ -90,7 +86,7 @@ export const dbDeleteMember = async (id: string) => {
     setLocal('MAJMA_MEMBERS', current.filter(m => m.id !== id));
 };
 
-// --- FINANCE (Contributions) ---
+// --- FINANCE ---
 export const dbFetchContributions = async (): Promise<Contribution[]> => {
     const apiData = await mongoFetch<Contribution[]>('/finance');
     if (apiData) return apiData.map((c: any) => ({ ...c, id: c._id, memberId: c.member?._id || c.member }));
@@ -110,6 +106,7 @@ export const dbCreateContribution = async (contribution: Contribution) => {
 };
 
 export const dbUpdateContribution = async (id: string, updates: Partial<Contribution>) => {
+    // Note: L'update finance est sensible, souvent géré côté serveur uniquement pour la sécurité
     const current = getLocal<Contribution[]>('MAJMA_CONTRIBUTIONS', SEED_CONTRIBUTIONS);
     setLocal('MAJMA_CONTRIBUTIONS', current.map(c => c.id === id ? { ...c, ...updates } : c));
 };
@@ -196,7 +193,7 @@ export const dbFetchResources = async (): Promise<LibraryResource[]> => {
     return getLocal('MAJMA_RESOURCES', SEED_LIBRARY);
 };
 
-// --- OTHER ENTITIES (Local Only) ---
+// --- LOCAL ONLY (Pour l'instant, pas de routes backend dédiées) ---
 export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => getLocal('MAJMA_FIN_REPORTS', SEED_FINANCIAL_REPORTS);
 export const dbCreateFinancialReport = async (report: CommissionFinancialReport) => {
     const current = getLocal<CommissionFinancialReport[]>('MAJMA_FIN_REPORTS', SEED_FINANCIAL_REPORTS);

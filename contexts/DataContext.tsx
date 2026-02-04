@@ -12,7 +12,6 @@ import {
   dbFetchFundraisingEvents, dbCreateFundraisingEvent, dbUpdateFundraisingEvent,
   dbFetchTasks, dbCreateTask, dbUpdateTask, dbDeleteTask
 } from '../services/dbService';
-import { supabase } from '../lib/supabase';
 
 const KEY_PROFILE = 'MAJMA_USER_PROFILE';
 
@@ -133,7 +132,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // --- ACTIONS ---
-  // Note: Optimistic UI updates + API calls. The API calls are now real MongoDB calls thanks to dbService update.
 
   const updateUserProfile = (data: Partial<UserProfile>) => {
     const updated = { ...userProfile, ...data };
@@ -142,9 +140,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const addMember = async (member: Member) => {
-    // 1. Appel API pour créer le membre (et obtenir son vrai _id)
     await dbCreateMember(member);
-    // 2. Re-fetch pour avoir la liste à jour avec les IDs corrects générés par Mongo
     const freshMembers = await dbFetchMembers();
     setMembers(freshMembers);
   };
@@ -176,10 +172,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const addContribution = async (contribution: Contribution) => {
-    // Optimistic update pour réactivité immédiate
     setContributions(prev => [contribution, ...prev]);
     await dbCreateContribution(contribution);
-    // Refresh finances to confirm
     const freshContribs = await dbFetchContributions();
     setContributions(freshContribs);
   };

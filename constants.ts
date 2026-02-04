@@ -1,6 +1,9 @@
 
 import { MemberCategory, GlobalRole, CommissionType, Member, Commission, Contribution, Event, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
+// URL du Backend (Ngrok) - Source unique de vérité
+export const API_URL = 'https://ab45-41-82-148-7.ngrok-free.app';
+
 // La structure des commissions est structurelle, on la garde.
 export const INITIAL_COMMISSIONS: Commission[] = [
   { 
@@ -76,239 +79,19 @@ export const INITIAL_COMMISSIONS: Commission[] = [
 ];
 
 // --- DONNÉES DE SIMULATION (SEED) ---
-
-export const SEED_MEMBERS: Member[] = [
-  {
-    id: 'admin-sidy',
-    matricule: 'MAJ-ADMIN-001',
-    firstName: 'Sidy',
-    lastName: 'Sow',
-    email: 'sidysow.admin@gmail.com',
-    phone: '770000000',
-    category: MemberCategory.TRAVAILLEUR,
-    level: 'Senior',
-    role: GlobalRole.ADMIN,
-    commissions: [
-        { type: CommissionType.ADMINISTRATION, role_commission: 'Secrétaire Général', permissions: ['all'] },
-        { type: CommissionType.FINANCE, role_commission: 'Superviseur', permissions: ['read', 'validate'] }
-    ],
-    joinDate: new Date('2020-01-15').toISOString(),
-    status: 'active',
-    address: 'Dakar, Plateau',
-    coordinates: { lat: 14.6928, lng: -17.4467 }
-  },
-  {
-    id: 'mem-fatou',
-    matricule: 'MAJ-2021-045',
-    firstName: 'Fatou',
-    lastName: 'Ndiaye',
-    email: 'fatou.finance@majma.sn',
-    phone: '776543210',
-    category: MemberCategory.TRAVAILLEUR,
-    level: 'Expert',
-    role: GlobalRole.DIEUWRINE,
-    commissions: [
-        { type: CommissionType.FINANCE, role_commission: 'Trésorière Principale', permissions: ['all'] }
-    ],
-    joinDate: new Date('2021-03-10').toISOString(),
-    status: 'active',
-    address: 'Mermoz, Dakar',
-    coordinates: { lat: 14.7088, lng: -17.4727 }
-  },
-  {
-    id: 'mem-amadou',
-    matricule: 'MAJ-2022-112',
-    firstName: 'Amadou',
-    lastName: 'Bamba',
-    email: 'amadou.culture@majma.sn',
-    phone: '761234567',
-    category: MemberCategory.ETUDIANT,
-    level: 'Intermédiaire',
-    role: GlobalRole.MEMBRE,
-    commissions: [
-        { type: CommissionType.CULTURELLE, role_commission: 'Responsable Khassaid', permissions: ['read', 'create'] }
-    ],
-    joinDate: new Date('2022-09-01').toISOString(),
-    status: 'active',
-    address: 'UCAD, Dakar',
-    coordinates: { lat: 14.6908, lng: -17.4658 }
-  },
-  {
-    id: 'mem-ousmane',
-    matricule: 'MAJ-2023-008',
-    firstName: 'Ousmane',
-    lastName: 'Diop',
-    email: 'ousmane@gmail.com',
-    phone: '778889900',
-    category: MemberCategory.ELEVE,
-    level: 'Junior',
-    role: GlobalRole.MEMBRE,
-    commissions: [],
-    joinDate: new Date('2023-10-12').toISOString(),
-    status: 'pending',
-    address: 'Parcelles Assainies',
-    coordinates: { lat: 14.7431, lng: -17.4418 }
-  }
-];
-
-export const SEED_EVENTS: Event[] = [
-  {
-    id: 'evt-1',
-    title: 'Grand Magal de Touba 2024',
-    type: 'Magal',
-    date: '2024-08-23',
-    location: 'Touba, Grande Mosquée',
-    organizingCommission: CommissionType.ORGANISATION,
-    description: 'Rassemblement annuel majeur. Départ des convois prévu le 21 Août à 08h00.'
-  },
-  {
-    id: 'evt-2',
-    title: 'Ziarra Générale',
-    type: 'Ziar',
-    date: '2024-05-15',
-    location: 'Diarra Bousso',
-    organizingCommission: CommissionType.CULTURELLE,
-    description: 'Journée de prières et de recueillement.'
-  },
-  {
-    id: 'evt-3',
-    title: 'Réunion Mensuelle Bureau',
-    type: 'Réunion',
-    date: '2024-04-10',
-    location: 'Siège Dahira / Zoom',
-    organizingCommission: CommissionType.ADMINISTRATION,
-    description: 'Ordre du jour : Bilan trimestriel et préparation Ramadan.'
-  }
-];
-
-export const SEED_CONTRIBUTIONS: Contribution[] = [
-  {
-    id: 'TX-1001',
-    memberId: 'mem-fatou',
-    type: 'Adiyas',
-    amount: 100000,
-    date: '2024-03-25',
-    eventLabel: 'Don Spécial Magal',
-    status: 'paid'
-  },
-  {
-    id: 'TX-1002',
-    memberId: 'admin-sidy',
-    type: 'Sass',
-    amount: 5000,
-    date: '2024-04-01',
-    eventLabel: 'Mensualité Avril',
-    status: 'paid'
-  },
-  {
-    id: 'TX-1003',
-    memberId: 'mem-amadou',
-    type: 'Sass',
-    amount: 2500,
-    date: '2024-04-02',
-    eventLabel: 'Mensualité Avril',
-    status: 'paid'
-  },
-  {
-    id: 'TX-1004',
-    memberId: 'admin-sidy',
-    type: 'Diayanté',
-    amount: 25000,
-    date: '2024-03-15',
-    eventLabel: 'Soutien Social',
-    status: 'paid'
-  }
-];
-
-export const SEED_REPORTS: InternalMeetingReport[] = [
-    {
-        id: 'rpt-1',
-        commission: CommissionType.FINANCE,
-        title: 'Bilan Trimestre 1 - 2024',
-        date: '2024-03-31',
-        startTime: '10:00',
-        endTime: '12:30',
-        location: 'Siège',
-        type: 'ordinaire',
-        attendees: [],
-        agenda: [{ id: '1', title: 'Revue des cotisations', duration: 45, presenter: 'Fatou Ndiaye', notes: '' }],
-        discussions: 'Le taux de recouvrement est satisfaisant (85%). Nécessité de relancer les retardataires du secteur Élève.',
-        decisions: [{ id: 'd1', description: 'Lancement campagne SMS rappel', votes: { for: 8, against: 0, abstain: 0 }, status: 'adopted' }],
-        actionItems: [],
-        status: 'valide_admin',
-        createdBy: 'Fatou Ndiaye',
-        confidentiality: 'interne',
-        createdAt: new Date().toISOString()
-    }
-];
-
-export const SEED_BUDGET_REQUESTS: BudgetRequest[] = [
-    {
-        id: 'req-1',
-        commission: CommissionType.ORGANISATION,
-        title: 'Achat Bâches & Nattes',
-        description: 'Renouvellement du matériel pour les Thiant hebdomadaires.',
-        category: 'equipement',
-        priority: 'moyen',
-        amountRequested: 150000,
-        amountApproved: 150000,
-        breakdown: [],
-        timeline: { startDate: '2024-04-10', endDate: '2024-04-12' },
-        expectedOutcomes: 'Meilleur confort des talibés.',
-        status: 'approuve',
-        submittedBy: 'Moussa Diop',
-        submittedAt: '2024-03-20'
-    }
-];
-
+// Ces données servent de fallback si le backend est vide au démarrage
+export const SEED_MEMBERS: Member[] = [];
+export const SEED_EVENTS: Event[] = [];
+export const SEED_CONTRIBUTIONS: Contribution[] = [];
+export const SEED_REPORTS: InternalMeetingReport[] = [];
+export const SEED_BUDGET_REQUESTS: BudgetRequest[] = [];
 export const SEED_FINANCIAL_REPORTS: CommissionFinancialReport[] = [];
 export const SEED_ADIYA_CAMPAIGNS: AdiyaCampaign[] = [];
 export const SEED_FUNDRAISING_EVENTS: FundraisingEvent[] = [];
-export const SEED_FLEET: Vehicle[] = [
-    {
-        id: 'v1',
-        type: 'bus_grand',
-        capacity: 60,
-        registrationNumber: 'DK-2044-BC',
-        status: 'disponible',
-        features: ['Clim', 'Soute'],
-        maintenance: { lastDate: '2024-01-10', nextDate: '2024-05-10', status: 'ok' },
-        ownership: 'internal'
-    },
-    {
-        id: 'v2',
-        type: 'minibus',
-        capacity: 30,
-        registrationNumber: 'TH-4520-A',
-        status: 'en_mission',
-        features: ['Sono'],
-        maintenance: { lastDate: '2024-02-15', nextDate: '2024-06-15', status: 'ok' },
-        ownership: 'internal'
-    }
-];
+export const SEED_FLEET: Vehicle[] = [];
 export const SEED_SCHEDULES: TransportSchedule[] = [];
-export const SEED_DRIVERS: Driver[] = [
-    { id: 'd1', memberId: 'm100', name: 'Moussa Konaté', licenseType: 'Permis D', status: 'disponible', phone: '775556677', tripsCompleted: 45 },
-    { id: 'd2', memberId: 'm101', name: 'Ibrahima Seck', licenseType: 'Permis D', status: 'en_mission', phone: '768889900', tripsCompleted: 32 }
-];
+export const SEED_DRIVERS: Driver[] = [];
 export const SEED_CULTURAL_ACTIVITIES: CulturalActivity[] = [];
-export const SEED_LIBRARY: LibraryResource[] = [
-    { id: 'l1', title: 'Massalikoul Djinan', author: 'Cheikh A. Bamba', type: 'livre', category: 'Khassaide', accessLevel: 'public', views: 1500, rating: 5 },
-    { id: 'l2', title: 'Conférence Magal 2023', author: 'S. Mountakha', type: 'video', category: 'Conférence', accessLevel: 'public', views: 3200, rating: 5 }
-];
-export const SEED_KHASSAIDE_MODULES: KhassaideModule[] = [
-    { 
-        id: 'k1', 
-        title: 'Mawahibou Nafiha', 
-        author: 'Cheikh A. Bamba', 
-        level: 'debutant', 
-        progress: 35, 
-        lessons: [
-            { id: 'l1', title: 'Versets 1-10', lessonNumber: 1, duration: '20 min', status: 'completed' },
-            { id: 'l2', title: 'Versets 11-20', lessonNumber: 2, duration: '25 min', status: 'unlocked' },
-            { id: 'l3', title: 'Versets 21-30', lessonNumber: 3, duration: '25 min', status: 'locked' },
-        ]
-    }
-];
-
+export const SEED_LIBRARY: LibraryResource[] = [];
+export const SEED_KHASSAIDE_MODULES: KhassaideModule[] = [];
 export const MOCK_MEMBERS = SEED_MEMBERS;

@@ -4,7 +4,7 @@ import {
   User, Mail, Phone, MapPin, Briefcase, GraduationCap, School, 
   CheckCircle, ArrowRight, ChevronLeft, Calendar, Lock, Loader2 
 } from 'lucide-react';
-import { useLoading } from '../../context/LoadingContext';
+import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import AuthLayout from './AuthLayout';
 import { MemberCategory } from '../../types';
@@ -15,12 +15,11 @@ interface RegisterFormProps {
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) => {
-  const { showLoading, hideLoading } = useLoading();
+  const { register } = useAuth();
   const { addNotification } = useNotification();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Form State
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -56,12 +55,22 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
     if (!isStep2Valid()) return;
 
     setIsSubmitting(true);
-    // Simulation API
-    setTimeout(() => {
-      setIsSubmitting(false);
-      addNotification("Inscription réussie ! Bienvenue dans le Dahira.", "success");
+    try {
+      await register({
+         firstName: formData.firstName,
+         lastName: formData.lastName,
+         email: formData.email,
+         password: formData.password,
+         phone: formData.phone,
+         category: formData.category,
+         address: formData.address
+      });
       onSuccess();
-    }, 2000);
+    } catch (error: any) {
+       // Erreur déjà affichée par le contexte
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -71,13 +80,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* Progress Stepper */}
         <div className="flex items-center gap-2 mb-8">
           <div className={`h-1.5 rounded-full flex-1 transition-all duration-500 ${step >= 1 ? 'bg-emerald-500' : 'bg-slate-100'}`}></div>
           <div className={`h-1.5 rounded-full flex-1 transition-all duration-500 ${step >= 2 ? 'bg-emerald-500' : 'bg-slate-100'}`}></div>
         </div>
 
-        {/* STEP 1 */}
         {step === 1 && (
           <div className="space-y-5 animate-in slide-in-from-right-8 duration-300">
             <div className="grid grid-cols-2 gap-4">
@@ -127,7 +134,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
           </div>
         )}
 
-        {/* STEP 2 */}
         {step === 2 && (
           <div className="space-y-5 animate-in slide-in-from-right-8 duration-300">
             <div className="space-y-2">

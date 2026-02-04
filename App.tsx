@@ -39,6 +39,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { GlobalRole } from './types';
 
 // Loading Fallback Component
 const PageLoader = () => (
@@ -79,6 +80,10 @@ const MainContent: React.FC = () => {
   const { members, events, contributions } = useData();
   const { user, isImpersonating, isSwitching, stopImpersonation } = useAuth();
 
+  // Liste des rôles à privilèges élevés
+  const adminRoles = [GlobalRole.ADMIN, GlobalRole.SG, GlobalRole.ADJOINT_SG, GlobalRole.DIEUWRINE];
+  const isAdminOrManager = user && (adminRoles.includes(user.role as GlobalRole) || user.role === 'admin' || user.role === 'Super Admin');
+
   useEffect(() => {
     const interval = setInterval(() => {
       setIsSyncing(true);
@@ -93,12 +98,19 @@ const MainContent: React.FC = () => {
   };
 
   const renderContent = () => {
+    // Protection de la route Bureau Exécutif
     if (activeTab === 'bureau') {
-      return (
-        <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-slate-950 text-white"><Loader2 className="animate-spin mr-2"/> Chargement War Room...</div>}>
-           <WarRoomLayout />
-        </Suspense>
-      );
+      if (isAdminOrManager) {
+        return (
+          <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-slate-950 text-white"><Loader2 className="animate-spin mr-2"/> Chargement War Room...</div>}>
+             <WarRoomLayout />
+          </Suspense>
+        );
+      } else {
+        // Redirection silencieuse si non autorisé
+        setActiveTab('dashboard');
+        return null;
+      }
     }
 
     const commonProps = { members, events, contributions };
@@ -119,7 +131,8 @@ const MainContent: React.FC = () => {
             case 'transport': return <TransportDashboard />;
             case 'culturelle': return <CulturalDashboard />;
             case 'messages': return <MessagesModule />;
-            case 'admin': return <AdminModule />;
+            // Admin Module accessible seulement aux admins
+            case 'admin': return isAdminOrManager ? <AdminModule /> : <Dashboard {...commonProps} setActiveTab={setActiveTab} />;
             case 'settings': return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
             case 'profile': return <UserProfile targetId={viewProfileId} onBack={() => { setViewProfileId(null); setActiveTab('members'); }} />;
             default: return <Dashboard {...commonProps} setActiveTab={setActiveTab} />;
@@ -144,7 +157,7 @@ const MainContent: React.FC = () => {
              <div className="flex flex-col">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Simulation Active</span>
                 <span className="text-xs font-bold font-mono text-amber-400 flex items-center gap-2">
-                   <Eye size={12}/> Vue actuelle : {user?.firstName} {user?.lastName} ({user?.matricule})
+                   <Eye size={12}/> Vue actuelle : {user?.firstName} {user?.lastName} ({user?.role})
                 </span>
              </div>
           </div>

@@ -6,6 +6,7 @@ import {
   Wallet, Layers, Globe, CreditCard, Book, Bus, Star, User, Library
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { GlobalRole } from '../types';
 
 interface SidebarProps {
   activeTab: string;
@@ -15,7 +16,11 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { user } = useAuth();
   
-  const isSimpleMember = user && !['admin', 'manager', 'Super Admin'].includes(user.role);
+  // Logique de permission basée sur le backend MongoDB
+  // Les rôles autorisés à voir le menu d'administration
+  const adminRoles = [GlobalRole.ADMIN, GlobalRole.SG, GlobalRole.ADJOINT_SG, GlobalRole.DIEUWRINE];
+  
+  const isAdminOrManager = user && (adminRoles.includes(user.role as GlobalRole) || user.role === 'admin' || user.role === 'Super Admin');
 
   // MENU ADMINISTRATEUR (STANDARD)
   const adminNavigation = [
@@ -79,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     }
   ];
 
-  const navigation = isSimpleMember ? memberNavigation : adminNavigation;
+  const navigation = isAdminOrManager ? adminNavigation : memberNavigation;
 
   return (
     <div className="h-full flex flex-col sidebar-glass bg-white/95 backdrop-blur-xl border-r border-slate-200/60 overflow-hidden">
@@ -95,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
          <div className="flex flex-col cursor-pointer" onClick={() => setActiveTab('dashboard')}>
             <h1 className="text-lg font-black text-slate-900 tracking-tight leading-none group-hover:text-emerald-700 transition-colors">Majma<span className="text-emerald-600">Digital</span></h1>
             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">
-               {isSimpleMember ? 'Espace Membre' : 'Platform v3.0'}
+               {isAdminOrManager ? 'Console Admin' : 'Espace Membre'}
             </p>
          </div>
       </div>
@@ -142,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         ))}
         
         {/* Call to Action for Members (Example) */}
-        {isSimpleMember && (
+        {!isAdminOrManager && (
            <div className="mx-4 p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-lg relative overflow-hidden group cursor-pointer" onClick={() => setActiveTab('finance')}>
               <div className="relative z-10">
                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-1">Adiya en cours</p>
@@ -169,7 +174,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
          </button>
 
          {/* Bureau Exécutif Special Button (Admin Only) */}
-         {!isSimpleMember && (
+         {isAdminOrManager && (
            <button 
              onClick={() => setActiveTab('bureau')}
              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all border group relative overflow-hidden ${

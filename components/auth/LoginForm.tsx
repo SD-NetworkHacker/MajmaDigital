@@ -1,9 +1,7 @@
 
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, Zap } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useLoading } from '../../context/LoadingContext';
-import { useNotification } from '../../context/NotificationContext';
 import AuthLayout from './AuthLayout';
 
 interface LoginFormProps {
@@ -13,56 +11,24 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPasswordClick }) => {
   const { login } = useAuth();
-  const { showLoading, hideLoading } = useLoading();
-  const { addNotification } = useNotification();
-
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  // Pré-remplissage pour faciliter le test de l'admin demandé
-  const handleQuickLogin = () => {
-      setEmail('sidysow.admin@gmail.com');
-      setPassword('password123');
-  };
-
-  const validate = () => {
-    if (!email || !password) {
-      setError("Veuillez remplir tous les champs.");
-      return false;
-    }
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!email || !password) {
+      setError("Veuillez remplir tous les champs.");
+      return;
+    }
 
-    showLoading();
-    
-    // Simulation d'appel API (À remplacer par le vrai appel fetch vers /api/members/login)
-    // Ici on simule la réponse positive pour l'admin Sidy Sow
-    setTimeout(() => {
-      hideLoading();
-      
-      // Validation stricte des identifiants admin demandés
-      if (email === 'sidysow.admin@gmail.com' && password === 'password123') {
-        login('admin-token-secure-123', {
-          id: 'admin-sidy',
-          email: 'sidysow.admin@gmail.com',
-          firstName: 'Sidy',
-          lastName: 'Sow',
-          role: 'admin',
-          avatarUrl: '',
-          matricule: 'MAJ-ADMIN-001',
-          bio: 'Administrateur Principal'
-        });
-      } else {
-        setError("Email ou mot de passe incorrect.");
-        addNotification("Erreur de connexion", "error");
-      }
-    }, 1000);
+    try {
+      await login(email, password);
+    } catch (err: any) {
+      setError(err.message || "Email ou mot de passe incorrect.");
+    }
   };
 
   return (
@@ -72,13 +38,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* Quick Login pour Sidy Sow */}
-        <div className="flex gap-2 mb-6">
-            <button type="button" onClick={handleQuickLogin} className="w-full py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20">
-                <Zap size={12} className="text-emerald-400 fill-current"/> Connexion Admin (Sidy Sow)
-            </button>
-        </div>
-
         {error && (
           <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 animate-in fade-in">
             <AlertCircle size={18} className="shrink-0" />
