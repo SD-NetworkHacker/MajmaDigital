@@ -18,9 +18,7 @@ const getHeaders = () => {
 // Helper générique pour la réponse
 const handleResponse = async (res: Response) => {
   if (res.status === 401) {
-    // Gérer l'expiration du token si nécessaire
-    // localStorage.removeItem('jwt_token');
-    // window.location.href = '/'; 
+    // Optionnel: Redirection login
   }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));
@@ -127,37 +125,6 @@ export const dbFetchTasks = async (): Promise<Task[]> => {
   } catch(e) {}
   return [];
 };
-export const dbCreateTask = async (task: Task) => {
-    try {
-        const res = await fetch(`${BASE_API}/tasks`, { 
-            method: 'POST', 
-            headers: getHeaders(),
-            body: JSON.stringify(task)
-        });
-        return handleResponse(res);
-    } catch(e) { return null; }
-};
-
-export const dbUpdateTask = async (id: string, updates: Partial<Task>) => {
-    try {
-        const res = await fetch(`${BASE_API}/tasks/${id}`, { 
-            method: 'PUT', 
-            headers: getHeaders(),
-            body: JSON.stringify(updates)
-        });
-        return handleResponse(res);
-    } catch(e) { return null; }
-};
-
-export const dbDeleteTask = async (id: string) => {
-    try {
-        const res = await fetch(`${BASE_API}/tasks/${id}`, { 
-            method: 'DELETE', 
-            headers: getHeaders()
-        });
-        return handleResponse(res);
-    } catch(e) { return null; }
-};
 
 // --- CAMPAIGNS ---
 export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
@@ -177,12 +144,77 @@ export const dbFetchResources = async (): Promise<LibraryResource[]> => {
     } catch(e) { return []; }
 };
 
-// --- TRANSPORT (Si endpoints dispos, sinon tableau vide pour éviter crash) ---
-export const dbFetchFleet = async (): Promise<Vehicle[]> => [];
-export const dbFetchDrivers = async (): Promise<Driver[]> => [];
-export const dbFetchSchedules = async (): Promise<TransportSchedule[]> => [];
+export const dbCreateResource = async (resource: LibraryResource) => {
+    const res = await fetch(`${BASE_API}/resources`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(resource)
+    });
+    return handleResponse(res);
+};
 
-// --- PLACEHOLDERS ---
+// --- TRANSPORT ---
+export const dbFetchFleet = async (): Promise<Vehicle[]> => {
+    try {
+        const res = await fetch(`${BASE_API}/transport/fleet`, { headers: getHeaders() });
+        const json = await res.json();
+        return json.data || [];
+    } catch(e) { return []; }
+};
+
+export const dbCreateVehicle = async (vehicle: Vehicle) => {
+    const res = await fetch(`${BASE_API}/transport/fleet`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(vehicle)
+    });
+    return handleResponse(res);
+};
+
+export const dbUpdateVehicle = async (id: string, updates: Partial<Vehicle>) => {
+    const res = await fetch(`${BASE_API}/transport/fleet/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(updates)
+    });
+    return handleResponse(res);
+};
+
+export const dbFetchDrivers = async (): Promise<Driver[]> => {
+    try {
+        const res = await fetch(`${BASE_API}/transport/drivers`, { headers: getHeaders() });
+        const json = await res.json();
+        return json.data || [];
+    } catch(e) { return []; }
+};
+
+export const dbCreateDriver = async (driver: Driver) => {
+    const res = await fetch(`${BASE_API}/transport/drivers`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(driver)
+    });
+    return handleResponse(res);
+};
+
+export const dbFetchSchedules = async (): Promise<TransportSchedule[]> => {
+    try {
+        const res = await fetch(`${BASE_API}/transport/trips`, { headers: getHeaders() });
+        const json = await res.json();
+        return json.data || [];
+    } catch(e) { return []; }
+};
+
+export const dbCreateSchedule = async (trip: TransportSchedule) => {
+    const res = await fetch(`${BASE_API}/transport/trips`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(trip)
+    });
+    return handleResponse(res);
+};
+
+// --- PLACEHOLDERS (Non implémentés Backend) ---
 export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => [];
 export const dbFetchBudgetRequests = async (): Promise<BudgetRequest[]> => [];
 export const dbFetchFundraisingEvents = async (): Promise<FundraisingEvent[]> => [];

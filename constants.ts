@@ -1,8 +1,7 @@
 
-import { MemberCategory, GlobalRole, CommissionType, Member, Commission, Contribution, Event, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
+import { CommissionType, Commission, Member, Event, Contribution, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
 // URL du Backend (Production Railway)
-// Force l'URL de production si la variable d'env n'est pas définie
 const env = (import.meta as any).env || {};
 export const API_URL = env.VITE_API_URL || 'https://majmadigital-production.up.railway.app';
 
@@ -81,7 +80,6 @@ export const INITIAL_COMMISSIONS: Commission[] = [
 ];
 
 // --- DONNÉES DE PRODUCTION (VIDES PAR DÉFAUT) ---
-// Ces tableaux doivent rester vides pour forcer le chargement depuis l'API
 export const SEED_MEMBERS: Member[] = [];
 export const SEED_EVENTS: Event[] = [];
 export const SEED_CONTRIBUTIONS: Contribution[] = [];

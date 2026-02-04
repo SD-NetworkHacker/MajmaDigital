@@ -17,12 +17,9 @@ const DigitalLibrary: React.FC = () => {
     views: 0
   });
   
-  // Utilisation de useData pour les données globales si disponible, sinon fallback sur le stockage local simulé via service
-  // Ici on garde la logique locale pour l'instant comme demandé par la structure actuelle du projet
-  
   useEffect(() => {
     // Dans un vrai contexte, cela viendrait de l'API via DataContext
-    // Pour l'instant on initialise vide ou via le service storage existant
+    // Pour l'instant on initialise avec les données du storage ou vide
     const data = getCollection<LibraryResource>(STORAGE_KEYS.LIBRARY);
     setResources(data);
   }, []);
