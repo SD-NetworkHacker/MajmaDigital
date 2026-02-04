@@ -6,7 +6,9 @@ import {
   dbCreateMember, dbUpdateMember, dbDeleteMember,
   dbCreateContribution, dbCreateEvent, dbCreateReport, dbFetchTasks, 
   dbFetchAdiyaCampaigns, dbFetchFleet, dbFetchDrivers, dbFetchSchedules, dbFetchResources,
-  dbCreateVehicle, dbCreateDriver, dbCreateSchedule, dbCreateResource, dbUpdateVehicle
+  dbCreateVehicle, dbCreateDriver, dbCreateSchedule, dbCreateResource, dbUpdateVehicle, 
+  dbDeleteVehicle, dbUpdateDriver, dbDeleteDriver, dbDeleteResource,
+  dbCreateTask, dbUpdateTask, dbDeleteTask, dbCreateAdiyaCampaign, dbUpdateAdiyaCampaign
 } from '../services/dbService';
 import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
@@ -45,20 +47,27 @@ interface DataContextType {
   // Transport
   addVehicle: (vehicle: Vehicle) => void;
   updateVehicleStatus: (id: string, status: any) => void;
+  deleteVehicle: (id: string) => void;
   addDriver: (driver: Driver) => void;
+  updateDriver: (id: string, data: Partial<Driver>) => void;
+  deleteDriver: (id: string) => void;
   addSchedule: (trip: TransportSchedule) => void;
 
   // Culture
   addResource: (res: LibraryResource) => void;
+  deleteResource: (id: string) => void;
 
-  // Placeholders
+  // Campaigns & Tasks
   addAdiyaCampaign: (campaign: AdiyaCampaign) => void;
   updateAdiyaCampaign: (id: string, data: Partial<AdiyaCampaign>) => void;
-  addFundraisingEvent: (event: FundraisingEvent) => void;
-  updateFundraisingEvent: (id: string, data: Partial<FundraisingEvent>) => void;
+  
   addTask: (task: Task) => void;
   updateTask: (id: string, data: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+
+  // Placeholders
+  addFundraisingEvent: (event: FundraisingEvent) => void;
+  updateFundraisingEvent: (id: string, data: Partial<FundraisingEvent>) => void;
   
   totalTreasury: number;
   activeMembersCount: number;
@@ -93,7 +102,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Placeholders
   const [financialReports] = useState<CommissionFinancialReport[]>([]);
   const [budgetRequests] = useState<BudgetRequest[]>([]);
-  const [fundraisingEvents] = useState<FundraisingEvent[]>([]);
+  const [fundraisingEvents, setFundraisingEvents] = useState<FundraisingEvent[]>([]);
 
   // --- CHARGEMENT INITIAL (PRODUCTION) ---
   const loadData = async () => {
@@ -233,11 +242,35 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch(e: any) { addNotification(e.message, "error"); }
   };
 
+  const deleteVehicle = async (id: string) => {
+      try {
+          await dbDeleteVehicle(id);
+          setFleet(prev => prev.filter(v => v.id !== id));
+          addNotification("Véhicule supprimé", "info");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
   const addDriver = async (d: Driver) => {
       try {
           await dbCreateDriver(d);
           setDrivers(await dbFetchDrivers());
           addNotification("Chauffeur ajouté", "success");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const updateDriver = async (id: string, data: Partial<Driver>) => {
+      try {
+          await dbUpdateDriver(id, data);
+          setDrivers(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
+          addNotification("Chauffeur mis à jour", "success");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const deleteDriver = async (id: string) => {
+      try {
+          await dbDeleteDriver(id);
+          setDrivers(prev => prev.filter(d => d.id !== id));
+          addNotification("Chauffeur supprimé", "info");
       } catch(e: any) { addNotification(e.message, "error"); }
   };
 
@@ -257,15 +290,64 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           addNotification("Ressource ajoutée", "success");
       } catch(e: any) { addNotification(e.message, "error"); }
   };
-  
-  const addTask = async (t: Task) => {};
-  const addAdiyaCampaign = () => {};
-  const updateAdiyaCampaign = () => {};
-  const addFundraisingEvent = () => {};
-  const updateFundraisingEvent = () => {};
-  const updateTask = () => {};
-  const deleteTask = () => {};
 
+  const deleteResource = async (id: string) => {
+      try {
+          await dbDeleteResource(id);
+          setLibrary(prev => prev.filter(r => r.id !== id));
+          addNotification("Ressource supprimée", "info");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  // --- TASKS ACTIONS ---
+  const addTask = async (t: Task) => {
+      try {
+          await dbCreateTask(t);
+          setTasks(await dbFetchTasks());
+          addNotification("Tâche créée", "success");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const updateTask = async (id: string, data: Partial<Task>) => {
+      try {
+          await dbUpdateTask(id, data);
+          setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const deleteTask = async (id: string) => {
+      try {
+          await dbDeleteTask(id);
+          setTasks(prev => prev.filter(t => t.id !== id));
+          addNotification("Tâche supprimée", "info");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  // --- CAMPAIGNS ACTIONS ---
+  const addAdiyaCampaign = async (campaign: AdiyaCampaign) => {
+      try {
+          await dbCreateAdiyaCampaign(campaign);
+          setAdiyaCampaigns(await dbFetchAdiyaCampaigns());
+          addNotification("Campagne créée", "success");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const updateAdiyaCampaign = async (id: string, data: Partial<AdiyaCampaign>) => {
+       try {
+          await dbUpdateAdiyaCampaign(id, data);
+          setAdiyaCampaigns(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  // --- PLACEHOLDERS ACTIONS (Local only for demo) ---
+  const addFundraisingEvent = (event: FundraisingEvent) => {
+      setFundraisingEvents(prev => [...prev, event]);
+      addNotification("Événement de collecte ajouté (Local)", "info");
+  };
+  const updateFundraisingEvent = (id: string, data: Partial<FundraisingEvent>) => {
+      setFundraisingEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+  };
+  
   const totalTreasury = contributions.reduce((acc, c) => acc + c.amount, 0);
   const activeMembersCount = members.filter(m => m.status === 'active').length;
   
@@ -313,7 +395,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       fleet, drivers, schedules, library,
       updateUserProfile, addMember, updateMember, deleteMember, importMembers, updateMemberStatus,
       addEvent, addContribution, updateContribution, deleteContribution, addReport,
-      addVehicle, updateVehicleStatus, addDriver, addSchedule, addResource,
+      addVehicle, updateVehicleStatus, deleteVehicle, addDriver, updateDriver, deleteDriver, addSchedule, 
+      addResource, deleteResource,
       addAdiyaCampaign, updateAdiyaCampaign,
       addFundraisingEvent, updateFundraisingEvent,
       addTask, updateTask, deleteTask,

@@ -8,7 +8,7 @@ import { Vehicle, VehicleType, VehicleStatus } from '../../types';
 import { useData } from '../../contexts/DataContext';
 
 const FleetManager: React.FC = () => {
-  const { fleet, addVehicle, updateVehicleStatus } = useData();
+  const { fleet, addVehicle, updateVehicleStatus, deleteVehicle } = useData();
   const [showModal, setShowModal] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState<Vehicle | null>(null);
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal');
@@ -50,6 +50,13 @@ const FleetManager: React.FC = () => {
 
     addVehicle(vehicle);
     setShowModal(false);
+  };
+
+  const handleDeleteVehicle = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (confirm("Voulez-vous vraiment retirer ce véhicule du parc ?")) {
+      deleteVehicle(id);
+    }
   };
 
   const handleUpdateStatus = (e: React.MouseEvent, id: string, status: VehicleStatus) => {
@@ -285,6 +292,13 @@ const FleetManager: React.FC = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={(e) => handleDeleteVehicle(e, vehicle.id)}
+                        className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                        title="Supprimer"
+                    >
+                        <Trash2 size={14} />
+                    </button>
                     <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${getStatusColor(vehicle.status)}`}>
                         {vehicle.status.replace('_', ' ')}
                     </span>

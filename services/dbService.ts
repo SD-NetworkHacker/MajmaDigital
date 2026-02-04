@@ -126,6 +126,32 @@ export const dbFetchTasks = async (): Promise<Task[]> => {
   return [];
 };
 
+export const dbCreateTask = async (task: Task) => {
+    const res = await fetch(`${BASE_API}/tasks`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(task)
+    });
+    return handleResponse(res);
+};
+
+export const dbUpdateTask = async (id: string, updates: Partial<Task>) => {
+    const res = await fetch(`${BASE_API}/tasks/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(updates)
+    });
+    return handleResponse(res);
+};
+
+export const dbDeleteTask = async (id: string) => {
+    const res = await fetch(`${BASE_API}/tasks/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+    });
+    return handleResponse(res);
+};
+
 // --- CAMPAIGNS ---
 export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
     try {
@@ -133,6 +159,24 @@ export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
         const json = await res.json();
         return json.data || [];
     } catch(e) { return []; }
+};
+
+export const dbCreateAdiyaCampaign = async (campaign: AdiyaCampaign) => {
+    const res = await fetch(`${BASE_API}/campaigns`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(campaign)
+    });
+    return handleResponse(res);
+};
+
+export const dbUpdateAdiyaCampaign = async (id: string, updates: Partial<AdiyaCampaign>) => {
+    const res = await fetch(`${BASE_API}/campaigns/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(updates)
+    });
+    return handleResponse(res);
 };
 
 // --- RESOURCES ---
@@ -149,6 +193,14 @@ export const dbCreateResource = async (resource: LibraryResource) => {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify(resource)
+    });
+    return handleResponse(res);
+};
+
+export const dbDeleteResource = async (id: string) => {
+    const res = await fetch(`${BASE_API}/resources/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
     });
     return handleResponse(res);
 };
@@ -180,6 +232,14 @@ export const dbUpdateVehicle = async (id: string, updates: Partial<Vehicle>) => 
     return handleResponse(res);
 };
 
+export const dbDeleteVehicle = async (id: string) => {
+    const res = await fetch(`${BASE_API}/transport/fleet/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+    });
+    return handleResponse(res);
+};
+
 export const dbFetchDrivers = async (): Promise<Driver[]> => {
     try {
         const res = await fetch(`${BASE_API}/transport/drivers`, { headers: getHeaders() });
@@ -193,6 +253,23 @@ export const dbCreateDriver = async (driver: Driver) => {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify(driver)
+    });
+    return handleResponse(res);
+};
+
+export const dbUpdateDriver = async (id: string, updates: Partial<Driver>) => {
+    const res = await fetch(`${BASE_API}/transport/drivers/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(updates)
+    });
+    return handleResponse(res);
+};
+
+export const dbDeleteDriver = async (id: string) => {
+    const res = await fetch(`${BASE_API}/transport/drivers/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
     });
     return handleResponse(res);
 };

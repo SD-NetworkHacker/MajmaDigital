@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getFleet, createVehicle, updateVehicle, deleteVehicle,
-  getDrivers, createDriver,
+  getDrivers, createDriver, updateDriver, deleteDriver,
   getTrips, createTrip
 } = require('../controllers/transportController');
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -21,6 +21,10 @@ router.route('/fleet/:id')
 router.route('/drivers')
   .get(protect, getDrivers)
   .post(protect, createDriver);
+
+router.route('/drivers/:id')
+  .put(protect, updateDriver)
+  .delete(protect, admin, deleteDriver);
 
 // Routes Convois
 router.route('/trips')

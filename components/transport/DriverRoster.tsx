@@ -8,7 +8,7 @@ import { Driver } from '../../types';
 import { useData } from '../../contexts/DataContext';
 
 const DriverRoster: React.FC = () => {
-  const { drivers, addDriver } = useData(); // Utilisation du contexte global
+  const { drivers, addDriver, deleteDriver, updateDriver } = useData(); // Utilisation du contexte global
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'disponible' | 'en_mission' | 'repos'>('all');
   
@@ -52,6 +52,18 @@ const DriverRoster: React.FC = () => {
     addDriver(driver);
     setShowAddModal(false);
     setNewDriver({ status: 'disponible', licenseType: 'Permis D' });
+  };
+
+  const handleDeleteDriver = (id: string) => {
+    if (confirm("Retirer ce chauffeur de la liste ?")) {
+      deleteDriver(id);
+      if (selectedDriver?.id === id) setSelectedDriver(null);
+    }
+  };
+
+  const handleUpdateStatus = (id: string, status: 'disponible' | 'en_mission' | 'repos') => {
+    updateDriver(id, { status });
+    if (selectedDriver?.id === id) setSelectedDriver({ ...selectedDriver, status });
   };
 
   return (
@@ -144,6 +156,44 @@ const DriverRoster: React.FC = () => {
 
                {/* Body Content */}
                <div className="flex-1 overflow-y-auto p-8 bg-slate-50 space-y-8">
+                  
+                  {/* Status Switcher */}
+                  <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Mettre à jour le statut</h4>
+                     <div className="flex gap-3">
+                        <button 
+                            onClick={() => handleUpdateStatus(selectedDriver.id, 'disponible')} 
+                            className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
+                                selectedDriver.status === 'disponible' 
+                                ? 'bg-emerald-50 border-emerald-500 text-emerald-600 shadow-sm' 
+                                : 'bg-white border-slate-100 text-slate-400 hover:border-emerald-200'
+                            }`}
+                        >
+                            Dispo
+                        </button>
+                        <button 
+                            onClick={() => handleUpdateStatus(selectedDriver.id, 'en_mission')} 
+                            className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
+                                selectedDriver.status === 'en_mission' 
+                                ? 'bg-blue-50 border-blue-500 text-blue-600 shadow-sm' 
+                                : 'bg-white border-slate-100 text-slate-400 hover:border-blue-200'
+                            }`}
+                        >
+                            Mission
+                        </button>
+                        <button 
+                            onClick={() => handleUpdateStatus(selectedDriver.id, 'repos')} 
+                            className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
+                                selectedDriver.status === 'repos' 
+                                ? 'bg-amber-50 border-amber-500 text-amber-600 shadow-sm' 
+                                : 'bg-white border-slate-100 text-slate-400 hover:border-amber-200'
+                            }`}
+                        >
+                            Repos
+                        </button>
+                     </div>
+                  </div>
+
                   {/* History Section */}
                   <div>
                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -152,6 +202,16 @@ const DriverRoster: React.FC = () => {
                      <div className="space-y-3">
                         <p className="text-xs text-slate-400 italic text-center py-4">Aucun trajet enregistré.</p>
                      </div>
+                  </div>
+                  
+                  {/* Delete Button */}
+                  <div className="pt-4">
+                      <button 
+                        onClick={() => handleDeleteDriver(selectedDriver.id)}
+                        className="w-full py-4 text-rose-500 bg-rose-50 border border-rose-100 rounded-2xl text-xs font-black uppercase hover:bg-rose-100 hover:border-rose-200 transition-all flex items-center justify-center gap-2"
+                      >
+                         <Trash2 size={16}/> Retirer de l'effectif
+                      </button>
                   </div>
                </div>
             </div>

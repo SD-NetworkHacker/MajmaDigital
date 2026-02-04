@@ -46,6 +46,26 @@ const createDriver = asyncHandler(async (req, res) => {
   res.status(201).json(driver);
 });
 
+const updateDriver = asyncHandler(async (req, res) => {
+  const driver = await Driver.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  if (!driver) {
+      res.status(404);
+      throw new Error('Chauffeur non trouvé');
+  }
+  res.json(driver);
+});
+
+const deleteDriver = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.params.id);
+  if (driver) {
+      await driver.deleteOne();
+      res.json({ message: 'Chauffeur supprimé' });
+  } else {
+      res.status(404);
+      throw new Error('Chauffeur non trouvé');
+  }
+});
+
 // --- TRIPS ---
 const getTrips = asyncHandler(async (req, res) => {
   const trips = await Trip.find({}).populate('vehicle').sort({ departureDate: 1 });
@@ -59,6 +79,6 @@ const createTrip = asyncHandler(async (req, res) => {
 
 module.exports = {
   getFleet, createVehicle, updateVehicle, deleteVehicle,
-  getDrivers, createDriver,
+  getDrivers, createDriver, updateDriver, deleteDriver,
   getTrips, createTrip
 };
