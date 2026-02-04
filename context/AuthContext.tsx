@@ -1,8 +1,8 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
-import { Member, GlobalRole } from '../types';
+import { Member } from '../types';
 import { API_URL } from '../constants';
 
 export interface UserProfile {
@@ -32,27 +32,14 @@ interface AuthContextType {
   stopImpersonation: () => void;
   getRedirectPath: () => string;
   refreshProfile: () => Promise<void>;
-  loginAsGuest: () => void; // Nouvelle fonction pour le mode démo
+  loginAsGuest: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// PROFIL DE SECOURS (Mode Démo / Panne Backend)
-const DEFAULT_SG_PROFILE: UserProfile = {
-  id: 'sg-demo-id',
-  firstName: 'Sidy',
-  lastName: 'Sow',
-  email: 'sg@majma.sn',
-  bio: "Compte Secrétaire Général - Mode Démo",
-  matricule: 'MAJ-SG-001',
-  role: GlobalRole.SG,
-  category: 'Travailleur'
-};
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialisation à NULL pour afficher le GuestDashboard par défaut
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('jwt_token'));
   
   const [originalAdminSession, setOriginalAdminSession] = useState<{user: UserProfile, token: string} | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -60,52 +47,104 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
+  // Tentative de reconnexion au chargement si token existe
+  useEffect(() => {
+    const initAuth = async () => {
+      if (token && !user) {
+        try {
+          const response = await fetch(`${API_URL}/api/members/profile`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+             // Adaptation des données API vers UserProfile
+            setUser({ 
+                id: data._id, 
+                ...data 
+            });
+          } else {
+            // Token invalide
+            logout();
+          }
+        } catch (e) {
+          console.error("Erreur validation session", e);
+        }
+      }
+    };
+    initAuth();
+  }, [token]);
+
   const logout = useCallback((reason?: string) => {
     localStorage.removeItem('jwt_token');
     setUser(null);
     setToken(null);
+    setOriginalAdminSession(null);
     if (reason) addNotification(reason, 'info');
-    // Pas de reload forcé, on laisse le state React gérer l'affichage du GuestDashboard
   }, [addNotification]);
 
   const login = async (email: string, password: string) => {
     try {
       showLoading();
-      // Tentative de connexion réelle
+      
       const response = await fetch(`${API_URL}/api/members/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
 
-      if (!response.ok) throw new Error('Connexion échouée, passage en mode hors ligne.');
-      
       const data = await response.json();
-      const userProfile = { ...data, id: data._id };
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Échec de la connexion');
+      }
+      
+      const userProfile = { 
+          id: data._id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          role: data.role,
+          matricule: data.matricule,
+          category: data.category
+      };
       
       setUser(userProfile);
       setToken(data.token);
       localStorage.setItem('jwt_token', data.token);
-      addNotification(`Connexion réussie: ${userProfile.firstName}`, 'success');
+      addNotification(`Heureux de vous revoir, ${userProfile.firstName}`, 'success');
 
     } catch (error: any) {
-      console.warn("Backend unreachable, engaging Demo Mode fallback:", error);
-      // Fallback automatique si échec connexion réelle (pour dev/demo)
-      loginAsGuest(); 
+      console.error("Login Error:", error);
+      addNotification(error.message, 'error');
+      throw error; // Propager l'erreur pour le formulaire
     } finally {
       hideLoading();
     }
   };
 
-  // Fonction explicite pour activer le mode démo (depuis le GuestDashboard)
-  const loginAsGuest = () => {
-    setUser(DEFAULT_SG_PROFILE);
-    setToken('demo-token');
-    addNotification("Mode Démo SG activé", "success");
-  };
-
   const register = async (formData: any) => {
-    addNotification("Inscription simulée réussie (Mode Démo)", "success");
+    try {
+      showLoading();
+      const response = await fetch(`${API_URL}/api/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erreur lors de l'inscription");
+      }
+
+      addNotification("Inscription réussie ! Vous pouvez vous connecter.", "success");
+      
+    } catch (error: any) {
+      addNotification(error.message, 'error');
+      throw error;
+    } finally {
+        hideLoading();
+    }
   };
 
   const updateUser = (data: Partial<UserProfile>) => {
@@ -116,6 +155,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const impersonate = (member: Member) => {
     if (!user) return;
     setIsSwitching(true);
+    // Simulation visuelle uniquement, pas d'appel API pour l'impersonation pour l'instant
     setTimeout(() => {
         if (!originalAdminSession) setOriginalAdminSession({ user, token: token || '' });
         setUser({
@@ -130,7 +170,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         setIsSwitching(false);
         addNotification(`Vue: ${member.firstName} (${member.role})`, 'info');
-    }, 1000); 
+    }, 500); 
   };
 
   const stopImpersonation = () => {
@@ -141,8 +181,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setToken(originalAdminSession.token);
         setOriginalAdminSession(null);
         setIsSwitching(false);
-        addNotification("Retour vue SG", 'success');
-    }, 800);
+        addNotification("Retour vue Admin", 'success');
+    }, 500);
   };
 
   const getRedirectPath = useCallback(() => {
@@ -150,6 +190,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const refreshProfile = async () => {};
+  const loginAsGuest = () => {
+      addNotification("Mode invité désactivé en production.", "warning");
+  };
 
   return (
     <AuthContext.Provider 

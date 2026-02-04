@@ -3,22 +3,19 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Member, Event, Contribution, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, UserProfile, AdiyaCampaign, FundraisingEvent, Task } from '../types';
 import { 
   dbFetchMembers, dbFetchContributions, dbFetchEvents, dbFetchReports, 
-  dbFetchFinancialReports, dbFetchBudgetRequests, dbFetchAdiyaCampaigns, 
-  dbFetchFundraisingEvents, dbFetchTasks
+  dbCreateMember, dbUpdateMember, dbDeleteMember,
+  dbCreateContribution, dbCreateEvent, dbCreateReport
 } from '../services/dbService';
-import { 
-  SEED_MEMBERS, SEED_EVENTS, SEED_CONTRIBUTIONS, SEED_REPORTS, 
-  SEED_FINANCIAL_REPORTS, SEED_BUDGET_REQUESTS, SEED_ADIYA_CAMPAIGNS, 
-  SEED_FUNDRAISING_EVENTS 
-} from '../constants';
+import { useNotification } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
 
-// Interface inchangée...
 interface DataContextType {
   userProfile: UserProfile;
   members: Member[];
   events: Event[];
   contributions: Contribution[];
   reports: InternalMeetingReport[];
+  // Placeholder types for future implementation
   financialReports: CommissionFinancialReport[];
   budgetRequests: BudgetRequest[];
   adiyaCampaigns: AdiyaCampaign[];
@@ -51,92 +48,137 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const DEFAULT_USER_PROFILE: UserProfile = {
-  firstName: 'Sidy',
-  lastName: 'Sow',
-  email: 'sg@majma.sn',
-  bio: "Secrétaire Général",
-  matricule: 'MAJ-SG-001',
-  role: 'SG',
-  preferences: { darkMode: false, language: 'Français (Sénégal)' },
-  notifications: { channels: { email: true, push: true, sms: true }, types: { meetings: true, contributions: true, events: true, info: true, security: true } },
-  security: { twoFactorEnabled: true, lastPasswordUpdate: new Date().toISOString(), loginHistory: [] }
-};
-
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isLoading, setIsLoading] = useState(false); // Démarrer à false pour afficher l'UI immédiatement
+  const { isAuthenticated } = useAuth();
+  const { addNotification } = useNotification();
   
-  const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
-  const [members, setMembers] = useState<Member[]>(SEED_MEMBERS);
-  const [events, setEvents] = useState<Event[]>(SEED_EVENTS);
-  const [contributions, setContributions] = useState<Contribution[]>(SEED_CONTRIBUTIONS);
-  const [reports, setReports] = useState<InternalMeetingReport[]>(SEED_REPORTS);
-  const [financialReports, setFinancialReports] = useState<CommissionFinancialReport[]>(SEED_FINANCIAL_REPORTS);
-  const [budgetRequests, setBudgetRequests] = useState<BudgetRequest[]>(SEED_BUDGET_REQUESTS);
-  const [adiyaCampaigns, setAdiyaCampaigns] = useState<AdiyaCampaign[]>(SEED_ADIYA_CAMPAIGNS);
-  const [fundraisingEvents, setFundraisingEvents] = useState<FundraisingEvent[]>(SEED_FUNDRAISING_EVENTS);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const [userProfile, setUserProfile] = useState<UserProfile>({} as UserProfile);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [reports, setReports] = useState<InternalMeetingReport[]>([]);
+  
+  // Empty states for unimplemented backend features
+  const [financialReports] = useState<CommissionFinancialReport[]>([]);
+  const [budgetRequests] = useState<BudgetRequest[]>([]);
+  const [adiyaCampaigns] = useState<AdiyaCampaign[]>([]);
+  const [fundraisingEvents] = useState<FundraisingEvent[]>([]);
+  const [tasks] = useState<Task[]>([]);
 
-  // --- INITIAL LOAD WITH FAILSAFE ---
+  // --- INITIAL LOAD ---
   useEffect(() => {
-    const fetchData = async () => {
-      // On ne met pas isLoading à true ici pour ne pas bloquer l'UI si le fetch est lent
+    const loadData = async () => {
+      if (!isAuthenticated) return;
+
+      setIsLoading(true);
       try {
-        console.log("Tentative de connexion aux données...");
-        const [m, c, e, r, fr, br, ac, fe, t] = await Promise.all([
-          dbFetchMembers().catch(() => SEED_MEMBERS),
-          dbFetchContributions().catch(() => SEED_CONTRIBUTIONS),
-          dbFetchEvents().catch(() => SEED_EVENTS),
-          dbFetchReports().catch(() => SEED_REPORTS),
-          dbFetchFinancialReports().catch(() => SEED_FINANCIAL_REPORTS),
-          dbFetchBudgetRequests().catch(() => SEED_BUDGET_REQUESTS),
-          dbFetchAdiyaCampaigns().catch(() => SEED_ADIYA_CAMPAIGNS),
-          dbFetchFundraisingEvents().catch(() => SEED_FUNDRAISING_EVENTS),
-          dbFetchTasks().catch(() => [])
+        const [m, c, e, r] = await Promise.all([
+          dbFetchMembers(),
+          dbFetchContributions(),
+          dbFetchEvents(),
+          dbFetchReports()
         ]);
         
-        // Mise à jour si données reçues (sinon on garde les SEED par défaut)
-        if (m && m.length > 0) setMembers(m);
-        if (c) setContributions(c);
-        if (e) setEvents(e);
-        if (r) setReports(r);
-        if (fr) setFinancialReports(fr);
-        if (br) setBudgetRequests(br);
-        if (ac) setAdiyaCampaigns(ac);
-        if (fe) setFundraisingEvents(fe);
-        if (t) setTasks(t);
+        setMembers(m || []);
+        setContributions(c || []);
+        setEvents(e || []);
+        setReports(r || []);
         
-      } catch (error) {
-        console.warn("Mode Hors Ligne activé (Données de secours chargées)", error);
-        // On garde les données SEED initiales
+      } catch (error: any) {
+        console.error("Erreur chargement données:", error);
+        addNotification("Erreur lors de la récupération des données. Vérifiez votre connexion.", "error");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
+    loadData();
+  }, [isAuthenticated]);
 
-  // --- MOCK ACTIONS (Pour que l'UI réagisse même sans backend) ---
+  // --- REAL ACTIONS ---
+  
   const updateUserProfile = (data: Partial<UserProfile>) => setUserProfile({ ...userProfile, ...data });
-  const addMember = (m: Member) => setMembers(prev => [m, ...prev]);
-  const updateMember = (id: string, d: Partial<Member>) => setMembers(prev => prev.map(m => m.id === id ? {...m, ...d} : m));
-  const deleteMember = (id: string) => setMembers(prev => prev.filter(m => m.id !== id));
-  const importMembers = (ms: Member[]) => setMembers(prev => [...ms, ...prev]);
-  const updateMemberStatus = (id: string, s: 'active'|'inactive') => updateMember(id, {status: s});
+
+  const addMember = async (m: Member) => {
+      try {
+          await dbCreateMember(m);
+          setMembers(await dbFetchMembers()); // Refresh
+          addNotification("Membre ajouté avec succès", "success");
+      } catch (e: any) {
+          addNotification("Erreur ajout membre: " + e.message, "error");
+      }
+  };
+
+  const updateMember = async (id: string, d: Partial<Member>) => {
+      try {
+          await dbUpdateMember(id, d);
+          setMembers(prev => prev.map(m => m.id === id ? {...m, ...d} : m));
+          addNotification("Membre mis à jour", "success");
+      } catch (e: any) {
+          addNotification("Erreur mise à jour: " + e.message, "error");
+      }
+  };
+
+  const deleteMember = async (id: string) => {
+      try {
+          await dbDeleteMember(id);
+          setMembers(prev => prev.filter(m => m.id !== id));
+          addNotification("Membre supprimé", "info");
+      } catch (e: any) {
+          addNotification("Erreur suppression: " + e.message, "error");
+      }
+  };
+
+  const importMembers = (ms: Member[]) => {
+      // Pour l'instant, on ajoute un par un, à optimiser avec un endpoint /bulk
+      ms.forEach(m => addMember(m));
+  };
+
+  const updateMemberStatus = async (id: string, s: 'active'|'inactive') => {
+      await updateMember(id, { status: s });
+  };
   
-  const addEvent = (e: Event) => setEvents(prev => [e, ...prev]);
-  const addContribution = (c: Contribution) => setContributions(prev => [c, ...prev]);
-  const updateContribution = (id: string, d: Partial<Contribution>) => setContributions(prev => prev.map(c => c.id === id ? {...c, ...d} : c));
-  const deleteContribution = (id: string) => setContributions(prev => prev.filter(c => c.id !== id));
-  
-  const addReport = (r: InternalMeetingReport) => setReports(prev => [r, ...prev]);
-  const addAdiyaCampaign = (c: AdiyaCampaign) => setAdiyaCampaigns(prev => [c, ...prev]);
-  const updateAdiyaCampaign = (id: string, d: Partial<AdiyaCampaign>) => setAdiyaCampaigns(prev => prev.map(c => c.id === id ? {...c, ...d} : c));
-  const addFundraisingEvent = (e: FundraisingEvent) => setFundraisingEvents(prev => [e, ...prev]);
-  const updateFundraisingEvent = (id: string, d: Partial<FundraisingEvent>) => setFundraisingEvents(prev => prev.map(e => e.id === id ? {...e, ...d} : e));
-  
-  const addTask = (t: Task) => setTasks(prev => [t, ...prev]);
-  const updateTask = (id: string, d: Partial<Task>) => setTasks(prev => prev.map(t => t.id === id ? {...t, ...d} : t));
-  const deleteTask = (id: string) => setTasks(prev => prev.filter(t => t.id !== id));
+  const addEvent = async (e: Event) => {
+      try {
+          await dbCreateEvent(e);
+          setEvents(await dbFetchEvents());
+          addNotification("Événement créé", "success");
+      } catch (err: any) {
+          addNotification(err.message, "error");
+      }
+  };
+
+  const addContribution = async (c: Contribution) => {
+      try {
+          await dbCreateContribution(c);
+          setContributions(await dbFetchContributions());
+          addNotification("Paiement enregistré", "success");
+      } catch (err: any) {
+          addNotification(err.message, "error");
+      }
+  };
+
+  // Mock functions for unimplemented features to prevent crashes
+  const updateContribution = (id: string, d: Partial<Contribution>) => {};
+  const deleteContribution = (id: string) => {};
+  const addReport = async (r: InternalMeetingReport) => {
+      try {
+          await dbCreateReport(r);
+          setReports(await dbFetchReports());
+          addNotification("Rapport créé", "success");
+      } catch (err: any) {
+          addNotification(err.message, "error");
+      }
+  };
+  const addAdiyaCampaign = () => {};
+  const updateAdiyaCampaign = () => {};
+  const addFundraisingEvent = () => {};
+  const updateFundraisingEvent = () => {};
+  const addTask = () => {};
+  const updateTask = () => {};
+  const deleteTask = () => {};
 
   const totalTreasury = contributions.reduce((acc, c) => acc + c.amount, 0);
   const activeMembersCount = members.filter(m => m.status === 'active').length;
