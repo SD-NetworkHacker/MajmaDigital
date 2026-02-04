@@ -1,9 +1,10 @@
 
 import { MemberCategory, GlobalRole, CommissionType, Member, Commission, Contribution, Event, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
-// URL du Backend (Production Railway)
-// On utilise l'URL fournie directement pour garantir la connexion
-export const API_URL = 'https://majmadigital-production.up.railway.app';
+// URL du Backend (Production Railway ou Local via ENV)
+// Priorité à l'environnement, sinon fallback sur la prod directe
+const env = (import.meta as any).env || {};
+export const API_URL = env.VITE_API_URL || 'https://majmadigital-production.up.railway.app';
 
 // La structure des commissions est structurelle, on la garde.
 export const INITIAL_COMMISSIONS: Commission[] = [

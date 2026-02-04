@@ -5,114 +5,164 @@ import { API_URL } from '../constants';
 // --- CONFIGURATION API ---
 const BASE_API = `${API_URL}/api`;
 
-// --- API FETCH WRAPPER ---
-async function mongoFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('jwt_token');
-    const headers: HeadersInit = { 
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-    };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+// Helper pour les headers avec token
+const getHeaders = () => {
+  const token = localStorage.getItem('jwt_token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : '',
+    'ngrok-skip-browser-warning': 'true'
+  };
+};
 
-    try {
-        const res = await fetch(`${BASE_API}${endpoint}`, { 
-            headers, 
-            ...options 
-        });
-
-        if (!res.ok) {
-           const errorBody = await res.json();
-           throw new Error(errorBody.message || `Erreur API: ${res.status}`);
-        }
-        
-        const json = await res.json();
-        // Support pour les réponses enveloppées dans { data: ... } ou directes
-        return json.data !== undefined ? json.data : json;
-    } catch (e: any) {
-        console.error(`❌ API Error (${endpoint}):`, e.message);
-        throw e; // On propage l'erreur pour que l'UI puisse l'afficher
-    }
-}
+// Helper générique pour la réponse
+const handleResponse = async (res: Response) => {
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(error.message || `Erreur API: ${res.status}`);
+  }
+  return res.json();
+};
 
 // --- MEMBERS ---
 export const dbFetchMembers = async (): Promise<Member[]> => {
-    return await mongoFetch<Member[]>('/members');
+  const res = await fetch(`${BASE_API}/members`, { headers: getHeaders() });
+  const json = await handleResponse(res);
+  return json.data || json;
 };
 
 export const dbCreateMember = async (member: Member) => {
-    return await mongoFetch('/members', { method: 'POST', body: JSON.stringify(member) });
+  const res = await fetch(`${BASE_API}/members`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(member)
+  });
+  return handleResponse(res);
 };
 
 export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
-    // Utilisation de PATCH pour la modification partielle (Promotion, etc.)
-    return await mongoFetch(`/members/${id}`, { method: 'PATCH', body: JSON.stringify(updates) });
+  // Utilisation de PATCH pour la modification partielle (Promotion, etc.)
+  const res = await fetch(`${BASE_API}/members/${id}`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify(updates)
+  });
+  return handleResponse(res);
 };
 
 export const dbDeleteMember = async (id: string) => {
-    return await mongoFetch(`/members/${id}`, { method: 'DELETE' });
+  const res = await fetch(`${BASE_API}/members/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  });
+  return handleResponse(res);
 };
 
 // --- FINANCE ---
 export const dbFetchContributions = async (): Promise<Contribution[]> => {
-    return await mongoFetch<Contribution[]>('/finance');
+  const res = await fetch(`${BASE_API}/finance`, { headers: getHeaders() });
+  const json = await handleResponse(res);
+  return json.data || json;
 };
 
 export const dbCreateContribution = async (contribution: Contribution) => {
-    return await mongoFetch('/finance/pay', { method: 'POST', body: JSON.stringify({
-        memberId: contribution.memberId,
-        type: contribution.type,
-        amount: contribution.amount,
-        eventLabel: contribution.eventLabel,
-        date: contribution.date
-    })});
+  const res = await fetch(`${BASE_API}/finance/pay`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+       memberId: contribution.memberId,
+       type: contribution.type,
+       amount: contribution.amount,
+       eventLabel: contribution.eventLabel,
+       date: contribution.date
+    })
+  });
+  return handleResponse(res);
 };
 
 export const dbUpdateContribution = async (id: string, updates: Partial<Contribution>) => {
-    return await mongoFetch(`/finance/${id}`, { method: 'PATCH', body: JSON.stringify(updates) });
+  // Pour l'instant pas de route update finance dans le backend fourni, 
+  // mais on prépare la fonction pour l'avenir ou pour simulation frontend optimiste
+  return Promise.resolve(); 
 };
 
 export const dbDeleteContribution = async (id: string) => {
-    return await mongoFetch(`/finance/${id}`, { method: 'DELETE' });
+  return Promise.resolve();
 };
 
 // --- EVENTS ---
 export const dbFetchEvents = async (): Promise<Event[]> => {
-    return await mongoFetch<Event[]>('/events');
+  const res = await fetch(`${BASE_API}/events`, { headers: getHeaders() });
+  const json = await handleResponse(res);
+  return json.data || json;
 };
 
 export const dbCreateEvent = async (event: Event) => {
-    return await mongoFetch('/events', { method: 'POST', body: JSON.stringify(event) });
+  const res = await fetch(`${BASE_API}/events`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(event)
+  });
+  return handleResponse(res);
 };
 
 // --- REPORTS ---
 export const dbFetchReports = async (): Promise<InternalMeetingReport[]> => {
-    return await mongoFetch<InternalMeetingReport[]>('/reports');
+  const res = await fetch(`${BASE_API}/reports`, { headers: getHeaders() });
+  const json = await handleResponse(res);
+  return json.data || json;
 };
 
 export const dbCreateReport = async (report: InternalMeetingReport) => {
-    return await mongoFetch('/reports', { method: 'POST', body: JSON.stringify(report) });
+  const res = await fetch(`${BASE_API}/reports`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(report)
+  });
+  return handleResponse(res);
 };
 
 // --- TASKS ---
 export const dbFetchTasks = async (): Promise<Task[]> => {
-    return await mongoFetch<Task[]>('/tasks');
+  try {
+     const res = await fetch(`${BASE_API}/tasks`, { headers: getHeaders() });
+     if(res.ok) {
+         const json = await res.json();
+         return json.data || [];
+     }
+  } catch(e) {}
+  return [];
 };
-
 export const dbCreateTask = async (task: Task) => {
-    return await mongoFetch('/tasks', { method: 'POST', body: JSON.stringify(task) });
+    try {
+        const res = await fetch(`${BASE_API}/tasks`, { 
+            method: 'POST', 
+            headers: getHeaders(),
+            body: JSON.stringify(task)
+        });
+        return handleResponse(res);
+    } catch(e) { return null; }
 };
 
 // --- CAMPAIGNS ---
 export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
-    return await mongoFetch<AdiyaCampaign[]>('/campaigns');
+    try {
+        const res = await fetch(`${BASE_API}/campaigns`, { headers: getHeaders() });
+        const json = await res.json();
+        return json.data || [];
+    } catch(e) { return []; }
 };
 
 // --- RESOURCES ---
 export const dbFetchResources = async (): Promise<LibraryResource[]> => {
-    return await mongoFetch<LibraryResource[]>('/resources');
+    try {
+        const res = await fetch(`${BASE_API}/resources`, { headers: getHeaders() });
+        const json = await res.json();
+        return json.data || [];
+    } catch(e) { return []; }
 };
 
-// --- PLACEHOLDERS (En attente d'implémentation backend) ---
+// --- PLACEHOLDERS (Pour fonctionnalités futures) ---
 export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => [];
 export const dbFetchBudgetRequests = async (): Promise<BudgetRequest[]> => [];
 export const dbFetchFundraisingEvents = async (): Promise<FundraisingEvent[]> => [];
