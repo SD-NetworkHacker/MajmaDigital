@@ -29,12 +29,12 @@ import { NotificationProvider } from './context/NotificationContext';
 import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
 
-// Fallback Loader
+// Fallback Loader (Gold Color #D4AF37)
 const PageLoader = () => (
-  <div className="h-full w-full flex items-center justify-center bg-slate-50 text-emerald-600">
+  <div className="h-full w-full flex items-center justify-center bg-slate-50">
      <div className="flex flex-col items-center gap-4">
-        <Loader2 size={48} className="animate-spin" />
-        <p className="text-xs font-black uppercase tracking-widest">Chargement MajmaDigital...</p>
+        <Loader2 size={48} className="animate-spin text-[#D4AF37]" />
+        <p className="text-xs font-black uppercase tracking-widest text-slate-500">Connexion Sécurisée...</p>
      </div>
   </div>
 );
@@ -44,12 +44,17 @@ const MainContent: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewProfileId, setViewProfileId] = useState<string | null>(null);
   
-  const { members, events, contributions } = useData();
+  const { members, events, contributions, isLoading } = useData();
   const { user, isImpersonating, stopImpersonation } = useAuth();
 
   // Si l'utilisateur n'est pas connecté, afficher le Dashboard Invité
   if (!user) {
     return <GuestDashboard />;
+  }
+  
+  // Afficher le loader si les données sont en cours de chargement
+  if (isLoading) {
+      return <PageLoader />;
   }
 
   const isAdminOrManager = ['ADMIN', 'SG', 'ADJOINT_SG', 'DIEUWRINE'].includes(user.role);

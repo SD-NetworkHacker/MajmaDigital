@@ -2,11 +2,10 @@
 import { MemberCategory, GlobalRole, CommissionType, Member, Commission, Contribution, Event, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
 // URL du Backend (Production Railway ou Local via ENV)
-// Priorité à l'environnement, sinon fallback sur la prod directe
 const env = (import.meta as any).env || {};
 export const API_URL = env.VITE_API_URL || 'https://majmadigital-production.up.railway.app';
 
-// La structure des commissions est structurelle, on la garde.
+// La structure des commissions est structurelle (Code métier), on la garde.
 export const INITIAL_COMMISSIONS: Commission[] = [
   { 
     name: CommissionType.ADMINISTRATION, 
@@ -80,7 +79,8 @@ export const INITIAL_COMMISSIONS: Commission[] = [
   },
 ];
 
-// --- DONNÉES VIDES (PLUS DE MOCKS) ---
+// --- DONNÉES DE PRODUCTION (VIDES PAR DÉFAUT) ---
+// Ces tableaux doivent rester vides pour forcer le chargement depuis l'API
 export const SEED_MEMBERS: Member[] = [];
 export const SEED_EVENTS: Event[] = [];
 export const SEED_CONTRIBUTIONS: Contribution[] = [];
@@ -95,4 +95,6 @@ export const SEED_DRIVERS: Driver[] = [];
 export const SEED_CULTURAL_ACTIVITIES: CulturalActivity[] = [];
 export const SEED_LIBRARY: LibraryResource[] = [];
 export const SEED_KHASSAIDE_MODULES: KhassaideModule[] = [];
-export const MOCK_MEMBERS = SEED_MEMBERS;
+
+// Suppression de l'alias de mock
+export const MOCK_MEMBERS: Member[] = [];

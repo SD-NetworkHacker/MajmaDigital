@@ -4,7 +4,7 @@ import { Member, Event, Contribution, InternalMeetingReport, CommissionFinancial
 import { 
   dbFetchMembers, dbFetchContributions, dbFetchEvents, dbFetchReports, 
   dbCreateMember, dbUpdateMember, dbDeleteMember,
-  dbCreateContribution, dbCreateEvent, dbCreateReport
+  dbCreateContribution, dbCreateEvent, dbCreateReport, dbFetchTasks, dbFetchAdiyaCampaigns
 } from '../services/dbService';
 import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +15,6 @@ interface DataContextType {
   events: Event[];
   contributions: Contribution[];
   reports: InternalMeetingReport[];
-  // Placeholder types for future implementation
   financialReports: CommissionFinancialReport[];
   budgetRequests: BudgetRequest[];
   adiyaCampaigns: AdiyaCampaign[];
@@ -59,36 +58,39 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [events, setEvents] = useState<Event[]>([]);
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [reports, setReports] = useState<InternalMeetingReport[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [adiyaCampaigns, setAdiyaCampaigns] = useState<AdiyaCampaign[]>([]);
   
-  // Empty states for unimplemented backend features
   const [financialReports] = useState<CommissionFinancialReport[]>([]);
   const [budgetRequests] = useState<BudgetRequest[]>([]);
-  const [adiyaCampaigns] = useState<AdiyaCampaign[]>([]);
   const [fundraisingEvents] = useState<FundraisingEvent[]>([]);
-  const [tasks] = useState<Task[]>([]);
 
-  // --- INITIAL LOAD ---
+  // --- CHARGEMENT INITIAL (PRODUCTION) ---
   useEffect(() => {
     const loadData = async () => {
       if (!isAuthenticated) return;
 
       setIsLoading(true);
       try {
-        const [m, c, e, r] = await Promise.all([
+        const [m, c, e, r, t, a] = await Promise.all([
           dbFetchMembers(),
           dbFetchContributions(),
           dbFetchEvents(),
-          dbFetchReports()
+          dbFetchReports(),
+          dbFetchTasks(),
+          dbFetchAdiyaCampaigns()
         ]);
         
-        setMembers(m || []);
-        setContributions(c || []);
-        setEvents(e || []);
-        setReports(r || []);
+        setMembers(m);
+        setContributions(c);
+        setEvents(e);
+        setReports(r);
+        setTasks(t);
+        setAdiyaCampaigns(a);
         
       } catch (error: any) {
-        console.error("Erreur chargement données:", error);
-        addNotification("Erreur lors de la récupération des données. Vérifiez votre connexion.", "error");
+        console.error("Erreur critique chargement données:", error);
+        addNotification("Erreur de connexion au serveur. Certaines données peuvent être indisponibles.", "error");
       } finally {
         setIsLoading(false);
       }
@@ -104,7 +106,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addMember = async (m: Member) => {
       try {
           await dbCreateMember(m);
-          setMembers(await dbFetchMembers()); // Refresh
+          setMembers(await dbFetchMembers()); // Refresh list
           addNotification("Membre ajouté avec succès", "success");
       } catch (e: any) {
           addNotification("Erreur ajout membre: " + e.message, "error");
@@ -115,7 +117,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
           await dbUpdateMember(id, d);
           setMembers(prev => prev.map(m => m.id === id ? {...m, ...d} : m));
-          addNotification("Membre mis à jour", "success");
+          addNotification("Profil mis à jour", "success");
       } catch (e: any) {
           addNotification("Erreur mise à jour: " + e.message, "error");
       }
@@ -160,9 +162,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
   };
 
-  // Mock functions for unimplemented features to prevent crashes
   const updateContribution = (id: string, d: Partial<Contribution>) => {};
   const deleteContribution = (id: string) => {};
+  
   const addReport = async (r: InternalMeetingReport) => {
       try {
           await dbCreateReport(r);
@@ -172,11 +174,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           addNotification(err.message, "error");
       }
   };
+  
+  const addTask = async (t: Task) => {
+      // Placeholder: Implement create task api
+  };
+  
   const addAdiyaCampaign = () => {};
   const updateAdiyaCampaign = () => {};
   const addFundraisingEvent = () => {};
   const updateFundraisingEvent = () => {};
-  const addTask = () => {};
   const updateTask = () => {};
   const deleteTask = () => {};
 

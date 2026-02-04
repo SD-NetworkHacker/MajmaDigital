@@ -19,6 +19,7 @@ const getHeaders = () => {
 const handleResponse = async (res: Response) => {
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));
+    // Si 401 Unauthorized, on pourrait rediriger vers le login ici, mais on laisse le contexte Auth gérer
     throw new Error(error.message || `Erreur API: ${res.status}`);
   }
   return res.json();
@@ -28,7 +29,7 @@ const handleResponse = async (res: Response) => {
 export const dbFetchMembers = async (): Promise<Member[]> => {
   const res = await fetch(`${BASE_API}/members`, { headers: getHeaders() });
   const json = await handleResponse(res);
-  return json.data || json;
+  return json.data || [];
 };
 
 export const dbCreateMember = async (member: Member) => {
@@ -41,7 +42,6 @@ export const dbCreateMember = async (member: Member) => {
 };
 
 export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
-  // Utilisation de PATCH pour la modification partielle (Promotion, etc.)
   const res = await fetch(`${BASE_API}/members/${id}`, {
     method: 'PATCH',
     headers: getHeaders(),
@@ -62,7 +62,7 @@ export const dbDeleteMember = async (id: string) => {
 export const dbFetchContributions = async (): Promise<Contribution[]> => {
   const res = await fetch(`${BASE_API}/finance`, { headers: getHeaders() });
   const json = await handleResponse(res);
-  return json.data || json;
+  return json.data || [];
 };
 
 export const dbCreateContribution = async (contribution: Contribution) => {
@@ -81,8 +81,7 @@ export const dbCreateContribution = async (contribution: Contribution) => {
 };
 
 export const dbUpdateContribution = async (id: string, updates: Partial<Contribution>) => {
-  // Pour l'instant pas de route update finance dans le backend fourni, 
-  // mais on prépare la fonction pour l'avenir ou pour simulation frontend optimiste
+  // Placeholder pour update finance si supporté par backend
   return Promise.resolve(); 
 };
 
@@ -94,7 +93,7 @@ export const dbDeleteContribution = async (id: string) => {
 export const dbFetchEvents = async (): Promise<Event[]> => {
   const res = await fetch(`${BASE_API}/events`, { headers: getHeaders() });
   const json = await handleResponse(res);
-  return json.data || json;
+  return json.data || [];
 };
 
 export const dbCreateEvent = async (event: Event) => {
@@ -110,7 +109,7 @@ export const dbCreateEvent = async (event: Event) => {
 export const dbFetchReports = async (): Promise<InternalMeetingReport[]> => {
   const res = await fetch(`${BASE_API}/reports`, { headers: getHeaders() });
   const json = await handleResponse(res);
-  return json.data || json;
+  return json.data || [];
 };
 
 export const dbCreateReport = async (report: InternalMeetingReport) => {
@@ -124,45 +123,35 @@ export const dbCreateReport = async (report: InternalMeetingReport) => {
 
 // --- TASKS ---
 export const dbFetchTasks = async (): Promise<Task[]> => {
-  try {
-     const res = await fetch(`${BASE_API}/tasks`, { headers: getHeaders() });
-     if(res.ok) {
-         const json = await res.json();
-         return json.data || [];
-     }
-  } catch(e) {}
-  return [];
+  const res = await fetch(`${BASE_API}/tasks`, { headers: getHeaders() });
+  const json = await handleResponse(res);
+  return json.data || [];
 };
+
 export const dbCreateTask = async (task: Task) => {
-    try {
-        const res = await fetch(`${BASE_API}/tasks`, { 
-            method: 'POST', 
-            headers: getHeaders(),
-            body: JSON.stringify(task)
-        });
-        return handleResponse(res);
-    } catch(e) { return null; }
+    const res = await fetch(`${BASE_API}/tasks`, { 
+        method: 'POST', 
+        headers: getHeaders(),
+        body: JSON.stringify(task)
+    });
+    return handleResponse(res);
 };
 
 // --- CAMPAIGNS ---
 export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
-    try {
-        const res = await fetch(`${BASE_API}/campaigns`, { headers: getHeaders() });
-        const json = await res.json();
-        return json.data || [];
-    } catch(e) { return []; }
+    const res = await fetch(`${BASE_API}/campaigns`, { headers: getHeaders() });
+    const json = await handleResponse(res);
+    return json.data || [];
 };
 
 // --- RESOURCES ---
 export const dbFetchResources = async (): Promise<LibraryResource[]> => {
-    try {
-        const res = await fetch(`${BASE_API}/resources`, { headers: getHeaders() });
-        const json = await res.json();
-        return json.data || [];
-    } catch(e) { return []; }
+    const res = await fetch(`${BASE_API}/resources`, { headers: getHeaders() });
+    const json = await handleResponse(res);
+    return json.data || [];
 };
 
-// --- PLACEHOLDERS (Pour fonctionnalités futures) ---
+// --- PLACEHOLDERS (Fonctionnalités Backend à implémenter) ---
 export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => [];
 export const dbFetchBudgetRequests = async (): Promise<BudgetRequest[]> => [];
 export const dbFetchFundraisingEvents = async (): Promise<FundraisingEvent[]> => [];
