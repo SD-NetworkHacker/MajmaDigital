@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
 import { Member } from '../types';
-import { supabase } from '../src/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export interface UserProfile {
   id: string;
@@ -57,8 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (error) {
-        console.error('Erreur chargement profil (peut être normal lors de la 1ère connexion):', error);
-        // Fallback minimal si le profil n'existe pas encore (pourrait rediriger vers page completion)
+        console.error('Erreur chargement profil:', error);
         return {
            id: userId,
            email: email,
@@ -68,13 +67,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
       }
 
-      // Mapping snake_case (DB) vers camelCase (App)
       return {
         id: data.id,
         email: email,
         firstName: data.first_name || 'Membre',
         lastName: data.last_name || '',
-        role: data.role || 'SYMPATHISANT', // Rôle par défaut
+        role: data.role || 'SYMPATHISANT', 
         matricule: data.matricule,
         category: data.category,
         avatarUrl: data.avatar_url,
@@ -86,7 +84,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Initialisation de la session Supabase
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -139,7 +136,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       showLoading();
       
-      // 1. Création du compte Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -148,9 +144,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (authError) throw authError;
       if (!authData.user) throw new Error("Erreur création utilisateur");
 
-      // 2. Création du profil dans la table 'profiles'
-      // Note: Assurez-vous que RLS autorise l'insert ou utilisez une Edge Function si nécessaire.
-      // Ici on assume que l'utilisateur authentifié peut créer son propre profil.
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([{
@@ -159,15 +152,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           last_name: formData.lastName,
           email: formData.email,
           phone: formData.phone,
-          role: 'SYMPATHISANT', // Rôle par défaut imposé
+          role: 'SYMPATHISANT', 
           category: formData.category,
           created_at: new Date().toISOString()
         }]);
 
       if (profileError) {
          console.error("Erreur création profil DB:", profileError);
-         // On ne bloque pas l'inscription, mais on log l'erreur.
-         // L'utilisateur pourra compléter son profil plus tard.
       }
 
       addNotification("Compte créé ! Connectez-vous.", "success");
@@ -189,11 +180,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateUser = async (data: Partial<UserProfile>) => {
     if (!user) return;
-    
-    // Update local state optimistic
     setUser({ ...user, ...data });
 
-    // Update Supabase
     try {
         const { error } = await supabase
             .from('profiles')
@@ -201,7 +189,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 first_name: data.firstName,
                 last_name: data.lastName,
                 bio: data.bio
-                // mapper les autres champs au besoin
             })
             .eq('id', user.id);
             
@@ -217,8 +204,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsSwitching(true);
     setTimeout(() => {
         if (!originalAdminSession) setOriginalAdminSession(user);
-        
-        // Simuler le user à partir du membre sélectionné
         const simulatedUser: UserProfile = {
           id: member.id,
           email: member.email,
@@ -229,7 +214,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           category: member.category,
           originalRole: member.role 
         };
-        
         setUser(simulatedUser);
         setIsSwitching(false);
         addNotification(`Vue: ${member.firstName} (${member.role})`, 'info');

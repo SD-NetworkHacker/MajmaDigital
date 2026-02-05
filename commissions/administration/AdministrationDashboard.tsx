@@ -17,7 +17,6 @@ import UnifiedAdminTracking from './UnifiedAdminTracking';
 import TaskManager from '../../components/shared/TaskManager';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { getReportsByStatus } from '../../services/reportService';
 import { CommissionType } from '../../types';
 
 type QuickViewType = 'none' | 'members_active' | 'pvs_validated' | 'alerts' | 'recruitment';
@@ -26,7 +25,7 @@ const AdministrationDashboard: React.FC = () => {
   const [activeAdminTab, setActiveAdminTab] = useState('overview');
   const [quickView, setQuickView] = useState<QuickViewType>('none');
   
-  const { members, updateMemberStatus, deleteMember } = useData();
+  const { members, updateMemberStatus, deleteMember, reports } = useData();
   const { user } = useAuth();
 
   // 1. Identifier le rôle dans l'Administration
@@ -41,7 +40,9 @@ const AdministrationDashboard: React.FC = () => {
   // --- DATA DERIVATION ---
   const activeMembers = useMemo(() => members.filter(m => m.status === 'active'), [members]);
   const pendingMembers = useMemo(() => members.filter(m => m.status === 'pending'), [members]);
-  const validatedReports = useMemo(() => getReportsByStatus(['valide_admin', 'approuve_bureau']), []);
+  
+  // Use reports from context instead of calling async service inside useMemo
+  const validatedReports = useMemo(() => reports.filter(r => ['valide_admin', 'approuve_bureau'].includes(r.status)), [reports]);
   
   // Mock des candidatures internes (Simule les demandes envoyées depuis le MemberDashboard)
   const applications = [

@@ -1,8 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  getAllBudgetRequests, 
-  getAllFinancialReports, 
   processRequestDecision, 
   processReportDecision 
 } from '../../services/financialService';
@@ -11,6 +9,7 @@ import {
   Filter, Search, Clock, ChevronRight, X, DollarSign, MessageSquare 
 } from 'lucide-react';
 import { BudgetRequest, CommissionFinancialReport } from '../../types';
+import { useData } from '../../contexts/DataContext';
 
 interface DecisionModalState {
   isOpen: boolean;
@@ -30,23 +29,15 @@ const FinanceReviewPanel: React.FC = () => {
   const [approvalAmount, setApprovalAmount] = useState<number>(0);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Data Loading
+  // Data Loading from Context
+  const { budgetRequests, financialReports } = useData();
   const [requests, setRequests] = useState<BudgetRequest[]>([]);
   const [reports, setReports] = useState<CommissionFinancialReport[]>([]);
 
-  const loadData = () => {
-    // Force refresh from storage
-    const freshRequests = getAllBudgetRequests();
-    const freshReports = getAllFinancialReports();
-    setRequests(freshRequests);
-    setReports(freshReports);
-  };
-
   useEffect(() => {
-    loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
-  }, []);
+    setRequests(budgetRequests);
+    setReports(financialReports);
+  }, [budgetRequests, financialReports]);
 
   // Filtering Logic Update: 
   // 'soumis_bureau' is considered processed for the Finance Commission view (it moved up the chain)
@@ -106,13 +97,6 @@ const FinanceReviewPanel: React.FC = () => {
     
     // Clear selection to return to list view (mobile friendly) and show update
     setSelectedItem(null);
-    
-    // Force Reload Data immediately to update UI
-    setTimeout(() => {
-        loadData();
-        // Optional: Simple feedback
-        // alert("Dossier traité avec succès."); 
-    }, 100);
   };
 
   return (

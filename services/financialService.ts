@@ -6,136 +6,123 @@ import {
   BudgetBreakdownItem,
   ExpenseItem
 } from '../types';
-import { SEED_FINANCIAL_REPORTS, SEED_BUDGET_REQUESTS } from '../constants';
+import { supabase } from '../lib/supabase';
 
-const KEY_REPORTS = 'MAJMA_FIN_REPORTS';
-const KEY_REQUESTS = 'MAJMA_BUDGET_REQS';
-
-const loadData = () => ({
-  reports: JSON.parse(localStorage.getItem(KEY_REPORTS) || JSON.stringify(SEED_FINANCIAL_REPORTS)) as CommissionFinancialReport[],
-  requests: JSON.parse(localStorage.getItem(KEY_REQUESTS) || JSON.stringify(SEED_BUDGET_REQUESTS)) as BudgetRequest[]
-});
-
-const saveReports = (data: CommissionFinancialReport[]) => {
-  localStorage.setItem(KEY_REPORTS, JSON.stringify(data));
-  window.dispatchEvent(new Event('storage'));
+// Helper pour gérer les erreurs
+const handleError = (error: any) => {
+    if (error) {
+        console.error("Supabase Finance Error:", error);
+        throw new Error(error.message);
+    }
 };
 
-const saveRequests = (data: BudgetRequest[]) => {
-  localStorage.setItem(KEY_REQUESTS, JSON.stringify(data));
-  window.dispatchEvent(new Event('storage'));
+export const getCommissionReports = async (commission: CommissionType) => {
+  const { data, error } = await supabase
+    .from('financial_reports')
+    .select('*')
+    .eq('commission', commission);
+  
+  if (error) return [];
+  return data;
 };
 
-export const getCommissionReports = (commission: CommissionType) => {
-  return loadData().reports.filter(r => r.commission === commission);
+export const getAllFinancialReports = async () => {
+  const { data, error } = await supabase.from('financial_reports').select('*');
+  if (error) return [];
+  return data;
 };
 
-export const getAllFinancialReports = () => {
-  return loadData().reports;
-};
-
-export const getPendingReports = () => {
-  return loadData().reports.filter(r => r.status === 'soumis' || r.status === 'revu_finance');
-};
-
-export const createReport = (report: Partial<CommissionFinancialReport>) => {
-  const { reports } = loadData();
-  const newReport: CommissionFinancialReport = {
+export const createReport = async (report: Partial<CommissionFinancialReport>) => {
+  const newReport = {
     ...report,
-    id: `RPT-${Date.now()}`,
     status: 'brouillon',
     submittedAt: new Date().toISOString(),
+    // S'assurer que les tableaux sont présents
     expenses: report.expenses || [],
     totalExpenses: (report.expenses || []).reduce((sum, item) => sum + item.amount, 0),
     balance: (report.totalBudgetAllocated || 0) - ((report.expenses || []).reduce((sum, item) => sum + item.amount, 0))
-  } as CommissionFinancialReport;
-  
-  reports.push(newReport);
-  saveReports(reports);
-  return newReport;
+  };
+
+  const { data, error } = await supabase.from('financial_reports').insert([newReport]).select().single();
+  handleError(error);
+  return data;
 };
 
-export const getCommissionRequests = (commission: CommissionType) => {
-  return loadData().requests.filter(r => r.commission === commission);
+export const getCommissionRequests = async (commission: CommissionType) => {
+  const { data, error } = await supabase
+    .from('budget_requests')
+    .select('*')
+    .eq('commission', commission);
+  if (error) return [];
+  return data;
 };
 
-export const getAllBudgetRequests = () => {
-  return loadData().requests;
+export const getAllBudgetRequests = async () => {
+  const { data, error } = await supabase.from('budget_requests').select('*');
+  if (error) return [];
+  return data;
 };
 
-export const getAllPendingRequests = () => {
-  return loadData().requests.filter(r => ['soumis_finance', 'revu_finance', 'soumis_bureau'].includes(r.status));
-};
-
-export const createBudgetRequest = (request: Partial<BudgetRequest>) => {
-  const { requests } = loadData();
+export const createBudgetRequest = async (request: Partial<BudgetRequest>) => {
   const totalAmount = (request.breakdown || []).reduce((sum, item) => sum + item.total, 0);
   
-  const newRequest: BudgetRequest = {
+  const newRequest = {
     ...request,
-    id: `REQ-${Date.now()}`,
     amountRequested: totalAmount,
-    status: 'soumis_finance', // Direct submit for demo flow
+    status: 'soumis_finance',
     submittedAt: new Date().toISOString()
-  } as BudgetRequest;
+  };
 
-  requests.push(newRequest);
-  saveRequests(requests);
-  return newRequest;
+  const { data, error } = await supabase.from('budget_requests').insert([newRequest]).select().single();
+  handleError(error);
+  return data;
 };
 
-export const processRequestDecision = (requestId: string, decision: 'approve' | 'reject', reviewerRole: 'finance' | 'bureau', amountApproved?: number, reason?: string) => {
-  const { requests } = loadData();
-  const index = requests.findIndex(r => r.id === requestId);
-  
-  if (index === -1) return null;
-  const req = requests[index];
-
+export const processRequestDecision = async (requestId: string, decision: 'approve' | 'reject', reviewerRole: 'finance' | 'bureau', amountApproved?: number, reason?: string) => {
+  const updates: any = {};
   const THRESHOLD_BUREAU = 50000;
+
+  // Récupérer la requête actuelle pour vérifier le montant si nécessaire
+  const { data: currentReq } = await supabase.from('budget_requests').select('amountRequested').eq('id', requestId).single();
+  
+  if (!currentReq) return null;
 
   if (reviewerRole === 'finance') {
     if (decision === 'reject') {
-      req.status = 'rejete';
-      req.rejectionReason = reason;
+      updates.status = 'rejete';
+      updates.rejectionReason = reason;
     } else {
-      req.amountApproved = amountApproved || req.amountRequested;
-      if (req.amountRequested > THRESHOLD_BUREAU) {
-        req.status = 'soumis_bureau';
+      updates.amountApproved = amountApproved;
+      if (currentReq.amountRequested > THRESHOLD_BUREAU) {
+        updates.status = 'soumis_bureau';
       } else {
-        req.status = 'approuve';
+        updates.status = 'approuve';
       }
     }
   } else if (reviewerRole === 'bureau') {
     if (decision === 'reject') {
-      req.status = 'rejete';
-      req.rejectionReason = reason;
+      updates.status = 'rejete';
+      updates.rejectionReason = reason;
     } else {
-      req.status = req.amountRequested === amountApproved ? 'approuve' : 'finance_partiel';
-      req.amountApproved = amountApproved;
+      updates.status = currentReq.amountRequested === amountApproved ? 'approuve' : 'finance_partiel';
+      updates.amountApproved = amountApproved;
     }
   }
 
-  requests[index] = req; // Update in array
-  saveRequests(requests);
-  return req;
+  const { data, error } = await supabase.from('budget_requests').update(updates).eq('id', requestId).select().single();
+  handleError(error);
+  return data;
 };
 
-export const processReportDecision = (reportId: string, decision: 'validate' | 'reject', feedback?: string) => {
-  const { reports } = loadData();
-  const index = reports.findIndex(r => r.id === reportId);
-  
-  if (index === -1) return null;
-  const report = reports[index];
-
+export const processReportDecision = async (reportId: string, decision: 'validate' | 'reject', feedback?: string) => {
+  const updates: any = {};
   if (decision === 'validate') {
-    report.status = 'cloture';
+    updates.status = 'cloture';
   } else {
-    report.status = 'rejete';
+    updates.status = 'rejete';
   }
   
-  // Note: In a real app we would add feedback comments structure here
-  
-  reports[index] = report;
-  saveReports(reports);
-  return report;
+  const { data, error } = await supabase.from('financial_reports').update(updates).eq('id', reportId).select().single();
+  handleError(error);
+  return data;
 };

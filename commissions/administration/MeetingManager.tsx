@@ -7,12 +7,14 @@ import {
   Filter, RefreshCcw, Zap, Trash2, Edit, Printer, Archive, PenTool, XCircle, MessageSquare,
   Bell
 } from 'lucide-react';
-import { getAllReports, deleteReport, validateReportByAdmin, rejectReport } from '../../services/reportService';
+import { deleteReport, validateReportByAdmin, rejectReport } from '../../services/reportService';
 import { InternalMeetingReport, CommissionType } from '../../types';
 import MeetingReportEditor from '../shared/MeetingReportEditor';
+import { useData } from '../../contexts/DataContext';
 
 const MeetingManager: React.FC = () => {
   // --- STATE MANAGEMENT ---
+  const { reports: allReports } = useData();
   const [reports, setReports] = useState<InternalMeetingReport[]>([]);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -32,7 +34,17 @@ const MeetingManager: React.FC = () => {
 
   // --- INITIALIZATION ---
   useEffect(() => {
-    handleRefresh();
+    // Filter reports for this commission from global context
+    const data = allReports.filter(r => r.commission === CommissionType.ADMINISTRATION);
+    setReports(data);
+    
+    // Select first report if nothing selected and data exists
+    if (data.length > 0 && !selectedReportId) {
+      if (!data.find(d => d.id === selectedReportId)) {
+         setSelectedReportId(data[0].id);
+      }
+    }
+
     // Load reminders
     const savedReminders = localStorage.getItem('majma_event_reminders_v2') || localStorage.getItem('majma_event_reminders');
     if (savedReminders) {
@@ -46,7 +58,7 @@ const MeetingManager: React.FC = () => {
          setActiveReminders(normalized);
        } catch (e) {}
     }
-  }, []);
+  }, [allReports]); // Re-run when context data changes
 
   // --- COMPUTED DATA ---
   const selectedReport = useMemo(() => 
@@ -75,14 +87,8 @@ const MeetingManager: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    const data = getAllReports().filter(r => r.commission === CommissionType.ADMINISTRATION);
-    setReports(data);
-    if (data.length > 0 && !selectedReportId) {
-      // Keep selected ID if still exists, else select first
-      if (!data.find(d => d.id === selectedReportId)) {
-         setSelectedReportId(data[0].id);
-      }
-    }
+    // Manually trigger re-sync from context if needed, but useEffect handles it.
+    // This could force a reload from DB in DataContext if implemented there.
   };
 
   const handleToggleReminder = (e: React.MouseEvent, id: string) => {
@@ -126,7 +132,7 @@ const MeetingManager: React.FC = () => {
     if (confirm('Êtes-vous sûr de vouloir supprimer définitivement cette réunion ?')) {
       deleteReport(selectedReport.id);
       setSelectedReportId(null);
-      handleRefresh();
+      // Context will update automatically or we trigger refresh
       setShowOptions(false);
     }
   };
@@ -148,7 +154,6 @@ const MeetingManager: React.FC = () => {
     if(confirm("Valider ce procès-verbal ? Il sera verrouillé.")) {
         validateReportByAdmin(selectedReport.id, adminFeedback);
         setAdminFeedback('');
-        handleRefresh();
     }
   };
 
@@ -160,7 +165,6 @@ const MeetingManager: React.FC = () => {
     }
     rejectReport(selectedReport.id, adminFeedback);
     setAdminFeedback('');
-    handleRefresh();
   };
 
   const getStatusStyle = (status: string) => {
@@ -179,7 +183,7 @@ const MeetingManager: React.FC = () => {
       {showEditor && (
         <MeetingReportEditor 
           commission={CommissionType.ADMINISTRATION} 
-          onClose={() => { setShowEditor(false); handleRefresh(); }}
+          onClose={() => { setShowEditor(false); }}
           existingReport={reportToEdit}
         />
       )}

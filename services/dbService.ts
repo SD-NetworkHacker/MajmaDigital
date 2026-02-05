@@ -1,6 +1,6 @@
 
 import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase } from '../types';
-import { supabase } from '../src/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 // --- HELPERS ---
 
@@ -162,7 +162,6 @@ export const dbDeleteTask = async (id: string) => {
 };
 
 // --- SOCIAL / ADIYA / RESOURCES ---
-// Fallbacks safe si les tables n'existent pas encore
 export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
     const { data } = await supabase.from('adiya_campaigns').select('*');
     return data || [];
@@ -204,20 +203,54 @@ export const dbCreateSocialProject = async (p: Partial<SocialProject>) => {
     await supabase.from('social_projects').insert([p]);
 };
 
-// --- PLACEHOLDERS / MOCKS ---
-// Ces fonctions simulent des retours vides pour les parties non encore migrées en DB
-export const dbFetchFleet = async (): Promise<Vehicle[]> => [];
-export const dbFetchDrivers = async (): Promise<Driver[]> => [];
-export const dbFetchSchedules = async (): Promise<TransportSchedule[]> => [];
-export const dbCreateVehicle = async (v: Vehicle) => {};
-export const dbUpdateVehicle = async (id: string, u: Partial<Vehicle>) => {};
-export const dbDeleteVehicle = async (id: string) => {};
-export const dbCreateDriver = async (d: Driver) => {};
-export const dbUpdateDriver = async (id: string, u: Partial<Driver>) => {};
-export const dbDeleteDriver = async (id: string) => {};
-export const dbCreateSchedule = async (s: TransportSchedule) => {};
-export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => [];
-export const dbFetchBudgetRequests = async (): Promise<BudgetRequest[]> => [];
+// --- TRANSPORT (MIGRATED) ---
+export const dbFetchFleet = async (): Promise<Vehicle[]> => {
+    const { data } = await supabase.from('vehicles').select('*');
+    return data || [];
+};
+export const dbCreateVehicle = async (v: Vehicle) => {
+    await supabase.from('vehicles').insert([v]);
+};
+export const dbUpdateVehicle = async (id: string, u: Partial<Vehicle>) => {
+    await supabase.from('vehicles').update(u).eq('id', id);
+};
+export const dbDeleteVehicle = async (id: string) => {
+    await supabase.from('vehicles').delete().eq('id', id);
+};
+
+export const dbFetchDrivers = async (): Promise<Driver[]> => {
+    const { data } = await supabase.from('drivers').select('*');
+    return data || [];
+};
+export const dbCreateDriver = async (d: Driver) => {
+    await supabase.from('drivers').insert([d]);
+};
+export const dbUpdateDriver = async (id: string, u: Partial<Driver>) => {
+    await supabase.from('drivers').update(u).eq('id', id);
+};
+export const dbDeleteDriver = async (id: string) => {
+    await supabase.from('drivers').delete().eq('id', id);
+};
+
+export const dbFetchSchedules = async (): Promise<TransportSchedule[]> => {
+    const { data } = await supabase.from('trips').select('*');
+    return data || [];
+};
+export const dbCreateSchedule = async (s: TransportSchedule) => {
+    await supabase.from('trips').insert([s]);
+};
+
+// --- FINANCE EXTRAS ---
+export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => {
+    const { data } = await supabase.from('financial_reports').select('*');
+    return data || [];
+};
+export const dbFetchBudgetRequests = async (): Promise<BudgetRequest[]> => {
+    const { data } = await supabase.from('budget_requests').select('*');
+    return data || [];
+};
+
+// Placeholders
 export const dbFetchFundraisingEvents = async (): Promise<FundraisingEvent[]> => [];
 export const dbUpdateContribution = async (id: string, updates: Partial<Contribution>) => {};
 export const dbDeleteContribution = async (id: string) => {};

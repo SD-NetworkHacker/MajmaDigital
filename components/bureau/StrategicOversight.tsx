@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Wallet, CheckCircle, XCircle, Activity, PieChart, AlertCircle, X, DollarSign, Target, TrendingUp, Layers
 } from 'lucide-react';
 import { PieChart as RePie, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useData } from '../../contexts/DataContext';
-import { getAllBudgetRequests, processRequestDecision } from '../../services/financialService';
+import { processRequestDecision } from '../../services/financialService';
 import { BudgetRequest } from '../../types';
 
 interface DecisionModalState {
@@ -14,7 +15,7 @@ interface DecisionModalState {
 }
 
 const StrategicOversight: React.FC = () => {
-  const { totalTreasury } = useData();
+  const { totalTreasury, budgetRequests } = useData();
   const [requests, setRequests] = useState<BudgetRequest[]>([]);
   const [modal, setModal] = useState<DecisionModalState>({ isOpen: false, type: 'approve', request: null });
   
@@ -22,15 +23,9 @@ const StrategicOversight: React.FC = () => {
   const [finalAmount, setFinalAmount] = useState<number>(0);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const loadRequests = () => {
-    setRequests(getAllBudgetRequests());
-  };
-
   useEffect(() => {
-    loadRequests();
-    window.addEventListener('storage', loadRequests);
-    return () => window.removeEventListener('storage', loadRequests);
-  }, []);
+    setRequests(budgetRequests);
+  }, [budgetRequests]);
 
   // Filtrer les demandes en attente d'arbitrage (Venant de la Finance > 50k)
   const pendingArbitration = useMemo(() => 
@@ -71,7 +66,7 @@ const StrategicOversight: React.FC = () => {
     );
 
     setModal({ ...modal, isOpen: false });
-    loadRequests(); // Refresh UI
+    // Context update will refresh requests
   };
 
   return (

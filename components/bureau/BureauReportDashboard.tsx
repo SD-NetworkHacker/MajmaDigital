@@ -1,31 +1,26 @@
 
 import React, { useState, useEffect } from 'react';
-import { getAllReports, acknowledgeReportByBureau } from '../../services/reportService';
+import { acknowledgeReportByBureau } from '../../services/reportService';
 import { InternalMeetingReport } from '../../types';
 import { FileText, CheckCircle, Clock, Filter, Eye, Search, Inbox, ChevronRight, Hash, XCircle, MinusCircle } from 'lucide-react';
+import { useData } from '../../contexts/DataContext';
 
 const BureauReportDashboard: React.FC = () => {
+  const { reports: allReports } = useData();
   const [reports, setReports] = useState<InternalMeetingReport[]>([]);
   const [filter, setFilter] = useState('Tous');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReport, setSelectedReport] = useState<InternalMeetingReport | null>(null);
 
-  const loadReports = () => {
-    // On charge tous les rapports pertinents pour le bureau
-    const all = getAllReports();
-    const pertinent = all.filter(r => ['valide_admin', 'soumis_bureau', 'approuve_bureau'].includes(r.status));
-    setReports(pertinent);
-  };
-
   useEffect(() => {
-    loadReports();
-    window.addEventListener('storage', loadReports);
-    return () => window.removeEventListener('storage', loadReports);
-  }, []);
+    // Filter pertinent reports from context data
+    const pertinent = allReports.filter(r => ['valide_admin', 'soumis_bureau', 'approuve_bureau'].includes(r.status));
+    setReports(pertinent);
+  }, [allReports]);
 
   const handleAcknowledge = (id: string) => {
     acknowledgeReportByBureau(id, 'Vu et archivé par le Bureau Exécutif');
-    loadReports(); // Refresh
+    // Context update should trigger useEffect and refresh list
   };
 
   const filteredReports = reports.filter(r => {

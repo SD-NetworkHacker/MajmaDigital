@@ -1,17 +1,24 @@
 
-import React, { useState } from 'react';
-import { getReportsByStatus, validateReportByAdmin } from '../../services/reportService';
+import React, { useState, useEffect } from 'react';
+import { validateReportByAdmin } from '../../services/reportService';
 import { InternalMeetingReport } from '../../types';
 import { FileText, Eye, CheckCircle, MessageSquare, Search, Filter, XCircle, MinusCircle } from 'lucide-react';
+import { useData } from '../../contexts/DataContext';
 
 const AdministrationReviewInterface: React.FC = () => {
-  const [pendingReports, setPendingReports] = useState<InternalMeetingReport[]>(getReportsByStatus('soumis_admin'));
+  const { reports } = useData();
+  const [pendingReports, setPendingReports] = useState<InternalMeetingReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<InternalMeetingReport | null>(null);
   const [feedback, setFeedback] = useState('');
+
+  useEffect(() => {
+    setPendingReports(reports.filter(r => r.status === 'soumis_admin'));
+  }, [reports]);
 
   const handleValidate = () => {
     if (selectedReport) {
       validateReportByAdmin(selectedReport.id, feedback);
+      // Optimistically update local state while waiting for context refresh
       setPendingReports(prev => prev.filter(r => r.id !== selectedReport.id));
       setSelectedReport(null);
       setFeedback('');

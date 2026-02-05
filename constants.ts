@@ -1,9 +1,8 @@
 
 import { CommissionType, Commission, Member, Event, Contribution, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
-// URL du Backend (Production Railway)
-const env = (import.meta as any).env || {};
-export const API_URL = env.VITE_API_URL || 'https://majmadigital-production.up.railway.app';
+// API URL removed - Using direct Supabase connection
+export const API_URL = '';
 
 // La structure des commissions est structurelle (Code métier), on la garde.
 export const INITIAL_COMMISSIONS: Commission[] = [

@@ -2,7 +2,7 @@
 import React from 'react';
 import { CommissionType } from '../../types';
 import { Wallet, TrendingUp, AlertCircle, ChevronRight } from 'lucide-react';
-import { getCommissionRequests } from '../../services/financialService';
+import { useData } from '../../contexts/DataContext';
 
 interface Props {
   commission: CommissionType;
@@ -10,7 +10,8 @@ interface Props {
 }
 
 const FinancialOverviewWidget: React.FC<Props> = ({ commission, onClick }) => {
-  const requests = getCommissionRequests(commission);
+  const { budgetRequests } = useData();
+  const requests = budgetRequests.filter(r => r.commission === commission);
   const pendingRequests = requests.filter(r => ['soumis_finance', 'soumis_bureau'].includes(r.status));
   
   // Données réelles (initialisées à 0 si pas de système de budget global connecté)

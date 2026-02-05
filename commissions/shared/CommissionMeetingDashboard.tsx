@@ -5,9 +5,9 @@ import {
   Calendar, FileText, CheckSquare, Plus, Clock, 
   ChevronRight, Users, AlertCircle, Search 
 } from 'lucide-react';
-import { getReportsByCommission } from '../../services/reportService';
 import MeetingReportEditor from './MeetingReportEditor';
 import ActionItemManager from './ActionItemManager';
+import { useData } from '../../contexts/DataContext';
 
 interface Props {
   commission: CommissionType;
@@ -17,20 +17,30 @@ const CommissionMeetingDashboard: React.FC<Props> = ({ commission }) => {
   const [showEditor, setShowEditor] = useState(false);
   const [activeTab, setActiveTab] = useState<'reports' | 'actions'>('reports');
   
-  const reports = getReportsByCommission(commission);
+  const { reports: allReports } = useData();
+  
+  const reports = allReports.filter(r => r.commission === commission);
+  const pendingReports = reports.filter(r => r.status === 'brouillon' || r.status === 'soumis_admin');
   
   // Extraction de toutes les actions de tous les rapports
   const allActions = reports.flatMap(r => r.actionItems || []).filter(a => a.status !== 'termine');
+  
+  // Calcul dynamique des actions ouvertes
+  const openActions = allActions.length;
 
   // Trouver la prochaine réunion (basée sur les données réelles ou vide)
   const nextMeeting = reports
     .filter(r => new Date(r.date) >= new Date())
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
+  const nextMeetingDate = nextMeeting 
+    ? new Date(nextMeeting.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+    : '--';
+
   // Calcul des stats réelles (0 par défaut)
   const attendanceRate = 0; 
-  const closedActions = 0;
-  const totalActions = 0;
+  const closedActions = reports.flatMap(r => r.actionItems || []).filter(a => a.status === 'termine').length;
+  const totalActions = reports.flatMap(r => r.actionItems || []).length;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">

@@ -2,7 +2,7 @@
 import React from 'react';
 import { CommissionType } from '../../types';
 import { Calendar, FileText, CheckSquare, ChevronRight } from 'lucide-react';
-import { getReportsByCommission } from '../../services/reportService';
+import { useData } from '../../contexts/DataContext';
 
 interface Props {
   commission: CommissionType;
@@ -10,7 +10,8 @@ interface Props {
 }
 
 const MeetingOverviewWidget: React.FC<Props> = ({ commission, onClick }) => {
-  const reports = getReportsByCommission(commission);
+  const { reports: allReports } = useData();
+  const reports = allReports.filter(r => r.commission === commission);
   const pendingReports = reports.filter(r => r.status === 'brouillon' || r.status === 'soumis_admin');
   
   // Calcul dynamique des actions ouvertes

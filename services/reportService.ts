@@ -1,120 +1,80 @@
 
 import { InternalMeetingReport, CommissionType, MeetingReportStatus } from '../types';
-import { SEED_REPORTS } from '../constants';
+import { supabase } from '../lib/supabase';
 
-const STORAGE_KEY = 'MAJMA_REPORTS';
-
-// Helper pour charger/sauvegarder
-const loadDB = (): InternalMeetingReport[] => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : SEED_REPORTS;
+const handleError = (error: any) => {
+    if (error) {
+        console.error("Supabase Report Error:", error);
+        throw new Error(error.message);
+    }
 };
 
-const saveDB = (data: InternalMeetingReport[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  // Dispatch event pour que le contexte puisse se mettre à jour si besoin
-  window.dispatchEvent(new Event('storage'));
+export const getAllReports = async (): Promise<InternalMeetingReport[]> => {
+  const { data, error } = await supabase.from('meeting_reports').select('*');
+  if (error) return [];
+  return data;
 };
 
-export const getAllReports = (): InternalMeetingReport[] => {
-  return loadDB();
+export const getReportsByCommission = async (commission: CommissionType) => {
+  const { data, error } = await supabase.from('meeting_reports').select('*').eq('commission', commission);
+  if (error) return [];
+  return data;
 };
 
-export const getReportsByCommission = (commission: CommissionType) => {
-  return loadDB().filter(r => r.commission === commission);
-};
-
-export const getReportsByStatus = (status: MeetingReportStatus | MeetingReportStatus[]) => {
-  const db = loadDB();
+export const getReportsByStatus = async (status: MeetingReportStatus | MeetingReportStatus[]) => {
+  let query = supabase.from('meeting_reports').select('*');
+  
   if (Array.isArray(status)) {
-    return db.filter(r => status.includes(r.status));
+    query = query.in('status', status);
+  } else {
+    query = query.eq('status', status);
   }
-  return db.filter(r => r.status === status);
+
+  const { data, error } = await query;
+  if (error) return [];
+  return data;
 };
 
-export const createReport = (report: Partial<InternalMeetingReport>) => {
-  const db = loadDB();
-  const newReport: InternalMeetingReport = {
+export const createReport = async (report: Partial<InternalMeetingReport>) => {
+  const newReport = {
     ...report,
-    id: `RPT-${Date.now()}`,
     status: 'brouillon',
     createdAt: new Date().toISOString(),
     attendees: report.attendees || [],
     agenda: report.agenda || [],
     decisions: report.decisions || [],
     actionItems: report.actionItems || []
-  } as InternalMeetingReport;
-  
-  db.push(newReport);
-  saveDB(db);
-  return newReport;
+  };
+
+  const { data, error } = await supabase.from('meeting_reports').insert([newReport]).select().single();
+  handleError(error);
+  return data;
 };
 
-export const updateReport = (id: string, updates: Partial<InternalMeetingReport>) => {
-  const db = loadDB();
-  const index = db.findIndex(r => r.id === id);
-  if (index !== -1) {
-    db[index] = { ...db[index], ...updates };
-    saveDB(db);
-    return db[index];
-  }
-  return null;
+export const updateReport = async (id: string, updates: Partial<InternalMeetingReport>) => {
+  const { data, error } = await supabase.from('meeting_reports').update(updates).eq('id', id).select().single();
+  handleError(error);
+  return data;
 };
 
-export const submitReportToAdmin = (reportId: string) => {
-  const db = loadDB();
-  const report = db.find(r => r.id === reportId);
-  if (report) {
-    report.status = 'soumis_admin';
-    saveDB(db);
-    return true;
-  }
-  return false;
+export const submitReportToAdmin = async (reportId: string) => {
+  return await updateReport(reportId, { status: 'soumis_admin' });
 };
 
-export const validateReportByAdmin = (reportId: string, feedback?: string) => {
-  const db = loadDB();
-  const report = db.find(r => r.id === reportId);
-  if (report) {
-    report.status = 'valide_admin'; 
-    report.adminFeedback = feedback;
-    saveDB(db);
-    return true;
-  }
-  return false;
+export const validateReportByAdmin = async (reportId: string, feedback?: string) => {
+  return await updateReport(reportId, { status: 'valide_admin', adminFeedback: feedback });
 };
 
-export const rejectReport = (reportId: string, feedback: string) => {
-  const db = loadDB();
-  const report = db.find(r => r.id === reportId);
-  if (report) {
-    report.status = 'brouillon';
-    report.adminFeedback = feedback;
-    saveDB(db);
-    return true;
-  }
-  return false;
+export const rejectReport = async (reportId: string, feedback: string) => {
+  return await updateReport(reportId, { status: 'brouillon', adminFeedback: feedback });
 };
 
-export const acknowledgeReportByBureau = (reportId: string, feedback?: string) => {
-  const db = loadDB();
-  const report = db.find(r => r.id === reportId);
-  if (report) {
-    report.status = 'approuve_bureau';
-    report.bureauFeedback = feedback;
-    saveDB(db);
-    return true;
-  }
-  return false;
+export const acknowledgeReportByBureau = async (reportId: string, feedback?: string) => {
+  return await updateReport(reportId, { status: 'approuve_bureau', bureauFeedback: feedback });
 };
 
-export const deleteReport = (reportId: string) => {
-  let db = loadDB();
-  const initialLength = db.length;
-  db = db.filter(r => r.id !== reportId);
-  if (db.length !== initialLength) {
-    saveDB(db);
-    return true;
-  }
-  return false;
+export const deleteReport = async (reportId: string) => {
+  const { error } = await supabase.from('meeting_reports').delete().eq('id', reportId);
+  handleError(error);
+  return true;
 };

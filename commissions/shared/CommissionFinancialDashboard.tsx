@@ -5,7 +5,7 @@ import {
   Wallet, TrendingUp, FileText, Plus, PieChart, 
   AlertCircle, CheckCircle, Clock, ChevronRight 
 } from 'lucide-react';
-import { getCommissionReports, getCommissionRequests } from '../../services/financialService';
+import { useData } from '../../contexts/DataContext';
 import FinancialReportBuilder from './FinancialReportBuilder';
 import BudgetRequestWizard from './BudgetRequestWizard';
 
@@ -17,8 +17,10 @@ const CommissionFinancialDashboard: React.FC<Props> = ({ commission }) => {
   const [showReportBuilder, setShowReportBuilder] = useState(false);
   const [showBudgetWizard, setShowBudgetWizard] = useState(false);
 
-  const reports = getCommissionReports(commission);
-  const requests = getCommissionRequests(commission);
+  const { financialReports, budgetRequests } = useData();
+
+  const reports = financialReports.filter(r => r.commission === commission);
+  const requests = budgetRequests.filter(r => r.commission === commission);
 
   // Initialisation à 0 (pas de budget alloué par défaut)
   const activeBudget = 0; 
