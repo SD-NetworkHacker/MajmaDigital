@@ -1,6 +1,6 @@
 
 import { InternalMeetingReport, CommissionType, MeetingReportStatus } from '../types';
-import { supabase } from '../src/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 const handleError = (error: any) => {
     if (error) {

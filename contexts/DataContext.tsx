@@ -15,6 +15,7 @@ import {
 import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 import { WifiOff, RefreshCcw, ServerCrash } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface DataContextType {
   userProfile: UserProfile;

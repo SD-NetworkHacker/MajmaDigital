@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
 import { Member } from '../types';
-import { supabase } from '../src/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export interface UserProfile {
   id: string;

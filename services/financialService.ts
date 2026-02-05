@@ -6,7 +6,7 @@ import {
   BudgetBreakdownItem,
   ExpenseItem
 } from '../types';
-import { supabase } from '../src/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 // Helper pour gérer les erreurs
 const handleError = (error: any) => {

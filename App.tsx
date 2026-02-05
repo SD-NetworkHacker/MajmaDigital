@@ -32,7 +32,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { supabase } from './src/lib/supabase'; // Import direct pour le realtime
+import { supabase } from './lib/supabase'; // Import direct pour le realtime
 
 // Fallback Loader (Gold Color #D4AF37)
 const PageLoader = () => (
