@@ -1,13 +1,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  X, Phone, Mail, MapPin, Shield, Calendar, Hash, Briefcase, User, 
-  Wallet, TrendingUp, Bus, Ticket, Music, BookOpen, Star, MessageCircle, 
-  Send, ExternalLink, GraduationCap, Download, Edit, Save, Lock
+  X, Phone, Mail, MapPin, Shield, Calendar, Hash, User, 
+  Wallet, Download, Edit, Save, Lock, QrCode
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../contexts/DataContext';
-import { Member, MemberCategory, GlobalRole } from '../../types';
+import { Member, GlobalRole } from '../../types';
 import SectorBadge from '../shared/SectorBadge';
 import { exportToCSV } from '../../services/analyticsEngine';
 
@@ -16,11 +15,11 @@ interface MemberProfileModalProps {
   onClose: () => void;
 }
 
-type TabType = 'infos' | 'finance' | 'activities' | 'pedagogy';
+type TabType = 'infos' | 'finance' | 'activities';
 
 const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose }) => {
   const { user } = useAuth();
-  const { contributions, events, updateMember, updateMemberStatus } = useData();
+  const { contributions, updateMember, updateMemberStatus } = useData();
   const [activeTab, setActiveTab] = useState<TabType>('infos');
 
   // --- DATA COMPUTATION ---
@@ -39,14 +38,6 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
     };
   }, [memberContributions]);
 
-  // Mock Activities (Pour démo)
-  const activitiesHistory = [
-    { id: 1, type: 'transport', label: 'Magal Touba 2023', date: '2023-09-04', detail: 'Bus 4 - Siège 12', status: 'Effectué' },
-    { id: 2, type: 'culture', label: 'Conférence Khassida', date: '2024-02-15', detail: 'Présent', status: 'Validé' },
-  ];
-
-  const pedagogyStats = { level: 'Intermédiaire', nextExam: 'Mawahibou - 15 Juin' };
-
   // Permissions
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SG' || user?.role === 'DIEUWRINE';
   const canEdit = isAdmin || user?.email === member.email;
@@ -64,7 +55,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
         email: member.email,
         phone: member.phone,
         address: member.address,
-        role: member.role, // Pour la promotion
+        role: member.role, // Pour la promotion (admin)
         category: member.category
     });
     setIsEditing(true);

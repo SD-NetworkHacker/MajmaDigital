@@ -1,22 +1,21 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  Search, Plus, MapPin, Phone, Mail, ChevronRight, Filter, Users, Share2, 
-  ShieldCheck, Activity, LayoutGrid, List, Download, Trash2, CheckCircle, 
-  FileSpreadsheet, MoreHorizontal, Briefcase, GraduationCap, School, Eye
+  Search, Plus, MapPin, ChevronRight, Filter, Users, 
+  LayoutGrid, List, Trash2, CheckCircle, 
+  FileSpreadsheet, Briefcase, GraduationCap, School, Eye, Activity
 } from 'lucide-react';
 import { MemberCategory, GlobalRole, Member } from '../types';
 import MemberForm from './MemberForm';
 import { useData } from '../contexts/DataContext';
 import { exportToCSV } from '../services/analyticsEngine';
 
-// Modified Props to accept navigation handler
 interface MemberModuleProps {
   onViewProfile?: (memberId: string) => void;
 }
 
 const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
-  const { members, addMember, deleteMember, updateMemberStatus, isLoading } = useData();
+  const { members, addMember, deleteMember, isLoading } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   
@@ -118,6 +117,29 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
     }
   };
 
+  const handleAddMember = (data: any) => {
+     // Génération matricule admin (MAJ-ADM-YYYY-XXXX) pour les ajouts manuels
+     const year = new Date().getFullYear();
+     const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+     const matricule = `MAJ-ADM-${year}-${randomSuffix}`;
+     
+     const newMember: Member = {
+        ...data,
+        id: '', // La DB génèrera l'ID UUID réel
+        matricule: matricule,
+        joinDate: new Date().toISOString(),
+        status: 'active',
+        commissions: data.commissionAssignments?.map((ca: any) => ({
+            type: ca.type,
+            role_commission: ca.role,
+            permissions: []
+        })) || []
+     };
+     
+     addMember(newMember);
+     setShowForm(false);
+  };
+
   const getCategoryIcon = (cat: string) => {
       switch(cat) {
           case MemberCategory.ETUDIANT: return <GraduationCap size={14}/>;
@@ -133,34 +155,19 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
             <Users size={48} className="text-slate-300" />
          </div>
          <div className="text-center max-w-md space-y-2">
-            <h3 className="text-xl font-black text-slate-800">Base de données vide</h3>
-            <p className="text-sm text-slate-500">Aucun membre enregistré dans la base réelle. Veuillez inviter des membres pour commencer.</p>
+            <h3 className="text-xl font-black text-slate-800">Annuaire Vide</h3>
+            <p className="text-sm text-slate-500">Aucun membre enregistré dans la base réelle.</p>
          </div>
          <button 
            onClick={() => setShowForm(true)}
            className="px-8 py-3 bg-[#D4AF37] hover:bg-[#c5a028] text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all"
          >
-           Ajouter le premier membre
+           Inscrire manuellement
          </button>
          {showForm && (
             <MemberForm 
               onClose={() => setShowForm(false)} 
-              onSubmit={(data) => {
-                const newMember: Member = {
-                  ...data,
-                  id: Date.now().toString(),
-                  matricule: `MAJ-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-                  joinDate: new Date().toISOString(),
-                  status: 'active',
-                  commissions: data.commissionAssignments?.map((ca: any) => ({
-                    type: ca.type,
-                    role_commission: ca.role,
-                    permissions: []
-                  })) || []
-                };
-                addMember(newMember);
-                setShowForm(false);
-              }}
+              onSubmit={handleAddMember}
             />
           )}
       </div>
@@ -173,22 +180,7 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
       {showForm && (
         <MemberForm 
           onClose={() => setShowForm(false)} 
-          onSubmit={(data) => {
-            const newMember: Member = {
-              ...data,
-              id: Date.now().toString(),
-              matricule: `MAJ-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-              joinDate: new Date().toISOString(),
-              status: 'active',
-              commissions: data.commissionAssignments?.map((ca: any) => ({
-                type: ca.type,
-                role_commission: ca.role,
-                permissions: []
-              })) || []
-            };
-            addMember(newMember);
-            setShowForm(false);
-          }}
+          onSubmit={handleAddMember}
         />
       )}
 
