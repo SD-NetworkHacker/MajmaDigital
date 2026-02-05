@@ -30,6 +30,8 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
       lat: initialData?.coordinates?.lat || 14.7167,
       lng: initialData?.coordinates?.lng || -17.4677
     },
+    birthDate: initialData?.birthDate || '',
+    gender: initialData?.gender || 'Homme',
     commissionAssignments: initialData?.commissions || [] as { type: CommissionType, role_commission: string }[]
   });
 
@@ -140,6 +142,29 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
                   aria-label="Nom" 
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Date de Naissance</label>
+              <input 
+                type="date" 
+                value={formData.birthDate} 
+                onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} 
+                className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-medium focus:ring-2 focus:ring-[#2E8B57]"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Genre</label>
+              <select 
+                value={formData.gender} 
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'Homme' | 'Femme' })} 
+                className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#2E8B57]"
+              >
+                <option value="Homme">Goor Yalla (Homme)</option>
+                <option value="Femme">Soxna (Femme)</option>
+              </select>
             </div>
           </div>
 

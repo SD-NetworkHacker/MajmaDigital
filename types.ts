@@ -120,6 +120,8 @@ export interface Member {
     lat: number;
     lng: number;
   };
+  birthDate?: string;
+  gender?: 'Homme' | 'Femme';
 }
 
 export interface SocialProject {

@@ -36,7 +36,9 @@ export const dbFetchMembers = async (): Promise<Member[]> => {
       commissions: p.commissions || [], // Supposant un champ JSONB
       joinDate: p.created_at,
       address: p.address,
-      coordinates: p.coordinates || { lat: 14.7167, lng: -17.4677 }
+      coordinates: p.coordinates || { lat: 14.7167, lng: -17.4677 },
+      birthDate: p.birth_date,
+      gender: p.gender
   }));
 };
 
@@ -53,7 +55,9 @@ export const dbCreateMember = async (member: Member) => {
             role: member.role,
             category: member.category,
             matricule: member.matricule,
-            commissions: member.commissions
+            commissions: member.commissions,
+            birth_date: member.birthDate,
+            gender: member.gender
         }])
         .select();
     handleSupabaseError(error);
@@ -67,6 +71,8 @@ export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
   if (updates.lastName) dbUpdates.last_name = updates.lastName;
   if (updates.role) dbUpdates.role = updates.role;
   if (updates.status) dbUpdates.status = updates.status;
+  if (updates.birthDate) dbUpdates.birth_date = updates.birthDate;
+  if (updates.gender) dbUpdates.gender = updates.gender;
   // ... autres champs
   
   const { error } = await supabase
