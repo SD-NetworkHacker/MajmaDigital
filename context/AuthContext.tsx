@@ -1,9 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useNotification } from './NotificationContext';
-import { useLoading } from './LoadingContext';
-import { Member } from '../types';
-import { supabase } from '../lib/supabase';
+import { useNotification } from '@/context/NotificationContext';
+import { useLoading } from '@/context/LoadingContext';
+import { Member } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export interface UserProfile {
   id: string;

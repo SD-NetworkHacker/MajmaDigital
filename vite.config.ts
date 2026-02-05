@@ -1,18 +1,26 @@
+
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import { cwd } from 'process';
+import path from 'path';
 
 export default defineConfig(({ mode }) => {
   // Charge les variables d'environnement
-  const env = loadEnv(mode, cwd(), '');
+  // Utilisation de process.cwd() avec cast pour éviter l'erreur de type sur 'cwd'
+  const root = (process as any).cwd();
+  const env = loadEnv(mode, root, '');
+  
   return {
     plugins: [react()],
+    resolve: {
+      alias: {
+        '@': path.resolve(root, './src'),
+      },
+    },
     define: {
-      // Injection sécurisée des clés (Gemini + Supabase si nécessaire dans le code global)
+      // Injection sécurisée des clés
       'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || ''),
       'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || ''),
       'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || ''),
-      // On s'assure que process.env ne crash pas
       'process.env': {} 
     },
     build: {
@@ -20,7 +28,6 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: false
     },
-    // Suppression du proxy server car on attaque Supabase directement
     server: {
       port: 5173
     }

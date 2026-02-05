@@ -3,10 +3,8 @@ import {
   CommissionFinancialReport, 
   BudgetRequest, 
   CommissionType,
-  BudgetBreakdownItem,
-  ExpenseItem
-} from '../types';
-import { supabase } from '../lib/supabase';
+} from '@/types';
+import { supabase } from '@/lib/supabase';
 
 // Helper pour gérer les erreurs
 const handleError = (error: any) => {
@@ -37,7 +35,6 @@ export const createReport = async (report: Partial<CommissionFinancialReport>) =
     ...report,
     status: 'brouillon',
     submittedAt: new Date().toISOString(),
-    // S'assurer que les tableaux sont présents
     expenses: report.expenses || [],
     totalExpenses: (report.expenses || []).reduce((sum, item) => sum + item.amount, 0),
     balance: (report.totalBudgetAllocated || 0) - ((report.expenses || []).reduce((sum, item) => sum + item.amount, 0))
@@ -82,7 +79,6 @@ export const processRequestDecision = async (requestId: string, decision: 'appro
   const updates: any = {};
   const THRESHOLD_BUREAU = 50000;
 
-  // Récupérer la requête actuelle pour vérifier le montant si nécessaire
   const { data: currentReq } = await supabase.from('budget_requests').select('amountRequested').eq('id', requestId).single();
   
   if (!currentReq) return null;
