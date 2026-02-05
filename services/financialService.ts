@@ -3,8 +3,8 @@ import {
   CommissionFinancialReport, 
   BudgetRequest, 
   CommissionType,
-} from '@/types';
-import { supabase } from '@/lib/supabase';
+} from '../types';
+import { supabase } from '../src/lib/supabase';
 
 // Helper pour gérer les erreurs
 const handleError = (error: any) => {

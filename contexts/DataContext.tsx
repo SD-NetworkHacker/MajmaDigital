@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Member, Event, Contribution, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, UserProfile, AdiyaCampaign, FundraisingEvent, Task, Vehicle, Driver, TransportSchedule, LibraryResource, SocialCase, SocialProject } from '@/types';
+import { Member, Event, Contribution, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, UserProfile, AdiyaCampaign, FundraisingEvent, Task, Vehicle, Driver, TransportSchedule, LibraryResource, SocialCase, SocialProject } from '../types';
 import { 
   dbFetchMembers, dbFetchContributions, dbFetchEvents, dbFetchReports, 
   dbCreateMember, dbUpdateMember, dbDeleteMember,
@@ -11,11 +11,11 @@ import {
   dbDeleteVehicle, dbUpdateDriver, dbDeleteDriver, dbDeleteResource,
   dbCreateTask, dbUpdateTask, dbDeleteTask, dbCreateAdiyaCampaign, dbUpdateAdiyaCampaign,
   dbCreateSocialCase, dbCreateSocialProject
-} from '@/services/dbService';
-import { useNotification } from '@/context/NotificationContext';
-import { useAuth } from '@/context/AuthContext';
+} from '../services/dbService';
+import { useNotification } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
 import { WifiOff, RefreshCcw, ServerCrash } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../src/lib/supabase';
 
 interface DataContextType {
   userProfile: UserProfile;

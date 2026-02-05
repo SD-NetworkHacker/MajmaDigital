@@ -1,6 +1,6 @@
 
-import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase } from '../types';
+import { supabase } from '../src/lib/supabase';
 
 // --- HELPERS ---
 
@@ -43,6 +43,8 @@ export const dbFetchMembers = async (): Promise<Member[]> => {
 };
 
 export const dbCreateMember = async (member: Member) => {
+    // Note: La création se fait généralement via Auth.register
+    // Cette fonction insère directement dans profiles (pour admin)
     const { data, error } = await supabase
         .from('profiles')
         .insert([{
@@ -63,6 +65,7 @@ export const dbCreateMember = async (member: Member) => {
 };
 
 export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
+  // Mapping inverse pour update
   const dbUpdates: any = {};
   if (updates.firstName) dbUpdates.first_name = updates.firstName;
   if (updates.lastName) dbUpdates.last_name = updates.lastName;
@@ -70,6 +73,7 @@ export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
   if (updates.status) dbUpdates.status = updates.status;
   if (updates.birthDate) dbUpdates.birth_date = updates.birthDate;
   if (updates.gender) dbUpdates.gender = updates.gender;
+  // ... autres champs
   
   const { error } = await supabase
     .from('profiles')
@@ -169,6 +173,7 @@ export const dbUpdateAdiyaCampaign = async (id: string, u: Partial<AdiyaCampaign
     await supabase.from('adiya_campaigns').update(u).eq('id', id);
 };
 
+// Resources
 export const dbFetchResources = async (): Promise<LibraryResource[]> => {
     const { data } = await supabase.from('library_resources').select('*');
     return data || [];
@@ -180,6 +185,7 @@ export const dbDeleteResource = async (id: string) => {
     await supabase.from('library_resources').delete().eq('id', id);
 };
 
+// Social Cases
 export const dbFetchSocialCases = async (): Promise<SocialCase[]> => {
     const { data } = await supabase.from('social_cases').select('*');
     return data || [];
@@ -188,6 +194,7 @@ export const dbCreateSocialCase = async (sc: Partial<SocialCase>) => {
     await supabase.from('social_cases').insert([sc]);
 };
 
+// Social Projects
 export const dbFetchSocialProjects = async (): Promise<SocialProject[]> => {
     const { data } = await supabase.from('social_projects').select('*');
     return data || [];
@@ -243,6 +250,7 @@ export const dbFetchBudgetRequests = async (): Promise<BudgetRequest[]> => {
     return data || [];
 };
 
+// Placeholders
 export const dbFetchFundraisingEvents = async (): Promise<FundraisingEvent[]> => [];
 export const dbUpdateContribution = async (id: string, updates: Partial<Contribution>) => {};
 export const dbDeleteContribution = async (id: string) => {};
