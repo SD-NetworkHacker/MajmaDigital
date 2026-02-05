@@ -1,6 +1,6 @@
 
 import { Vehicle, TransportSchedule, Driver } from '../types';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../src/lib/supabase';
 
 export const getFleet = async (): Promise<Vehicle[]> => {
   const { data, error } = await supabase.from('vehicles').select('*');
