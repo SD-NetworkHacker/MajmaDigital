@@ -2,8 +2,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
-import { Member } from '../types';
-import { supabase } from '../src/lib/supabase';
+import { Member } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export interface UserProfile {
   id: string;
@@ -57,13 +57,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (error) {
-        console.error('Erreur chargement profil:', error);
+        console.error('Erreur chargement profil Supabase:', error);
+        // Fallback minimal pour éviter le blocage
         return {
            id: userId,
            email: email,
-           firstName: 'Nouveau',
-           lastName: 'Membre',
-           role: 'SYMPATHISANT'
+           firstName: 'Membre',
+           lastName: '',
+           role: 'MEMBRE'
         };
       }
 
@@ -72,7 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email: email,
         firstName: data.first_name || 'Membre',
         lastName: data.last_name || '',
-        role: data.role || 'SYMPATHISANT', 
+        role: data.role || 'MEMBRE', 
         matricule: data.matricule,
         category: data.category,
         avatarUrl: data.avatar_url,
@@ -121,7 +122,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const profile = await fetchProfile(data.user.id, data.user.email!);
       setUser(profile);
-      addNotification(`Heureux de vous revoir, ${profile?.firstName}`, 'success');
+      addNotification(`Dalal ak Diam, ${profile?.firstName}`, 'success');
 
     } catch (error: any) {
       console.error("Login Error:", error);
@@ -144,6 +145,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (authError) throw authError;
       if (!authData.user) throw new Error("Erreur création utilisateur");
 
+      // Génération du matricule : MAJ-AAAA-XXXX
+      const year = new Date().getFullYear();
+      const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      const matricule = `MAJ-${year}-${randomSuffix}`;
+
+      // Création immédiate du profil dans la table publique
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([{
@@ -152,16 +159,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           last_name: formData.lastName,
           email: formData.email,
           phone: formData.phone,
-          role: 'SYMPATHISANT', 
+          role: 'MEMBRE', // Rôle par défaut
           category: formData.category,
+          matricule: matricule,
           created_at: new Date().toISOString()
         }]);
 
       if (profileError) {
          console.error("Erreur création profil DB:", profileError);
+         // On ne bloque pas, l'utilisateur est créé dans Auth
       }
 
-      addNotification("Compte créé ! Connectez-vous.", "success");
+      addNotification("Compte créé ! Veuillez vous connecter.", "success");
       
     } catch (error: any) {
       addNotification(error.message, 'error');
@@ -243,7 +252,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const loginAsGuest = () => {
-      addNotification("Mode invité limité.", "info");
+      addNotification("Veuillez créer un compte pour accéder.", "info");
   };
 
   return (

@@ -79,6 +79,7 @@ export const INITIAL_COMMISSIONS: Commission[] = [
 ];
 
 // --- DONNÉES DE PRODUCTION (VIDES PAR DÉFAUT) ---
+// Toutes les données doivent provenir de Supabase
 export const SEED_MEMBERS: Member[] = [];
 export const SEED_EVENTS: Event[] = [];
 export const SEED_CONTRIBUTIONS: Contribution[] = [];
@@ -94,5 +95,5 @@ export const SEED_CULTURAL_ACTIVITIES: CulturalActivity[] = [];
 export const SEED_LIBRARY: LibraryResource[] = [];
 export const SEED_KHASSAIDE_MODULES: KhassaideModule[] = [];
 
-// Suppression de l'alias de mock
+// Alias vide pour compatibilité
 export const MOCK_MEMBERS: Member[] = [];

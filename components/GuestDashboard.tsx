@@ -1,10 +1,39 @@
 
-import React from 'react';
-import { LogIn, Calendar, Heart, BookOpen, Star, Info, ArrowRight } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import React, { useState } from 'react';
+import { LogIn, Heart, BookOpen, Calendar, ArrowRight, Info } from 'lucide-react';
+import LoginForm from './auth/LoginForm';
+import RegisterForm from './auth/RegisterForm';
+import ForgotPasswordForm from './auth/ForgotPasswordForm';
 
 const GuestDashboard: React.FC = () => {
-  const { loginAsGuest } = useAuth();
+  const [view, setView] = useState<'landing' | 'login' | 'register' | 'forgot-password'>('landing');
+
+  // Si on n'est pas sur la landing, on affiche le formulaire correspondant
+  if (view === 'login') {
+    return (
+      <LoginForm 
+        onRegisterClick={() => setView('register')} 
+        onForgotPasswordClick={() => setView('forgot-password')} 
+      />
+    );
+  }
+
+  if (view === 'register') {
+    return (
+      <RegisterForm 
+        onLoginClick={() => setView('login')} 
+        onSuccess={() => setView('login')} 
+      />
+    );
+  }
+
+  if (view === 'forgot-password') {
+    return (
+      <ForgotPasswordForm 
+        onBackToLogin={() => setView('login')} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
@@ -28,10 +57,10 @@ const GuestDashboard: React.FC = () => {
 
           <div className="mt-12 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
              <button 
-               onClick={loginAsGuest}
+               onClick={() => setView('login')}
                className="px-8 py-4 bg-[#D4AF37] text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-[#c5a028] transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3"
              >
-                <LogIn size={18} /> Accès Membre / Démo
+                <LogIn size={18} /> Accès Membre
              </button>
              <button className="px-8 py-4 bg-white/10 border border-white/20 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] hover:bg-white/20 transition-all flex items-center justify-center gap-3">
                 <Info size={18} /> En savoir plus
