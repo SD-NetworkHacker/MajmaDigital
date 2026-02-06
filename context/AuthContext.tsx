@@ -52,11 +52,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Fonction pour récupérer le profil étendu depuis la table 'profiles'
   const fetchProfile = async (userId: string, email: string) => {
     try {
-      const { data, error } = await supabase
+      // Timeout pour la récupération du profil aussi (éviter le blocage infini)
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+        
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile Fetch Timeout')), 5000)
+      );
+
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
       if (error) {
         console.warn('Profil introuvable ou erreur Supabase, utilisation du profil par défaut:', error.message);
@@ -83,17 +90,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     } catch (e) {
       console.error("Erreur critique fetchProfile:", e);
-      return null;
+      // Retourner un profil par défaut en cas d'erreur critique pour ne pas bloquer
+      return {
+         id: userId,
+         email: email,
+         firstName: 'Membre',
+         lastName: '(Erreur)',
+         role: 'MEMBRE'
+      };
     }
   };
 
   useEffect(() => {
     let mounted = true;
 
+    // Safety Valve: Force la fin du chargement après 4 secondes quoi qu'il arrive
+    const safetyTimer = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn("⚠️ Safety Timer triggered: Forcing loading to false.");
+        setLoading(false);
+      }
+    }, 4000);
+
     const initializeAuth = async () => {
       try {
         // Timeout strict de 3 secondes pour Vercel/Netlify
-        // Si Supabase ne répond pas, on assume que l'utilisateur est un invité.
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Auth Timeout')), 3000)
@@ -102,8 +123,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Race : Le premier qui répond gagne
         const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
         
-        // Si c'est le timeout qui a gagné, une erreur sera levée ci-dessus.
-        // Sinon, on traite le résultat de getSession.
         const { data: { session }, error } = result;
 
         if (error) throw error;
@@ -112,21 +131,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setSession(session);
           
           if (session?.user) {
-            // On tente de récupérer le profil, mais sans bloquer l'interface indéfiniment
-            try {
-              const profile = await fetchProfile(session.user.id, session.user.email!);
-              if (mounted && profile) setUser(profile);
-            } catch (profileError) {
-               console.error("Erreur lors de la récupération du profil connecté", profileError);
-            }
+            const profile = await fetchProfile(session.user.id, session.user.email!);
+            if (mounted && profile) setUser(profile);
           }
         }
       } catch (error) {
         console.warn("Initialisation Auth échouée ou trop longue (Mode Invité activé):", error);
-        // En cas d'erreur ou timeout, on force l'état "non connecté" pour afficher la Landing Page
         if (mounted) {
           setSession(null);
           setUser(null);
+          addNotification("Délai de connexion dépassé. Mode invité activé.", "info");
         }
       } finally {
         if (mounted) setLoading(false);
@@ -143,16 +157,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (session?.user) {
          // Si une session arrive (ex: après un login réussi), on charge le profil
+         // On ne bloque pas loading ici car l'interface est déjà interactive souvent
          const profile = await fetchProfile(session.user.id, session.user.email!);
-         setUser(profile);
+         if (mounted) setUser(profile);
       } else {
-         setUser(null);
+         if (mounted) setUser(null);
       }
-      setLoading(false);
+      
+      // On s'assure que le loading est coupé si l'événement auth arrive
+      if (mounted) setLoading(false);
     });
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);
