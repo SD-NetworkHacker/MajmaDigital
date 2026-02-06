@@ -1,8 +1,5 @@
-
-import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase, TicketItem, InventoryItem, KhassaideModule } from '../types';
+import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase, TicketItem, InventoryItem, KhassaideModule, Partner, SocialPost, StudyGroup } from '../types';
 import { supabase } from '../lib/supabase';
-
-// --- HELPERS ---
 
 const handleSupabaseError = (error: any) => {
   if (error) {
@@ -13,101 +10,35 @@ const handleSupabaseError = (error: any) => {
 
 // --- MEMBERS ---
 export const dbFetchMembers = async (): Promise<Member[]> => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*');
-  
-  if (error) {
-      console.warn("Erreur fetch members (peut être vide):", error.message);
-      return [];
-  }
-
-  // Mapping DB -> Frontend Types
-  return (data || []).map((p: any) => ({
-      id: p.id,
-      firstName: p.first_name,
-      lastName: p.last_name,
-      email: p.email,
-      phone: p.phone,
-      role: p.role,
-      matricule: p.matricule,
-      category: p.category,
-      status: p.status || 'active',
-      commissions: p.commissions || [], // Supposant un champ JSONB
-      joinDate: p.created_at,
-      address: p.address,
-      coordinates: p.coordinates || { lat: 14.7167, lng: -17.4677 },
-      birthDate: p.birth_date,
-      gender: p.gender
-  }));
+  const { data, error } = await supabase.from('members').select('*');
+  if (error) return [];
+  return data || [];
 };
 
-export const dbCreateMember = async (member: Member) => {
-    const { data, error } = await supabase
-        .from('profiles')
-        .insert([{
-            first_name: member.firstName,
-            last_name: member.lastName,
-            email: member.email,
-            phone: member.phone,
-            role: member.role,
-            category: member.category,
-            matricule: member.matricule,
-            commissions: member.commissions,
-            birth_date: member.birthDate,
-            gender: member.gender
-        }])
-        .select();
-    handleSupabaseError(error);
-    return data;
+export const dbCreateMember = async (member: Partial<Member>) => {
+  const { error } = await supabase.from('members').insert([member]);
+  handleSupabaseError(error);
 };
 
 export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
-  const dbUpdates: any = {};
-  if (updates.firstName) dbUpdates.first_name = updates.firstName;
-  if (updates.lastName) dbUpdates.last_name = updates.lastName;
-  if (updates.role) dbUpdates.role = updates.role;
-  if (updates.status) dbUpdates.status = updates.status;
-  if (updates.birthDate) dbUpdates.birth_date = updates.birthDate;
-  if (updates.gender) dbUpdates.gender = updates.gender;
-  
-  const { error } = await supabase
-    .from('profiles')
-    .update(dbUpdates)
-    .eq('id', id);
+  const { error } = await supabase.from('members').update(updates).eq('id', id);
   handleSupabaseError(error);
 };
 
 export const dbDeleteMember = async (id: string) => {
-  const { error } = await supabase.from('profiles').delete().eq('id', id);
+  const { error } = await supabase.from('members').delete().eq('id', id);
   handleSupabaseError(error);
 };
 
-// --- FINANCE ---
+// --- CONTRIBUTIONS ---
 export const dbFetchContributions = async (): Promise<Contribution[]> => {
   const { data, error } = await supabase.from('contributions').select('*');
   if (error) return [];
-  
-  return (data || []).map((c: any) => ({
-      id: c.id,
-      memberId: c.member_id,
-      type: c.type,
-      amount: c.amount,
-      date: c.date,
-      eventLabel: c.event_label,
-      status: c.status
-  }));
+  return data || [];
 };
 
-export const dbCreateContribution = async (contribution: Contribution) => {
-  const { error } = await supabase.from('contributions').insert([{
-      member_id: contribution.memberId,
-      type: contribution.type,
-      amount: contribution.amount,
-      date: contribution.date,
-      event_label: contribution.eventLabel,
-      status: contribution.status
-  }]);
+export const dbCreateContribution = async (contribution: Partial<Contribution>) => {
+  const { error } = await supabase.from('contributions').insert([contribution]);
   handleSupabaseError(error);
 };
 
@@ -118,182 +49,253 @@ export const dbFetchEvents = async (): Promise<Event[]> => {
   return data || [];
 };
 
-export const dbCreateEvent = async (event: Event) => {
+export const dbCreateEvent = async (event: Partial<Event>) => {
   const { error } = await supabase.from('events').insert([event]);
   handleSupabaseError(error);
 };
 
 export const dbDeleteEvent = async (id: string) => {
-    const { error } = await supabase.from('events').delete().eq('id', id);
-    handleSupabaseError(error);
+  const { error } = await supabase.from('events').delete().eq('id', id);
+  handleSupabaseError(error);
 };
 
 // --- REPORTS ---
 export const dbFetchReports = async (): Promise<InternalMeetingReport[]> => {
-   const { data, error } = await supabase.from('meeting_reports').select('*');
-   if (error) return [];
-   return data || [];
+  const { data, error } = await supabase.from('meeting_reports').select('*');
+  if (error) return [];
+  return data || [];
 };
 
-export const dbCreateReport = async (report: InternalMeetingReport) => {
-   const { error } = await supabase.from('meeting_reports').insert([report]);
-   handleSupabaseError(error);
+export const dbCreateReport = async (report: Partial<InternalMeetingReport>) => {
+  const { error } = await supabase.from('meeting_reports').insert([report]);
+  handleSupabaseError(error);
 };
 
 // --- TASKS ---
 export const dbFetchTasks = async (): Promise<Task[]> => {
-    const { data, error } = await supabase.from('tasks').select('*');
-    if (error) return [];
-    return data || [];
+  const { data, error } = await supabase.from('tasks').select('*');
+  if (error) return [];
+  return data || [];
 };
 
-export const dbCreateTask = async (task: Task) => {
-    const { error } = await supabase.from('tasks').insert([task]);
-    handleSupabaseError(error);
+export const dbCreateTask = async (task: Partial<Task>) => {
+  const { error } = await supabase.from('tasks').insert([task]);
+  handleSupabaseError(error);
 };
 
 export const dbUpdateTask = async (id: string, updates: Partial<Task>) => {
-    const { error } = await supabase.from('tasks').update(updates).eq('id', id);
-    handleSupabaseError(error);
+  const { error } = await supabase.from('tasks').update(updates).eq('id', id);
+  handleSupabaseError(error);
 };
 
 export const dbDeleteTask = async (id: string) => {
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
-    handleSupabaseError(error);
+  const { error } = await supabase.from('tasks').delete().eq('id', id);
+  handleSupabaseError(error);
 };
 
-// --- SOCIAL / ADIYA / RESOURCES ---
+// --- CAMPAIGNS ---
 export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
-    const { data } = await supabase.from('adiya_campaigns').select('*');
-    return data || [];
-};
-export const dbCreateAdiyaCampaign = async (c: AdiyaCampaign) => {
-    await supabase.from('adiya_campaigns').insert([c]);
-};
-export const dbUpdateAdiyaCampaign = async (id: string, u: Partial<AdiyaCampaign>) => {
-    await supabase.from('adiya_campaigns').update(u).eq('id', id);
+  const { data, error } = await supabase.from('adiya_campaigns').select('*');
+  if (error) return [];
+  return data || [];
 };
 
-// Resources
-export const dbFetchResources = async (): Promise<LibraryResource[]> => {
-    const { data } = await supabase.from('library_resources').select('*');
-    return data || [];
-};
-export const dbCreateResource = async (r: LibraryResource) => {
-    await supabase.from('library_resources').insert([r]);
-};
-export const dbDeleteResource = async (id: string) => {
-    await supabase.from('library_resources').delete().eq('id', id);
+export const dbCreateAdiyaCampaign = async (campaign: Partial<AdiyaCampaign>) => {
+  const { error } = await supabase.from('adiya_campaigns').insert([campaign]);
+  handleSupabaseError(error);
 };
 
-// Social Cases
-export const dbFetchSocialCases = async (): Promise<SocialCase[]> => {
-    const { data } = await supabase.from('social_cases').select('*');
-    return data || [];
-};
-export const dbCreateSocialCase = async (sc: Partial<SocialCase>) => {
-    await supabase.from('social_cases').insert([sc]);
-};
-
-// Social Projects
-export const dbFetchSocialProjects = async (): Promise<SocialProject[]> => {
-    const { data } = await supabase.from('social_projects').select('*');
-    return data || [];
-};
-export const dbCreateSocialProject = async (p: Partial<SocialProject>) => {
-    await supabase.from('social_projects').insert([p]);
+export const dbUpdateAdiyaCampaign = async (id: string, updates: Partial<AdiyaCampaign>) => {
+  const { error } = await supabase.from('adiya_campaigns').update(updates).eq('id', id);
+  handleSupabaseError(error);
 };
 
 // --- TRANSPORT ---
 export const dbFetchFleet = async (): Promise<Vehicle[]> => {
-    const { data } = await supabase.from('vehicles').select('*');
-    return data || [];
+  const { data, error } = await supabase.from('vehicles').select('*');
+  if (error) return [];
+  return data || [];
 };
-export const dbCreateVehicle = async (v: Vehicle) => {
-    await supabase.from('vehicles').insert([v]);
+
+export const dbCreateVehicle = async (vehicle: Partial<Vehicle>) => {
+  const { error } = await supabase.from('vehicles').insert([vehicle]);
+  handleSupabaseError(error);
 };
-export const dbUpdateVehicle = async (id: string, u: Partial<Vehicle>) => {
-    await supabase.from('vehicles').update(u).eq('id', id);
+
+export const dbUpdateVehicle = async (id: string, updates: Partial<Vehicle>) => {
+  const { error } = await supabase.from('vehicles').update(updates).eq('id', id);
+  handleSupabaseError(error);
 };
+
 export const dbDeleteVehicle = async (id: string) => {
-    await supabase.from('vehicles').delete().eq('id', id);
+  const { error } = await supabase.from('vehicles').delete().eq('id', id);
+  handleSupabaseError(error);
 };
 
 export const dbFetchDrivers = async (): Promise<Driver[]> => {
-    const { data } = await supabase.from('drivers').select('*');
-    return data || [];
+  const { data, error } = await supabase.from('drivers').select('*');
+  if (error) return [];
+  return data || [];
 };
-export const dbCreateDriver = async (d: Driver) => {
-    await supabase.from('drivers').insert([d]);
+
+export const dbCreateDriver = async (driver: Partial<Driver>) => {
+  const { error } = await supabase.from('drivers').insert([driver]);
+  handleSupabaseError(error);
 };
-export const dbUpdateDriver = async (id: string, u: Partial<Driver>) => {
-    await supabase.from('drivers').update(u).eq('id', id);
+
+export const dbUpdateDriver = async (id: string, updates: Partial<Driver>) => {
+  const { error } = await supabase.from('drivers').update(updates).eq('id', id);
+  handleSupabaseError(error);
 };
+
 export const dbDeleteDriver = async (id: string) => {
-    await supabase.from('drivers').delete().eq('id', id);
+  const { error } = await supabase.from('drivers').delete().eq('id', id);
+  handleSupabaseError(error);
 };
 
 export const dbFetchSchedules = async (): Promise<TransportSchedule[]> => {
-    const { data } = await supabase.from('trips').select('*');
-    return data || [];
-};
-export const dbCreateSchedule = async (s: TransportSchedule) => {
-    await supabase.from('trips').insert([s]);
+  const { data, error } = await supabase.from('transport_schedules').select('*');
+  if (error) return [];
+  return data || [];
 };
 
-// --- TICKETING ---
+export const dbCreateSchedule = async (schedule: Partial<TransportSchedule>) => {
+  const { error } = await supabase.from('transport_schedules').insert([schedule]);
+  handleSupabaseError(error);
+};
+
 export const dbFetchTickets = async (): Promise<TicketItem[]> => {
-    const { data } = await supabase.from('tickets').select('*');
-    return data || [];
+  const { data, error } = await supabase.from('tickets').select('*');
+  if (error) return [];
+  return data || [];
 };
-export const dbCreateTicket = async (t: TicketItem) => {
-    await supabase.from('tickets').insert([t]);
+
+export const dbCreateTicket = async (ticket: Partial<TicketItem>) => {
+  const { error } = await supabase.from('tickets').insert([ticket]);
+  handleSupabaseError(error);
 };
-export const dbUpdateTicket = async (id: string, u: Partial<TicketItem>) => {
-    await supabase.from('tickets').update(u).eq('id', id);
+
+export const dbUpdateTicket = async (id: string, updates: Partial<TicketItem>) => {
+  const { error } = await supabase.from('tickets').update(updates).eq('id', id);
+  handleSupabaseError(error);
 };
+
 export const dbDeleteTicket = async (id: string) => {
-    await supabase.from('tickets').delete().eq('id', id);
+  const { error } = await supabase.from('tickets').delete().eq('id', id);
+  handleSupabaseError(error);
 };
 
-// --- INVENTORY (ORGANISATION) ---
+// --- INVENTORY ---
 export const dbFetchInventory = async (): Promise<InventoryItem[]> => {
-    const { data } = await supabase.from('inventory').select('*');
-    return data || [];
+  const { data, error } = await supabase.from('inventory').select('*');
+  if (error) return [];
+  return data || [];
 };
-export const dbCreateInventoryItem = async (i: InventoryItem) => {
-    await supabase.from('inventory').insert([i]);
+
+export const dbCreateInventoryItem = async (item: Partial<InventoryItem>) => {
+  const { error } = await supabase.from('inventory').insert([item]);
+  handleSupabaseError(error);
 };
-export const dbUpdateInventoryItem = async (id: string, u: Partial<InventoryItem>) => {
-    await supabase.from('inventory').update(u).eq('id', id);
-};
+
 export const dbDeleteInventoryItem = async (id: string) => {
-    await supabase.from('inventory').delete().eq('id', id);
+  const { error } = await supabase.from('inventory').delete().eq('id', id);
+  handleSupabaseError(error);
 };
 
-// --- ACADEMY (CULTURELLE) ---
+// --- RESOURCES / KHASSAIDE ---
+export const dbFetchResources = async (): Promise<LibraryResource[]> => {
+  const { data, error } = await supabase.from('library_resources').select('*');
+  if (error) return [];
+  return data || [];
+};
+
+export const dbCreateResource = async (resource: Partial<LibraryResource>) => {
+  const { error } = await supabase.from('library_resources').insert([resource]);
+  handleSupabaseError(error);
+};
+
+export const dbDeleteResource = async (id: string) => {
+  const { error } = await supabase.from('library_resources').delete().eq('id', id);
+  handleSupabaseError(error);
+};
+
 export const dbFetchKhassaideModules = async (): Promise<KhassaideModule[]> => {
-    const { data } = await supabase.from('khassaide_modules').select('*');
-    return data || [];
-};
-export const dbCreateKhassaideModule = async (m: KhassaideModule) => {
-    await supabase.from('khassaide_modules').insert([m]);
-};
-export const dbUpdateKhassaideModule = async (id: string, u: Partial<KhassaideModule>) => {
-    await supabase.from('khassaide_modules').update(u).eq('id', id);
+  const { data, error } = await supabase.from('khassaide_modules').select('*');
+  if (error) return [];
+  return data || [];
 };
 
-// --- FINANCE EXTRAS ---
-export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => {
-    const { data } = await supabase.from('financial_reports').select('*');
-    return data || [];
-};
-export const dbFetchBudgetRequests = async (): Promise<BudgetRequest[]> => {
-    const { data } = await supabase.from('budget_requests').select('*');
-    return data || [];
+export const dbCreateKhassaideModule = async (module: Partial<KhassaideModule>) => {
+  const { error } = await supabase.from('khassaide_modules').insert([module]);
+  handleSupabaseError(error);
 };
 
-// Placeholders
-export const dbFetchFundraisingEvents = async (): Promise<FundraisingEvent[]> => [];
-export const dbUpdateContribution = async (id: string, updates: Partial<Contribution>) => {};
-export const dbDeleteContribution = async (id: string) => {};
+export const dbUpdateKhassaideModule = async (id: string, updates: Partial<KhassaideModule>) => {
+  const { error } = await supabase.from('khassaide_modules').update(updates).eq('id', id);
+  handleSupabaseError(error);
+};
+
+// --- SOCIAL ---
+export const dbFetchSocialCases = async (): Promise<SocialCase[]> => {
+  const { data, error } = await supabase.from('social_cases').select('*');
+  if (error) return [];
+  return data || [];
+};
+
+export const dbCreateSocialCase = async (socialCase: Partial<SocialCase>) => {
+  const { error } = await supabase.from('social_cases').insert([socialCase]);
+  handleSupabaseError(error);
+};
+
+export const dbFetchSocialProjects = async (): Promise<SocialProject[]> => {
+  const { data, error } = await supabase.from('social_projects').select('*');
+  if (error) return [];
+  return data || [];
+};
+
+export const dbCreateSocialProject = async (project: Partial<SocialProject>) => {
+  const { error } = await supabase.from('social_projects').insert([project]);
+  handleSupabaseError(error);
+};
+
+// --- PARTNERS (Relations Ext) ---
+export const dbFetchPartners = async (): Promise<Partner[]> => {
+    const { data, error } = await supabase.from('partners').select('*');
+    if (error) return [];
+    return data || [];
+};
+export const dbCreatePartner = async (p: Partial<Partner>) => {
+    const { error } = await supabase.from('partners').insert([p]);
+    handleSupabaseError(error);
+};
+
+// --- COMMUNICATION (Posts) ---
+export const dbFetchSocialPosts = async (): Promise<SocialPost[]> => {
+    const { data, error } = await supabase.from('social_posts').select('*');
+    if (error) return [];
+    return data || [];
+};
+export const dbCreateSocialPost = async (p: Partial<SocialPost>) => {
+    const { error } = await supabase.from('social_posts').insert([p]);
+    handleSupabaseError(error);
+};
+
+// --- PEDAGOGIE (Groups) ---
+export const dbFetchStudyGroups = async (): Promise<StudyGroup[]> => {
+    const { data, error } = await supabase.from('study_groups').select('*');
+    if (error) return [];
+    return data.map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        theme: g.theme,
+        membersCount: g.members_count
+    }));
+};
+export const dbCreateStudyGroup = async (g: Partial<StudyGroup>) => {
+    const { error } = await supabase.from('study_groups').insert([{
+        name: g.name,
+        theme: g.theme,
+        members_count: g.membersCount
+    }]);
+    handleSupabaseError(error);
+};

@@ -1,18 +1,11 @@
 
 import React, { useState } from 'react';
 import { Calendar, Clock, Facebook, Instagram, MessageCircle, MoreHorizontal, Plus, ChevronLeft, ChevronRight, Zap, Target, CheckCircle, X, Save, Share2 } from 'lucide-react';
-
-interface SocialPost {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  status: string;
-  platforms: string[];
-}
+import { useData } from '../../contexts/DataContext';
+import { SocialPost } from '../../types';
 
 const ContentScheduler: React.FC = () => {
-  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const { socialPosts, addSocialPost } = useData(); // Utilisation contexte
   const [showModal, setShowModal] = useState(false);
   const [newPost, setNewPost] = useState<Partial<SocialPost>>({
     status: 'Planifié',
@@ -23,16 +16,14 @@ const ContentScheduler: React.FC = () => {
     e.preventDefault();
     if (!newPost.title) return;
 
-    const post: SocialPost = {
-      id: Date.now().toString(),
+    addSocialPost({
       title: newPost.title,
-      date: new Date(newPost.date!).toLocaleString('fr-FR', { month: 'long', day: 'numeric' }),
+      date: newPost.date,
       time: newPost.time || '10:00',
       status: newPost.status || 'Planifié',
       platforms: newPost.platforms || ['Facebook']
-    };
+    });
 
-    setPosts([...posts, post]);
     setShowModal(false);
     setNewPost({ status: 'Planifié', platforms: ['Facebook'] });
   };
@@ -130,13 +121,6 @@ const ContentScheduler: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-4">
-           <div className="flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200">
-              <button className="p-3 hover:bg-white text-slate-400 hover:text-slate-900 rounded-xl transition-all"><ChevronLeft size={16} /></button>
-              <div className="px-6 flex items-center font-black text-[10px] uppercase text-slate-600 tracking-widest">
-                  {new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' })}
-              </div>
-              <button className="p-3 hover:bg-white text-slate-400 hover:text-slate-900 rounded-xl transition-all"><ChevronRight size={16} /></button>
-           </div>
            <button 
              onClick={() => setShowModal(true)}
              className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center gap-3 active:scale-95 transition-all"
@@ -148,11 +132,11 @@ const ContentScheduler: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
-           {posts.length > 0 ? posts.map(post => (
+           {socialPosts.length > 0 ? socialPosts.map(post => (
              <div key={post.id} className="glass-card p-8 flex flex-col md:flex-row items-center gap-8 group hover:border-amber-100 transition-all bg-white">
                 <div className="flex flex-col items-center text-center">
-                   <p className="text-xl font-black text-slate-900 leading-none">{post.date.split(' ')[1]}</p>
-                   <p className="text-[10px] font-black text-amber-600 uppercase mt-1">{post.date.split(' ')[0]}</p>
+                   <p className="text-xl font-black text-slate-900 leading-none">{new Date(post.date).getDate()}</p>
+                   <p className="text-[10px] font-black text-amber-600 uppercase mt-1">{new Date(post.date).toLocaleString('default', { month: 'short' })}</p>
                 </div>
                 <div className="w-px h-12 bg-slate-100 hidden md:block"></div>
                 <div className="flex-1 min-w-0">
@@ -173,7 +157,6 @@ const ContentScheduler: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                    <button className="p-3 bg-slate-50 text-slate-400 hover:text-amber-600 rounded-xl transition-all shadow-sm"><MoreHorizontal size={18} /></button>
-                   <button className="p-3 bg-amber-500 text-white rounded-xl shadow-lg shadow-amber-200"><CheckCircle size={18} /></button>
                 </div>
              </div>
            )) : (
@@ -192,8 +175,8 @@ const ContentScheduler: React.FC = () => {
                  <div className="flex items-center gap-6">
                     <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/10"><Zap size={32} /></div>
                     <div>
-                       <p className="text-2xl font-black">-- : --</p>
-                       <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">En attente de données</p>
+                       <p className="text-2xl font-black">20:45</p>
+                       <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">Pic d'audience estimé</p>
                     </div>
                  </div>
                  <p className="text-[11px] leading-relaxed italic opacity-80">
@@ -209,9 +192,7 @@ const ContentScheduler: React.FC = () => {
               </h4>
               <div className="space-y-6">
                  {[
-                   { l: 'Posts Hebdo', c: 0, t: 5 },
-                   { l: 'Stories FB/IG', c: 0, t: 10 },
-                   { l: 'Newsletters', c: 0, t: 1 },
+                   { l: 'Posts Hebdo', c: socialPosts.filter(p => new Date(p.date) > new Date(Date.now() - 7*24*60*60*1000)).length, t: 5 },
                  ].map((obj, i) => (
                    <div key={i} className="space-y-2">
                       <div className="flex justify-between items-center text-[10px] font-black uppercase">
@@ -219,7 +200,7 @@ const ContentScheduler: React.FC = () => {
                         <span className="text-amber-600">{Math.round((obj.c/obj.t)*100)}%</span>
                       </div>
                       <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 shadow-inner">
-                         <div className="h-full bg-amber-500" style={{ width: `${(obj.c/obj.t)*100}%` }}></div>
+                         <div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (obj.c/obj.t)*100)}%` }}></div>
                       </div>
                    </div>
                  ))}

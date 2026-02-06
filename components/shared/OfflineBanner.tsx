@@ -2,8 +2,7 @@
 import React from 'react';
 
 const OfflineBanner: React.FC = () => {
-  // Offline mode is deprecated. We assume always online connection to Supabase.
-  return null;
+  return null; // Supprimé car le mode hors ligne n'est plus supporté dans la v3
 };
 
 export default OfflineBanner;

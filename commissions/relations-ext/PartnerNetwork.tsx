@@ -1,19 +1,12 @@
 
 import React, { useState } from 'react';
-import { Search, Filter, Plus, MapPin, Globe, Landmark, ChevronRight, Phone, Mail, Award, Calendar, X, Save, Handshake } from 'lucide-react';
-
-interface Partner {
-  id: string;
-  name: string;
-  type: string;
-  location: string;
-  contact: string;
-  status: string;
-}
+import { Search, Filter, Plus, MapPin, Globe, Landmark, ChevronRight, Phone, Mail, Award, Calendar, X, Save, HeartHandshake } from 'lucide-react';
+import { useData } from '../../contexts/DataContext';
+import { Partner } from '../../types';
 
 const PartnerNetwork: React.FC = () => {
+  const { partners, addPartner } = useData(); // Utilisation du contexte
   const [searchTerm, setSearchTerm] = useState('');
-  const [partners, setPartners] = useState<Partner[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newPartner, setNewPartner] = useState<Partial<Partner>>({ type: 'Dahira Soeur', status: 'Actif' });
 
@@ -21,19 +14,22 @@ const PartnerNetwork: React.FC = () => {
     e.preventDefault();
     if (!newPartner.name) return;
     
-    const partner: Partner = {
-      id: Date.now().toString(),
+    addPartner({
       name: newPartner.name,
       type: newPartner.type || 'Institution',
       location: newPartner.location || 'Dakar',
       contact: newPartner.contact || '',
       status: 'Actif'
-    };
+    });
     
-    setPartners([partner, ...partners]);
     setShowModal(false);
     setNewPartner({ type: 'Dahira Soeur', status: 'Actif' });
   };
+
+  const filteredPartners = partners.filter(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      p.location.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500 relative">
@@ -44,7 +40,7 @@ const PartnerNetwork: React.FC = () => {
           <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-200">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                <Handshake size={24} className="text-slate-600"/> Nouveau Partenaire
+                <HeartHandshake size={24} className="text-slate-600"/> Nouveau Partenaire
               </h3>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
             </div>
@@ -128,7 +124,7 @@ const PartnerNetwork: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {partners.length > 0 ? partners.map(partner => (
+          {filteredPartners.length > 0 ? filteredPartners.map(partner => (
             <div key={partner.id} className="glass-card p-8 group hover:border-slate-300 transition-all flex flex-col justify-between relative overflow-hidden bg-white">
                <div className="flex justify-between items-start mb-6">
                   <div className="p-4 bg-slate-100 rounded-2xl text-slate-600 group-hover:bg-slate-800 group-hover:text-white transition-all">
