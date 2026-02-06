@@ -126,7 +126,7 @@ const MainNavbar: React.FC<MainNavbarProps> = ({ onNavigate, currentView }) => {
                 </div>
                 <div className="w-9 h-9 bg-slate-900 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-md group-hover:scale-105 transition-transform overflow-hidden">
                   {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
                   )}

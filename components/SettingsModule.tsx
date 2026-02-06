@@ -126,7 +126,7 @@ const SettingsModule: React.FC<SettingsModuleProps> = ({ onBack }) => {
                   <div className="relative mb-6 group-hover:scale-105 transition-transform duration-500">
                     <div className="w-28 h-28 rounded-full border-4 border-white/10 shadow-2xl overflow-hidden bg-slate-800 relative">
                         {formData.avatar ? (
-                          <img src={formData.avatar} alt="Profile" className="w-full h-full object-cover" />
+                          <img src={formData.avatar} alt="Profile" className="w-full h-full object-cover" loading="lazy" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-emerald-500 font-black text-4xl">
                             {formData.firstName[0]}{formData.lastName[0]}

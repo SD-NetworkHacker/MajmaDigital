@@ -265,7 +265,12 @@ const EventModule: React.FC = () => {
               return (
                 <div key={event.id} className={`bg-white rounded-[2.5rem] border border-gray-50 shadow-sm overflow-hidden group hover:shadow-2xl transition-all duration-500 ${isPast ? 'opacity-70 grayscale' : ''}`}>
                   <div className="h-44 bg-gray-100 relative overflow-hidden">
-                    <img src={`https://picsum.photos/seed/${event.id}/800/600`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" alt={event.title} />
+                    <img 
+                      src={`https://picsum.photos/seed/${event.id}/800/600`} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
+                      alt={event.title} 
+                      loading="lazy" 
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                     <div className="absolute top-6 left-6 flex gap-2">
                        <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-lg text-[8px] font-black text-white uppercase tracking-widest">{event.type}</div>

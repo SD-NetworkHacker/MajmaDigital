@@ -55,7 +55,7 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
           <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
             <div className="w-32 h-32 rounded-full border-4 border-slate-100 overflow-hidden bg-slate-50 flex items-center justify-center shadow-inner group-hover:border-emerald-200 transition-all">
               {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
               ) : (
                 <User size={48} className="text-slate-300" />
               )}

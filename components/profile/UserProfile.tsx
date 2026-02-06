@@ -1,15 +1,12 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { 
-  User, Mail, Phone, MapPin, Calendar, Briefcase, 
-  Shield, Edit, Download, LogOut, Camera, Save, 
-  X, Check, BookOpen, Star, Wallet, Activity, 
-  FileText, Lock, Users, Share2, GraduationCap, 
-  MoreHorizontal, AlertTriangle, ArrowLeft, CreditCard, QrCode
+  X, Phone, Mail, MapPin, Shield, Calendar, Hash, User, 
+  Wallet, Download, Edit, Save, Lock, QrCode, Share2, Camera, ArrowLeft, BookOpen, FileText, Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../contexts/DataContext';
-import { Member, MemberCategory, GlobalRole } from '../../types';
+import { Member, GlobalRole } from '../../types';
 import SectorBadge from '../shared/SectorBadge';
 import { exportToCSV } from '../../services/analyticsEngine';
 import FileUploader from '../forms/FileUploader';
@@ -138,7 +135,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ targetId, onBack }) => {
                               <p className="text-[6px] opacity-70 uppercase tracking-widest font-medium">Carte de Membre Officielle</p>
                            </div>
                         </div>
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/fd/Flag_of_Senegal.svg" alt="Flag" className="w-6 h-4 rounded shadow-sm opacity-90" />
+                        <img 
+                            src="https://upload.wikimedia.org/wikipedia/commons/f/fd/Flag_of_Senegal.svg" 
+                            alt="Flag" 
+                            className="w-6 h-4 rounded shadow-sm opacity-90" 
+                            loading="lazy" 
+                        />
                      </div>
 
                      {/* Content */}
@@ -153,6 +155,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ targetId, onBack }) => {
                               src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=MEMBER:${profileMember.matricule}`} 
                               className="w-12 h-12" 
                               alt="QR" 
+                              loading="lazy"
                            />
                         </div>
                      </div>
@@ -354,7 +357,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ targetId, onBack }) => {
                                    <Shield size={16} className="text-emerald-600" />
                                    <div>
                                       <p className="text-xs font-black text-slate-800">{c.type}</p>
-                                      <p className="text-[10px] text-slate-500 font-bold uppercase">{c.role_commission}</p>
+                                      <p className="text-[10px] text-emerald-600 font-bold uppercase">{c.role_commission}</p>
                                    </div>
                                 </div>
                                 <span className="text-[9px] bg-white px-2 py-1 rounded border border-slate-100 text-slate-400">Actif</span>

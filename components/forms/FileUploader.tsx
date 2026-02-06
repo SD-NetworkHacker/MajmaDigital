@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { UploadCloud, X, FileImage, CheckCircle, Loader2, FileText } from 'lucide-react';
 
@@ -136,7 +137,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
           <div className="flex items-center gap-4">
              {previewUrl ? (
                <div className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-white">
-                 <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                 <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" loading="lazy" />
                </div>
              ) : (
                <div className="w-16 h-16 rounded-xl bg-slate-200 flex items-center justify-center shrink-0">
