@@ -24,7 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isImpersonating: boolean;
   isSwitching: boolean;
-  loading: boolean; // Nouvel état pour gérer l'initialisation
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: (reason?: string) => void;
@@ -41,7 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true); // Initialisation à true
+  const [loading, setLoading] = useState(true);
   
   const [originalAdminSession, setOriginalAdminSession] = useState<UserProfile | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -49,32 +49,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  // Fonction pour récupérer le profil étendu depuis la table 'profiles'
-  const fetchProfile = async (userId: string, email: string) => {
+  // Helper pour récupérer le profil avec tentatives multiples si nécessaire
+  const fetchProfile = async (userId: string, email: string, retries = 3): Promise<UserProfile | null> => {
     try {
-      // Timeout pour la récupération du profil aussi (éviter le blocage infini)
-      const profilePromise = supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+
+      if (error || !data) {
+        if (retries > 0) {
+          console.log(`Profil non trouvé, nouvelle tentative dans 1s... (${retries} restantes)`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return fetchProfile(userId, email, retries - 1);
+        }
         
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile Fetch Timeout')), 5000)
-      );
-
-      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
-
-      if (error) {
-        console.warn('Profil introuvable ou erreur Supabase, utilisation du profil par défaut:', error.message);
-        // Fallback minimal pour ne pas bloquer l'app
-        return {
-           id: userId,
-           email: email,
-           firstName: 'Membre',
-           lastName: '',
-           role: 'MEMBRE'
-        };
+        console.warn('Profil introuvable après tentatives. Création objet minimal.');
+        return null;
       }
 
       return {
@@ -89,88 +81,71 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         bio: data.bio
       };
     } catch (e) {
-      console.error("Erreur critique fetchProfile:", e);
-      // Retourner un profil par défaut en cas d'erreur critique pour ne pas bloquer
-      return {
-         id: userId,
-         email: email,
-         firstName: 'Membre',
-         lastName: '(Erreur)',
-         role: 'MEMBRE'
-      };
+      console.error("Erreur fetchProfile:", e);
+      return null;
     }
   };
 
+  // Initialisation au démarrage
   useEffect(() => {
     let mounted = true;
 
-    // Safety Valve: Force la fin du chargement après 4 secondes quoi qu'il arrive
-    const safetyTimer = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn("⚠️ Safety Timer triggered: Forcing loading to false.");
-        setLoading(false);
-      }
-    }, 4000);
-
     const initializeAuth = async () => {
       try {
-        // Timeout strict de 3 secondes pour Vercel/Netlify
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Auth Timeout')), 3000)
-        );
-
-        // Race : Le premier qui répond gagne
-        const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-        
-        const { data: { session }, error } = result;
+        // On récupère la session courante
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
         if (error) throw error;
-        
-        if (mounted) {
-          setSession(session);
+
+        if (currentSession?.user) {
+          setSession(currentSession);
+          // On cherche le profil
+          const profile = await fetchProfile(currentSession.user.id, currentSession.user.email!);
           
-          if (session?.user) {
-            const profile = await fetchProfile(session.user.id, session.user.email!);
-            if (mounted && profile) setUser(profile);
+          if (mounted) {
+            if (profile) {
+              setUser(profile);
+            } else {
+              // Cas rare : Auth existe mais pas de profil -> On déconnecte pour éviter l'état instable
+              await supabase.auth.signOut();
+              setUser(null);
+            }
           }
+        } else {
+          if (mounted) setUser(null);
         }
       } catch (error) {
-        console.warn("Initialisation Auth échouée ou trop longue (Mode Invité activé):", error);
-        if (mounted) {
-          setSession(null);
-          setUser(null);
-          addNotification("Délai de connexion dépassé. Mode invité activé.", "info");
-        }
+        console.warn("Erreur init auth:", error);
+        if (mounted) setUser(null);
       } finally {
+        // C'est le SEUL endroit où on coupe le chargement initial
         if (mounted) setLoading(false);
       }
     };
 
     initializeAuth();
 
-    // Listener pour les changements d'état (Login/Logout dynamiques)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Écouteur de changements (Login, Logout, Auto-refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
       
-      setSession(session);
-      
-      if (session?.user) {
-         // Si une session arrive (ex: après un login réussi), on charge le profil
-         // On ne bloque pas loading ici car l'interface est déjà interactive souvent
-         const profile = await fetchProfile(session.user.id, session.user.email!);
-         if (mounted) setUser(profile);
-      } else {
-         if (mounted) setUser(null);
+      console.log(`Auth Event: ${event}`);
+      setSession(newSession);
+
+      if (newSession?.user) {
+        // Si on vient de s'inscrire ou de se connecter, on veut s'assurer d'avoir le profil
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+           const profile = await fetchProfile(newSession.user.id, newSession.user.email!);
+           setUser(profile);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setOriginalAdminSession(null);
       }
-      
-      // On s'assure que le loading est coupé si l'événement auth arrive
-      if (mounted) setLoading(false);
     });
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);
@@ -184,11 +159,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (error) throw error;
-
-      // On attend explicitement le profil ici pour une meilleure UX
-      const profile = await fetchProfile(data.user.id, data.user.email!);
-      setUser(profile);
-      addNotification(`Dalal ak Diam, ${profile?.firstName}`, 'success');
+      
+      // La mise à jour de l'état se fera via le listener onAuthStateChange
+      // Mais on peut forcer un fetch ici pour l'UX immédiate
+      if (data.user) {
+         const profile = await fetchProfile(data.user.id, data.user.email!);
+         setUser(profile);
+         addNotification(`Dalal ak Diam, ${profile?.firstName || 'Membre'}`, 'success');
+      }
 
     } catch (error: any) {
       console.error("Login Error:", error);
@@ -202,40 +180,70 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (formData: any) => {
     try {
       showLoading();
+      addNotification("Création de votre espace en cours...", "info");
       
+      // 1. Inscription Auth avec Métadonnées (Important pour le Trigger SQL)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
+        options: {
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+            category: formData.category,
+            // On peut passer d'autres champs ici pour que le trigger les utilise
+          }
+        }
       });
 
       if (authError) throw authError;
       if (!authData.user) throw new Error("Erreur création utilisateur");
 
-      const year = new Date().getFullYear();
-      const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-      const matricule = `MAJ-${year}-${randomSuffix}`;
+      // 2. Pause stratégique pour laisser le temps au Trigger SQL ou à l'insert manuel
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([{
-          id: authData.user.id,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          role: 'MEMBRE',
-          category: formData.category,
-          matricule: matricule,
-          created_at: new Date().toISOString()
-        }]);
+      // 3. Fallback Manuel : Si le trigger SQL n'est pas en place, on insère manuellement
+      // On vérifie d'abord si le profil existe déjà (créé par trigger)
+      const { data: existingProfile } = await supabase.from('profiles').select('id').eq('id', authData.user.id).single();
 
-      if (profileError) {
-         console.error("Erreur création profil DB:", profileError);
-         // Note: L'utilisateur Auth est créé, mais le profil a échoué.
-         // Idéalement, il faudrait gérer ce cas, mais pour l'instant on notifie.
+      if (!existingProfile) {
+        console.log("Trigger lent ou absent, insertion manuelle du profil...");
+        const year = new Date().getFullYear();
+        const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        const matricule = `MAJ-${year}-${randomSuffix}`;
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: authData.user.id,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            role: 'MEMBRE',
+            category: formData.category,
+            matricule: matricule,
+            created_at: new Date().toISOString()
+          }]);
+
+        if (profileError) {
+           console.error("Erreur insertion profil manuelle:", profileError);
+           // On ne throw pas ici car l'user Auth est créé, on essaie de le connecter quand même
+        }
       }
 
-      addNotification("Compte créé ! Veuillez vous connecter.", "success");
+      // 4. Connexion explicite et récupération du profil final
+      // Si l'inscription ne connecte pas automatiquement (dépend de la config Supabase "Confirm Email")
+      if (!authData.session) {
+         // Si confirmation email requise
+         addNotification("Veuillez vérifier vos emails pour confirmer l'inscription.", "warning");
+      } else {
+         // Session active, on récupère le profil complet pour l'app
+         const fullProfile = await fetchProfile(authData.user.id, authData.user.email!);
+         setUser(fullProfile);
+         addNotification("Compte créé avec succès !", "success");
+      }
       
     } catch (error: any) {
       addNotification(error.message, 'error');
@@ -249,11 +257,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
         await supabase.auth.signOut();
     } catch (e) {
-        console.warn("Erreur lors du signout Supabase", e);
+        console.warn("Erreur signout", e);
     }
-    setUser(null);
-    setSession(null);
-    setOriginalAdminSession(null);
+    // Le listener se chargera de mettre user à null
     if (reason) addNotification(reason, 'info');
   }, [addNotification]);
 
@@ -322,7 +328,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const loginAsGuest = () => {
-      addNotification("Veuillez créer un compte pour accéder.", "info");
+      addNotification("Mode invité activé.", "info");
+      // Logique locale si besoin, mais généralement géré par l'absence de user
   };
 
   return (
