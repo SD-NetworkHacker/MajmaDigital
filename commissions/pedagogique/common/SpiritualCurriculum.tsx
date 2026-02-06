@@ -1,32 +1,31 @@
 
 import React, { useState } from 'react';
-import { Award, CheckCircle, Lock, Play, ChevronRight, Bookmark, TrendingUp, Star, Plus, X, Save, Book } from 'lucide-react';
+import { Award, ChevronRight, Plus, X, Save, Book, CheckCircle, Lock, PlayCircle } from 'lucide-react';
+import { useData } from '../../../contexts/DataContext';
+import { KhassaideModule } from '../../../types';
 
 interface Props { sector: string; }
 
-interface Module {
-  id: string;
-  title: string;
-  level: string;
-  lessons: number;
-}
-
 const SpiritualCurriculum: React.FC<Props> = ({ sector }) => {
-  const [curriculum, setCurriculum] = useState<Module[]>([]);
+  const { khassaideModules, addKhassaideModule } = useData();
   const [showModal, setShowModal] = useState(false);
-  const [newModule, setNewModule] = useState({ title: '', level: 'Débutant' });
+  const [newModule, setNewModule] = useState({ title: '', level: 'Débutant', author: 'Cheikh Ahmadou Bamba' });
 
   const handleAddModule = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newModule.title) return;
-    setCurriculum([...curriculum, { 
-      id: Date.now().toString(), 
-      title: newModule.title, 
-      level: newModule.level,
-      lessons: 0 
-    }]);
+    
+    addKhassaideModule({
+      id: '', // Backend generated
+      title: newModule.title,
+      author: newModule.author,
+      level: newModule.level as any,
+      progress: 0,
+      lessons: []
+    });
+    
     setShowModal(false);
-    setNewModule({ title: '', level: 'Débutant' });
+    setNewModule({ title: '', level: 'Débutant', author: 'Cheikh Ahmadou Bamba' });
   };
 
   return (
@@ -45,13 +44,24 @@ const SpiritualCurriculum: React.FC<Props> = ({ sector }) => {
             
             <form onSubmit={handleAddModule} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Titre du module</label>
+                <label className="text-[10px] font-black uppercase text-slate-400">Titre du Xassaid / Module</label>
                 <input 
                   required 
                   type="text" 
                   className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500/20"
                   value={newModule.title}
                   onChange={e => setNewModule({...newModule, title: e.target.value})}
+                  placeholder="Ex: Mawahibou"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Auteur</label>
+                <input 
+                  required 
+                  type="text" 
+                  className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500/20"
+                  value={newModule.author}
+                  onChange={e => setNewModule({...newModule, author: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -81,7 +91,7 @@ const SpiritualCurriculum: React.FC<Props> = ({ sector }) => {
         <div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight">Parcours Pédagogique</h3>
           <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-            <TrendingUp size={14} className="text-cyan-500" /> Structure d'apprentissage par niveaux de maîtrise
+            <Award size={14} className="text-cyan-500" /> Programme d'étude du secteur {sector}
           </p>
         </div>
         <div className="flex gap-3">
@@ -97,23 +107,29 @@ const SpiritualCurriculum: React.FC<Props> = ({ sector }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Progress List */}
         <div className="lg:col-span-8 space-y-6">
-          {curriculum.length > 0 ? curriculum.map((level, i) => (
-            <div key={level.id} className="glass-card p-6 bg-white group hover:border-cyan-200 transition-all flex items-center justify-between">
+          {khassaideModules.length > 0 ? khassaideModules.map((module, i) => (
+            <div key={module.id} className="glass-card p-6 bg-white group hover:border-cyan-200 transition-all flex items-center justify-between">
                <div className="flex items-center gap-6">
                   <div className="w-12 h-12 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center font-black text-lg border border-cyan-100">
                      {i + 1}
                   </div>
                   <div>
-                     <h4 className="text-lg font-black text-slate-800">{level.title}</h4>
-                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{level.level} • 0 Leçons</p>
+                     <h4 className="text-lg font-black text-slate-800">{module.title}</h4>
+                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{module.level} • {module.lessons?.length || 0} Leçons</p>
+                     <div className="flex gap-2 mt-2">
+                        <div className="h-1.5 w-24 bg-slate-100 rounded-full overflow-hidden">
+                           <div className="h-full bg-cyan-500" style={{ width: `${module.progress}%` }}></div>
+                        </div>
+                        <span className="text-[9px] font-bold text-cyan-600">{module.progress}%</span>
+                     </div>
                   </div>
                </div>
                <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-cyan-50 hover:text-cyan-600 transition-all"><ChevronRight size={20}/></button>
             </div>
           )) : (
             <div className="flex flex-col items-center justify-center h-64 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400">
-                <Star size={48} className="opacity-20 mb-4"/>
-                <p className="text-xs font-bold uppercase">Aucun parcours actif</p>
+                <Book size={48} className="opacity-20 mb-4"/>
+                <p className="text-xs font-bold uppercase">Aucun module actif</p>
                 <button onClick={() => setShowModal(true)} className="mt-4 text-cyan-600 text-[10px] font-black uppercase hover:underline">Initialiser le programme</button>
             </div>
           )}
@@ -125,8 +141,8 @@ const SpiritualCurriculum: React.FC<Props> = ({ sector }) => {
               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-10 opacity-50">Prochain Examen</h4>
               <div className="space-y-6 relative z-10">
                  <div>
-                    <p className="text-lg font-black leading-tight">Aucun examen programmé</p>
-                    <p className="text-[10px] opacity-40 uppercase font-bold tracking-widest mt-1">--</p>
+                    <p className="text-lg font-black leading-tight">Session Générale</p>
+                    <p className="text-[10px] opacity-40 uppercase font-bold tracking-widest mt-1">Date à définir</p>
                  </div>
                  
                  <button className="w-full py-4 bg-white/10 text-white/50 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl cursor-not-allowed">S'inscrire</button>

@@ -1,11 +1,14 @@
 
 import React, { useState } from 'react';
 import { MessageSquare, FileText, Send, Plus, ChevronRight, Share2, Globe, Sparkles, Wand2, Archive, Newspaper, ShieldCheck } from 'lucide-react';
+import { useData } from '../../contexts/DataContext';
 
 const InstitutionalComm: React.FC = () => {
+  const { socialPosts } = useData();
   const [activeComm, setActiveComm] = useState('releases');
 
-  const releases: any[] = [];
+  // Filter social posts that look like press releases or official comms
+  const releases = socialPosts.filter(p => p.status === 'Officiel' || p.platforms.includes('Presse'));
 
   return (
     <div className="space-y-8 animate-in slide-in-from-left-4 duration-700">
@@ -24,12 +27,18 @@ const InstitutionalComm: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                 {releases.length > 0 ? releases.map((release, i) => (
-                   <div key={i}></div>
+                 {releases.length > 0 ? releases.map((release) => (
+                   <div key={release.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex justify-between items-center group hover:bg-white hover:shadow-md transition-all cursor-pointer">
+                      <div>
+                         <h5 className="font-black text-slate-800 text-sm">{release.title}</h5>
+                         <p className="text-[10px] text-slate-500 font-medium mt-1">{new Date(release.date).toLocaleDateString()} • {release.platforms.join(', ')}</p>
+                      </div>
+                      <ChevronRight size={16} className="text-slate-300 group-hover:text-slate-600"/>
+                   </div>
                  )) : (
                    <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-100 rounded-3xl">
                       <Newspaper size={40} className="mb-4 opacity-20"/>
-                      <p className="text-xs font-bold uppercase">Aucun communiqué publié</p>
+                      <p className="text-xs font-bold uppercase">Aucun communiqué officiel publié</p>
                    </div>
                  )}
               </div>

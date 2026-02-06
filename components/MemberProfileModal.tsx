@@ -4,11 +4,11 @@ import {
   X, Phone, Mail, MapPin, Shield, Calendar, Hash, User, 
   Wallet, Download, Edit, Save, Lock, QrCode
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { useData } from '../../contexts/DataContext';
-import { Member, GlobalRole } from '../../types';
-import SectorBadge from '../shared/SectorBadge';
-import { exportToCSV } from '../../services/analyticsEngine';
+import { useAuth } from '../context/AuthContext';
+import { useData } from '../contexts/DataContext';
+import { Member, GlobalRole } from '../types';
+import SectorBadge from './shared/SectorBadge';
+import { exportToCSV } from '../services/analyticsEngine';
 
 interface MemberProfileModalProps {
   member: Member;
@@ -39,7 +39,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
   }, [memberContributions]);
 
   // Permissions
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SG' || user?.role === 'DIEUWRINE';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SG' || user?.role === 'DIEUWRINE' || user?.role === 'admin';
   const canEdit = isAdmin || user?.email === member.email;
 
   // Local State
@@ -95,7 +95,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
               <h2 className="text-3xl md:text-4xl font-black tracking-tight leading-none mb-2">{member.firstName} {member.lastName}</h2>
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-6">
                 <span className="px-3 py-1 bg-emerald-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest border border-emerald-500/30 flex items-center gap-2 text-emerald-300"><Hash size={12}/> {member.matricule}</span>
-                <SectorBadge category={member.category} size="sm" />
+                <SectorBadge category={member.category} level={member.level} size="sm" />
                 <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${member.status === 'active' ? 'bg-emerald-500 text-white' : 'bg-slate-500 text-white'}`}>
                   <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div> {member.status}
                 </span>

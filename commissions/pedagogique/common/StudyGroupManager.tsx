@@ -1,25 +1,25 @@
 
 import React, { useState } from 'react';
 import { Users, Calendar, Clock, MapPin, ChevronRight, Plus, UserPlus, Info, CheckCircle, ShieldCheck, X, Save } from 'lucide-react';
+import { useData } from '../../../contexts/DataContext';
 
 interface Props { sector: string; }
 
-interface StudyGroup {
-  id: string;
-  name: string;
-  theme: string;
-  members: number;
-}
-
 const StudyGroupManager: React.FC<Props> = ({ sector }) => {
-  const [groups, setGroups] = useState<StudyGroup[]>([]);
+  const { studyGroups, addStudyGroup } = useData();
   const [showModal, setShowModal] = useState(false);
   const [newGroup, setNewGroup] = useState({ name: '', theme: '' });
 
   const handleAddGroup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroup.name) return;
-    setGroups([...groups, { id: Date.now().toString(), name: newGroup.name, theme: newGroup.theme, members: 1 }]);
+    
+    addStudyGroup({
+       name: newGroup.name,
+       theme: newGroup.theme,
+       membersCount: 1
+    });
+    
     setShowModal(false);
     setNewGroup({ name: '', theme: '' });
   };
@@ -47,6 +47,7 @@ const StudyGroupManager: React.FC<Props> = ({ sector }) => {
                   className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500/20"
                   value={newGroup.name}
                   onChange={e => setNewGroup({...newGroup, name: e.target.value})}
+                  placeholder="ex: Kurel 1 - Mawahibou"
                 />
               </div>
               <div className="space-y-2">
@@ -57,6 +58,7 @@ const StudyGroupManager: React.FC<Props> = ({ sector }) => {
                   className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500/20"
                   value={newGroup.theme}
                   onChange={e => setNewGroup({...newGroup, theme: e.target.value})}
+                  placeholder="ex: Fiqh & Xassaid"
                 />
               </div>
 
@@ -86,17 +88,18 @@ const StudyGroupManager: React.FC<Props> = ({ sector }) => {
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {groups.length > 0 ? groups.map((group) => (
+              {studyGroups.length > 0 ? studyGroups.map((group) => (
                 <div key={group.id} className="p-6 bg-white border border-slate-100 rounded-[2rem] hover:shadow-lg transition-all group">
                    <div className="flex justify-between items-start mb-4">
                       <div className="p-3 bg-cyan-50 text-cyan-600 rounded-xl group-hover:bg-cyan-600 group-hover:text-white transition-all"><Users size={20}/></div>
-                      <span className="text-[9px] font-black uppercase bg-slate-50 px-2 py-1 rounded text-slate-500">{group.members} Membres</span>
+                      <span className="text-[9px] font-black uppercase bg-slate-50 px-2 py-1 rounded text-slate-500">{group.membersCount} Membres</span>
                    </div>
                    <h4 className="text-lg font-black text-slate-800">{group.name}</h4>
                    <p className="text-xs text-slate-500 mt-1">{group.theme}</p>
                    <div className="mt-6 pt-4 border-t border-slate-50 flex justify-between items-center">
                       <div className="flex -space-x-2">
                          <div className="w-6 h-6 bg-slate-200 rounded-full border-2 border-white"></div>
+                         <div className="w-6 h-6 bg-slate-300 rounded-full border-2 border-white flex items-center justify-center text-[6px] font-bold text-slate-600">...</div>
                       </div>
                       <button className="text-[9px] font-black text-cyan-600 uppercase">Rejoindre</button>
                    </div>

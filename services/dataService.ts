@@ -1,4 +1,3 @@
 
-// This file is deprecated.
-export const syncData = async () => Promise.resolve();
-export const getLastSync = () => null;
+// This file is deprecated and replaced by dbService.ts
+export {};

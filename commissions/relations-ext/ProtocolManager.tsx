@@ -1,9 +1,16 @@
 
-import React from 'react';
-import { UserCheck, ShieldCheck, Plus, Search, Filter, ChevronRight, UserPlus, FileCheck, Award, History, Clock, MapPin } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { UserCheck, ShieldCheck, Plus, Search, Filter, ChevronRight, UserPlus, FileCheck, Award, History, Clock, MapPin, User } from 'lucide-react';
+import { useData } from '../../contexts/DataContext';
+import { GlobalRole } from '../../types';
 
 const ProtocolManager: React.FC = () => {
-  const guests: any[] = [];
+  const { members } = useData();
+
+  // Filter for VIPs (Admin, SG, Dieuwrine) as a mock "Guest List" for protocol
+  const vipGuests = useMemo(() => {
+     return members.filter(m => [GlobalRole.ADMIN, GlobalRole.SG, GlobalRole.DIEUWRINE].includes(m.role));
+  }, [members]);
 
   return (
     <div className="space-y-8 animate-in zoom-in duration-500">
@@ -27,14 +34,28 @@ const ProtocolManager: React.FC = () => {
         <div className="lg:col-span-8 glass-card p-10 bg-white">
            <div className="flex justify-between items-center mb-10">
               <h4 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                 <History size={24} className="text-slate-600" /> Liste de Présence Officielle
+                 <History size={24} className="text-slate-600" /> Liste de Présence Officielle (VIPs)
               </h4>
               <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-800 border border-slate-100 transition-all shadow-sm"><Search size={18}/></button>
            </div>
 
-           <div className="space-y-6">
-              {guests.length > 0 ? guests.map((guest, i) => (
-                <div key={i}></div>
+           <div className="space-y-4">
+              {vipGuests.length > 0 ? vipGuests.map((guest) => (
+                <div key={guest.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-300 transition-all">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-slate-200 text-slate-400 shadow-sm">
+                         <User size={20}/>
+                      </div>
+                      <div>
+                         <h5 className="font-black text-slate-800 text-sm">{guest.firstName} {guest.lastName}</h5>
+                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{guest.role}</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-3">
+                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black uppercase">Présent</span>
+                      <button className="p-2 text-slate-300 hover:text-slate-600"><ChevronRight size={16}/></button>
+                   </div>
+                </div>
               )) : (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                    <UserCheck size={40} className="mb-4 opacity-20"/>
