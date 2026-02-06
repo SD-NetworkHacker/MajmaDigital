@@ -92,9 +92,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const initializeAuth = async () => {
       try {
-        console.log('Demarrage Initialisation Auth...');
-        
         // Timeout strict de 3 secondes pour Vercel/Netlify
+        // Si Supabase ne répond pas, on assume que l'utilisateur est un invité.
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Auth Timeout')), 3000)
@@ -103,6 +102,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Race : Le premier qui répond gagne
         const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
         
+        // Si c'est le timeout qui a gagné, une erreur sera levée ci-dessus.
+        // Sinon, on traite le résultat de getSession.
         const { data: { session }, error } = result;
 
         if (error) throw error;
@@ -111,6 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setSession(session);
           
           if (session?.user) {
+            // On tente de récupérer le profil, mais sans bloquer l'interface indéfiniment
             try {
               const profile = await fetchProfile(session.user.id, session.user.email!);
               if (mounted && profile) setUser(profile);
@@ -125,14 +127,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (mounted) {
           setSession(null);
           setUser(null);
-          // IMPÉRATIF : On coupe le chargement ici aussi pour être sûr
-          setLoading(false);
         }
       } finally {
-        if (mounted) {
-            setLoading(false);
-            console.log('Fin Initialisation Auth. Loading set to false.');
-        }
+        if (mounted) setLoading(false);
       }
     };
 
@@ -145,6 +142,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSession(session);
       
       if (session?.user) {
+         // Si une session arrive (ex: après un login réussi), on charge le profil
          const profile = await fetchProfile(session.user.id, session.user.email!);
          setUser(profile);
       } else {
@@ -215,6 +213,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (profileError) {
          console.error("Erreur création profil DB:", profileError);
+         // Note: L'utilisateur Auth est créé, mais le profil a échoué.
+         // Idéalement, il faudrait gérer ce cas, mais pour l'instant on notifie.
       }
 
       addNotification("Compte créé ! Veuillez vous connecter.", "success");

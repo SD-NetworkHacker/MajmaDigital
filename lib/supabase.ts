@@ -1,9 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// DIAGNOSTIC VERCEL
-console.log('Supabase URL:', (import.meta as any).env?.VITE_SUPABASE_URL ? 'Défini' : 'Indéfini');
-
 // Access environment variables using Vite's import.meta.env
 // process.env fallback is handled via vite.config.ts define for broader compatibility
 // Cast to any to bypass TypeScript error "Property 'env' does not exist on type 'ImportMeta'"
