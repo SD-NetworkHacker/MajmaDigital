@@ -1,15 +1,34 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Radar, Navigation, AlertTriangle, Phone, MapPin, Bus, 
-  Battery, CloudRain, Layers, AlertOctagon, Send, User, Activity
+  Radar, Navigation, AlertTriangle, Phone, MapPin, Bus, Clock, 
+  CheckCircle, Gauge, Thermometer, Fuel, MessageSquare, Mic, 
+  Video, X, Send, AlertOctagon, MoreVertical, Battery, Layers, 
+  CloudRain, Zap, Radio, Map as MapIcon, User, Circle, Activity
 } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, YAxis, Tooltip } from 'recharts';
 import { useData } from '../../contexts/DataContext';
+
+// Fallback Mock Data if no active trips
+const MOCK_CONVOY_DATA = [
+  { 
+    id: 'DEMO-001', name: 'Bus Demo - Alpha', status: 'En route', 
+    location: 'Sortie Thiès', speed: 88, fuel: 72, temp: 85,
+    eta: '13:45', driver: 'Simulation', phone: '770000000', 
+    passengers: 45, capacity: 60, incidents: [], 
+    drivingTime: '3h 15m', restTime: '0h 45m',
+    checkpoints: [
+        { name: 'Dakar', time: '07:00', status: 'passed' },
+        { name: 'Thiès', time: '08:30', status: 'current' },
+        { name: 'Touba', time: '11:30', status: 'pending' },
+    ]
+  }
+];
 
 const generateSpeedData = () => Array.from({ length: 30 }, (_, i) => ({ time: i, speed: 60 + Math.random() * 40 }));
 
 const LiveConvoys: React.FC = () => {
+  // --- STATE ---
   const { schedules } = useData();
   const [convoys, setConvoys] = useState<any[]>([]);
   const [selectedConvoy, setSelectedConvoy] = useState<any>(null);
@@ -20,7 +39,6 @@ const LiveConvoys: React.FC = () => {
 
   // Load Trips from Context
   useEffect(() => {
-    // Filtrer uniquement les trajets marqués comme 'en_cours'
     const activeTrips = schedules.filter(t => t.status === 'en_cours');
     
     if (activeTrips.length > 0) {
@@ -29,12 +47,12 @@ const LiveConvoys: React.FC = () => {
             id: trip.id,
             name: trip.eventTitle,
             status: 'En route',
-            location: trip.stops[0]?.location || trip.origin, // Approx current location
-            speed: Math.floor(Math.random() * 20) + 70, // Simulé pour l'affichage temps réel
+            location: trip.stops[0]?.location || 'Départ', // Approx current location
+            speed: Math.floor(Math.random() * 30) + 60, // Simulé
             fuel: Math.floor(Math.random() * 40) + 50, // Simulé
             temp: 85,
             eta: 'Calcul...',
-            driver: 'Chauffeur Assigné', 
+            driver: 'Chauffeur Assigné', // Would need driver mapping
             phone: 'N/A',
             passengers: trip.seatsFilled,
             capacity: trip.totalCapacity,
@@ -48,11 +66,11 @@ const LiveConvoys: React.FC = () => {
             ]
         }));
         setConvoys(mappedConvoys);
-        // Sélectionner le premier par défaut si rien n'est sélectionné
-        if (!selectedConvoy) setSelectedConvoy(mappedConvoys[0]);
+        setSelectedConvoy(mappedConvoys[0]);
     } else {
-        setConvoys([]);
-        setSelectedConvoy(null);
+        // Use Mock if empty for UX demo
+        setConvoys(MOCK_CONVOY_DATA);
+        setSelectedConvoy(MOCK_CONVOY_DATA[0]);
     }
   }, [schedules]);
 
@@ -63,13 +81,14 @@ const LiveConvoys: React.FC = () => {
     const interval = setInterval(() => {
       setSpeedData(prev => {
         const lastSpeed = prev[prev.length - 1].speed;
-        const newSpeed = Math.max(0, Math.min(110, lastSpeed + (Math.random() * 10 - 5)));
+        const newSpeed = selectedConvoy.status === 'Arrêt' ? 0 : Math.max(0, Math.min(110, lastSpeed + (Math.random() * 10 - 5)));
         return [...prev.slice(1), { time: prev[prev.length - 1].time + 1, speed: newSpeed }];
       });
     }, 1000);
     return () => clearInterval(interval);
   }, [selectedConvoy]);
 
+  // Handlers
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageInput.trim()) return;
@@ -82,16 +101,6 @@ const LiveConvoys: React.FC = () => {
           alert("Signal SOS envoyé à toutes les unités. Canaux prioritaires ouverts.");
       }
   };
-
-  if (!selectedConvoy && convoys.length === 0) {
-      return (
-          <div className="h-[calc(100vh-140px)] flex flex-col items-center justify-center bg-[#0f172a] text-slate-400 rounded-[3rem] p-10 border border-slate-800">
-             <Radar size={64} className="mb-6 opacity-20"/>
-             <h3 className="text-xl font-black uppercase tracking-widest text-slate-300">Aucun convoi actif</h3>
-             <p className="text-sm mt-2 text-slate-500">Lancez un départ depuis le planificateur pour activer le suivi.</p>
-          </div>
-      );
-  }
 
   if (!selectedConvoy) return <div className="p-10 text-center text-white">Chargement du système de suivi...</div>;
 
@@ -160,7 +169,11 @@ const LiveConvoys: React.FC = () => {
                       <div className="flex items-center gap-1 text-[10px] text-slate-400">
                           <MapPin size={10} /> {convoy.location}
                       </div>
-                      <span className={`w-2 h-2 rounded-full bg-emerald-500`}></span>
+                      {convoy.status === 'Alerte' ? (
+                          <AlertTriangle size={14} className="text-red-500 animate-bounce" />
+                      ) : (
+                          <span className={`w-2 h-2 rounded-full ${convoy.status === 'Arrêt' ? 'bg-slate-500' : 'bg-emerald-500'}`}></span>
+                      )}
                   </div>
                </div>
             ))}
@@ -178,13 +191,27 @@ const LiveConvoys: React.FC = () => {
             {/* Map Visual (Simulated) */}
             <div className="flex-1 relative flex items-center justify-center bg-[#0B1121]">
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-950 to-black"></div>
+                
+                {/* Simulated Road Path */}
                 <svg className="absolute w-full h-full stroke-slate-700 stroke-[3] fill-none opacity-50" viewBox="0 0 800 600">
                      <path d="M100,500 C300,450 400,400 500,300 S700,100 750,50" />
                 </svg>
+
+                {/* Convoy Positions */}
                 {convoys.map((c, i) => (
-                    <div key={c.id} className="absolute transition-all duration-1000" style={{ left: `${20 + (i * 15)}%`, top: `${70 - (i * 15)}%` }}>
+                    <div 
+                        key={c.id} 
+                        className="absolute transition-all duration-1000"
+                        style={{ 
+                            left: `${20 + (i * 15)}%`, 
+                            top: `${70 - (i * 15)}%` 
+                        }}
+                    >
                         <div className={`relative group cursor-pointer ${selectedConvoy?.id === c.id ? 'z-50' : 'z-10'}`} onClick={() => setSelectedConvoy(c)}>
-                            <div className={`w-4 h-4 rounded-full border-2 border-white shadow-[0_0_20px_currentColor] transition-all ${selectedConvoy?.id === c.id ? 'bg-orange-500 text-orange-500 scale-125' : 'bg-emerald-500 text-emerald-500'}`}></div>
+                            <div className={`w-4 h-4 rounded-full border-2 border-white shadow-[0_0_20px_currentColor] transition-all ${
+                                c.status === 'Alerte' ? 'bg-red-500 text-red-500 animate-ping' : 
+                                selectedConvoy?.id === c.id ? 'bg-orange-500 text-orange-500 scale-125' : 'bg-emerald-500 text-emerald-500'
+                            }`}></div>
                              <div className={`absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[8px] font-bold text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity ${selectedConvoy?.id === c.id ? 'opacity-100' : ''}`}>
                                 {c.name}
                              </div>
@@ -225,6 +252,10 @@ const LiveConvoys: React.FC = () => {
                   <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                      <p className="text-[9px] text-slate-500 uppercase font-bold">Chauffeur</p>
                      <p className="text-xs font-bold text-white truncate">{selectedConvoy.driver}</p>
+                     <div className="flex items-center gap-1 mt-1">
+                        <Battery size={10} className="text-emerald-500"/>
+                        <span className="text-[9px] text-emerald-500">Repos: {selectedConvoy.restTime}</span>
+                     </div>
                   </div>
                   <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                      <p className="text-[9px] text-slate-500 uppercase font-bold">Passagers</p>
@@ -251,16 +282,23 @@ const LiveConvoys: React.FC = () => {
                
                {activeTab === 'status' && (
                   <div className="space-y-6">
+                     {/* Circular Gauges Row */}
                      <div className="flex justify-between px-2">
                         <div className="text-center">
                            <div className="w-16 h-16 rounded-full border-4 border-slate-800 flex items-center justify-center relative mb-2">
                               <span className="text-lg font-black text-white">{Math.round(speedData[speedData.length-1].speed)}</span>
+                              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
+                                 <path className="stroke-orange-500 fill-none stroke-[3]" strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                              </svg>
                            </div>
                            <p className="text-[9px] font-bold text-slate-500 uppercase">Km/h</p>
                         </div>
                         <div className="text-center">
                            <div className="w-16 h-16 rounded-full border-4 border-slate-800 flex items-center justify-center relative mb-2">
                               <span className="text-lg font-black text-white">{selectedConvoy.fuel}%</span>
+                              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
+                                 <path className="stroke-blue-500 fill-none stroke-[3]" strokeDasharray={`${selectedConvoy.fuel}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                              </svg>
                            </div>
                            <p className="text-[9px] font-bold text-slate-500 uppercase">Fuel</p>
                         </div>
@@ -271,6 +309,8 @@ const LiveConvoys: React.FC = () => {
                            <p className="text-[9px] font-bold text-slate-500 uppercase">Moteur</p>
                         </div>
                      </div>
+
+                     {/* Live Chart */}
                      <div className="h-32 w-full bg-slate-950/50 rounded-xl border border-slate-800 p-2">
                         <ResponsiveContainer width="100%" height="100%">
                            <AreaChart data={speedData}>
@@ -321,6 +361,7 @@ const LiveConvoys: React.FC = () => {
                            <p className="text-xs text-slate-300">Affirmatif. RAS sur le véhicule.</p>
                         </div>
                      </div>
+                     
                      <div className="flex gap-2 p-2 bg-slate-800 rounded-xl border border-slate-700">
                         <input 
                            type="text" 
@@ -335,6 +376,7 @@ const LiveConvoys: React.FC = () => {
                      </div>
                   </div>
                )}
+
             </div>
 
             {/* Footer Actions */}
@@ -347,6 +389,7 @@ const LiveConvoys: React.FC = () => {
                </button>
             </div>
          </div>
+
       </div>
     </div>
   );

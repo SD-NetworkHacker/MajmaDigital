@@ -2,24 +2,21 @@
 import React, { useState, useEffect } from 'react';
 import { Book, PlayCircle, CheckCircle, Lock, Award, TrendingUp, Unlock, RefreshCcw } from 'lucide-react';
 import { KhassaideModule, KhassaideLesson } from '../../types';
-import { getKhassaideModules } from '../../services/cultureService';
+import { useData } from '../../contexts/DataContext';
 
 const KhassaideAcademy: React.FC = () => {
-  const [modules, setModules] = useState<KhassaideModule[]>([]);
+  const { khassaideModules, updateKhassaideModule } = useData();
 
-  useEffect(() => {
-    getKhassaideModules().then(setModules);
-  }, []);
+  // On utilise les données du contexte directement
+  const modules = khassaideModules;
 
   const toggleLessonStatus = (moduleId: string, lessonId: string) => {
-    setModules(prevModules => prevModules.map(mod => {
-      if (mod.id !== moduleId) return mod;
+      const module = modules.find(m => m.id === moduleId);
+      if (!module) return;
 
-      // Update specific lesson
-      const updatedLessons = mod.lessons.map(lesson => {
+      const updatedLessons = module.lessons.map(lesson => {
         if (lesson.id !== lessonId) return lesson;
         
-        // Cycle statuses: locked -> unlocked -> completed -> locked
         let newStatus: 'locked' | 'unlocked' | 'completed' = 'locked';
         if (lesson.status === 'locked') newStatus = 'unlocked';
         else if (lesson.status === 'unlocked') newStatus = 'completed';
@@ -32,8 +29,7 @@ const KhassaideAcademy: React.FC = () => {
       const completedCount = updatedLessons.filter(l => l.status === 'completed').length;
       const newProgress = Math.round((completedCount / updatedLessons.length) * 100);
 
-      return { ...mod, lessons: updatedLessons, progress: newProgress };
-    }));
+      updateKhassaideModule(moduleId, { lessons: updatedLessons, progress: newProgress });
   };
 
   const getStatusIcon = (status: string, index: number) => {
@@ -65,7 +61,7 @@ const KhassaideAcademy: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {modules.map(module => (
+        {modules.length > 0 ? modules.map(module => (
           <div key={module.id} className="glass-card p-8 bg-white relative overflow-hidden group border border-slate-100 shadow-sm hover:shadow-lg transition-all">
              <div className="flex justify-between items-center mb-6">
                 <div>
@@ -123,7 +119,12 @@ const KhassaideAcademy: React.FC = () => {
                 ))}
              </div>
           </div>
-        ))}
+        )) : (
+            <div className="col-span-full py-20 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-[3rem]">
+                <Book size={48} className="mx-auto mb-2 opacity-20"/>
+                <p className="text-xs font-bold uppercase">Aucun module d'apprentissage disponible</p>
+            </div>
+        )}
       </div>
     </div>
   );

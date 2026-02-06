@@ -1,17 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Clock, Users, ArrowRight, Music, Mic, PenTool, X, Bell, Info, CheckCircle, Share2 } from 'lucide-react';
-import { CulturalActivity } from '../../types';
-import { getCulturalActivities } from '../../services/cultureService';
+import { Event } from '../../types';
+import { useData } from '../../contexts/DataContext';
+import { CommissionType } from '../../types';
 
 const CulturalCalendar: React.FC = () => {
-  const [activities, setActivities] = useState<CulturalActivity[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<CulturalActivity | null>(null);
+  const { events } = useData();
+  const [activities, setActivities] = useState<Event[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [reminderSet, setReminderSet] = useState(false);
 
   useEffect(() => {
-    getCulturalActivities().then(setActivities);
-  }, []);
+    // Filter events for Cultural Commission
+    setActivities(events.filter(e => e.organizingCommission === CommissionType.CULTURELLE));
+  }, [events]);
 
   const handleSetReminder = () => {
     setReminderSet(true);
@@ -23,9 +26,9 @@ const CulturalCalendar: React.FC = () => {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'khassaide': return <Music size={20} />;
-      case 'conference': return <Mic size={20} />;
-      case 'atelier': return <PenTool size={20} />;
+      case 'Khassaide': return <Music size={20} />;
+      case 'Conférence': return <Mic size={20} />;
+      case 'Atelier': return <PenTool size={20} />;
       default: return <Calendar size={20} />;
     }
   };
@@ -68,14 +71,14 @@ const CulturalCalendar: React.FC = () => {
                             <div className="p-3 bg-white text-indigo-600 rounded-xl shadow-sm"><Calendar size={20}/></div>
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
-                                <p className="text-sm font-bold text-slate-800">{selectedEvent.date}</p>
+                                <p className="text-sm font-bold text-slate-800">{new Date(selectedEvent.date).toLocaleDateString()}</p>
                             </div>
                         </div>
                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
                             <div className="p-3 bg-white text-indigo-600 rounded-xl shadow-sm"><Clock size={20}/></div>
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Heure</p>
-                                <p className="text-sm font-bold text-slate-800">{selectedEvent.time}</p>
+                                <p className="text-sm font-bold text-slate-800">{selectedEvent.time || '09:00'}</p>
                             </div>
                         </div>
                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
@@ -83,13 +86,6 @@ const CulturalCalendar: React.FC = () => {
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lieu</p>
                                 <p className="text-sm font-bold text-slate-800">{selectedEvent.location}</p>
-                            </div>
-                        </div>
-                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
-                            <div className="p-3 bg-white text-indigo-600 rounded-xl shadow-sm"><Users size={20}/></div>
-                            <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Public</p>
-                                <p className="text-sm font-bold text-slate-800">{selectedEvent.targetAudience?.join(', ') || 'Tous'}</p>
                             </div>
                         </div>
                     </div>
@@ -133,7 +129,7 @@ const CulturalCalendar: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {activities.map(activity => (
+        {activities.length > 0 ? activities.map(activity => (
           <div 
             key={activity.id} 
             onClick={() => setSelectedEvent(activity)}
@@ -155,7 +151,7 @@ const CulturalCalendar: React.FC = () => {
                 <div className="space-y-3 pt-6 border-t border-indigo-50">
                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600">
                       <Clock size={14} className="text-indigo-400" />
-                      <span>{activity.date} à {activity.time}</span>
+                      <span>{new Date(activity.date).toLocaleDateString()}</span>
                    </div>
                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600">
                       <MapPin size={14} className="text-indigo-400" />
@@ -168,7 +164,12 @@ const CulturalCalendar: React.FC = () => {
                 Détails & Inscription <ArrowRight size={14} />
              </button>
           </div>
-        ))}
+        )) : (
+            <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-[2rem]">
+                <Calendar size={32} className="mx-auto mb-2 opacity-20"/>
+                <p className="text-xs font-bold uppercase">Aucun événement culturel programmé</p>
+            </div>
+        )}
       </div>
     </div>
   );

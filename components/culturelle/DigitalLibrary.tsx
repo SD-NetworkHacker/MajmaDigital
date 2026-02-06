@@ -1,12 +1,10 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BookOpen, Search, Filter, Headphones, Video, FileText, Star, Download, Play, Plus, X, Save, UploadCloud, Trash2 } from 'lucide-react';
 import { LibraryResource, LibraryResourceType } from '../../types';
-import { getCollection, addItem, deleteItem, STORAGE_KEYS } from '../../services/storage';
 import { useData } from '../../contexts/DataContext';
 
 const DigitalLibrary: React.FC = () => {
-  const [resources, setResources] = useState<LibraryResource[]>([]);
+  const { library, addResource, deleteResource } = useData();
   const [activeType, setActiveType] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,19 +15,15 @@ const DigitalLibrary: React.FC = () => {
     views: 0
   });
   
-  useEffect(() => {
-    // Dans un vrai contexte, cela viendrait de l'API via DataContext
-    // Pour l'instant on initialise avec les données du storage ou vide
-    const data = getCollection<LibraryResource>(STORAGE_KEYS.LIBRARY);
-    setResources(data);
-  }, []);
+  // Use library from context directly
+  const resources = library;
 
   const handleAddResource = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newResource.title || !newResource.author) return;
 
     const resource: LibraryResource = {
-      id: Date.now().toString(),
+      id: Date.now().toString(), // Will be overwritten by DB usually, but okay for opt UI
       title: newResource.title,
       author: newResource.author,
       type: newResource.type as LibraryResourceType,
@@ -40,8 +34,7 @@ const DigitalLibrary: React.FC = () => {
       url: '#'
     };
 
-    const updated = addItem(STORAGE_KEYS.LIBRARY, resource);
-    setResources(updated);
+    addResource(resource);
     
     setShowModal(false);
     setNewResource({ type: 'livre', accessLevel: 'public', rating: 5, views: 0 });
@@ -49,8 +42,7 @@ const DigitalLibrary: React.FC = () => {
 
   const handleDeleteResource = (id: string) => {
     if(confirm("Supprimer cette ressource de la bibliothèque ?")) {
-      const updated = deleteItem<LibraryResource>(STORAGE_KEYS.LIBRARY, id);
-      setResources(updated);
+      deleteResource(id);
     }
   };
 

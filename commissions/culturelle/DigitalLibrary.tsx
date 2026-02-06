@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BookOpen, Search, Filter, Headphones, Video, FileText, Star, Download, Play, Plus, X, Save, UploadCloud, Trash2 } from 'lucide-react';
 import { LibraryResource, LibraryResourceType } from '../../types';
 import { useData } from '../../contexts/DataContext';

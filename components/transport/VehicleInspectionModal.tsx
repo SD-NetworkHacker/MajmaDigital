@@ -34,7 +34,7 @@ const VehicleInspectionModal: React.FC<Props> = ({ vehicleId, onClose }) => {
   const handleSubmit = () => {
       const hasIssues = Object.values(checks).includes('nok');
       // In a real app, we would save the inspection record to DB here.
-      // For now, we update the vehicle status directly via context method which calls DB service.
+      // For now, we update the vehicle status directly.
 
       if (vehicleId) {
           if (hasIssues) {

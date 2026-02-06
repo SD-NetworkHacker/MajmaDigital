@@ -150,6 +150,16 @@ const DriverRoster: React.FC = () => {
                      <div>
                         <h3 className="text-2xl font-black leading-none mb-1">{selectedDriver.name}</h3>
                         <p className="text-sm text-slate-400 font-mono mb-3">{selectedDriver.phone}</p>
+                        <div className="flex gap-2">
+                           <span className="px-2 py-0.5 bg-white/10 rounded text-[10px] font-bold uppercase tracking-wider">{selectedDriver.licenseType}</span>
+                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                              selectedDriver.status === 'disponible' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 
+                              selectedDriver.status === 'en_mission' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 
+                              'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                           }`}>
+                              {selectedDriver.status.replace('_', ' ')}
+                           </span>
+                        </div>
                      </div>
                   </div>
                </div>
@@ -191,16 +201,6 @@ const DriverRoster: React.FC = () => {
                         >
                             Repos
                         </button>
-                     </div>
-                  </div>
-
-                  {/* History Section */}
-                  <div>
-                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Clock size={14}/> Historique Trajets
-                     </h4>
-                     <div className="space-y-3">
-                        <p className="text-xs text-slate-400 italic text-center py-4">Aucun trajet enregistré.</p>
                      </div>
                   </div>
                   

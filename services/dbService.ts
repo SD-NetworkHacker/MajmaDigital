@@ -1,6 +1,6 @@
 
-import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase } from '../types';
-import { supabase } from '../lib/supabase'; // Fixed import
+import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase, TicketItem, InventoryItem, KhassaideModule } from '../types';
+import { supabase } from '../lib/supabase';
 
 // --- HELPERS ---
 
@@ -43,8 +43,6 @@ export const dbFetchMembers = async (): Promise<Member[]> => {
 };
 
 export const dbCreateMember = async (member: Member) => {
-    // Note: La création se fait généralement via Auth.register
-    // Cette fonction insère directement dans profiles (pour admin)
     const { data, error } = await supabase
         .from('profiles')
         .insert([{
@@ -65,7 +63,6 @@ export const dbCreateMember = async (member: Member) => {
 };
 
 export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
-  // Mapping inverse pour update
   const dbUpdates: any = {};
   if (updates.firstName) dbUpdates.first_name = updates.firstName;
   if (updates.lastName) dbUpdates.last_name = updates.lastName;
@@ -73,7 +70,6 @@ export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
   if (updates.status) dbUpdates.status = updates.status;
   if (updates.birthDate) dbUpdates.birth_date = updates.birthDate;
   if (updates.gender) dbUpdates.gender = updates.gender;
-  // ... autres champs
   
   const { error } = await supabase
     .from('profiles')
@@ -125,6 +121,11 @@ export const dbFetchEvents = async (): Promise<Event[]> => {
 export const dbCreateEvent = async (event: Event) => {
   const { error } = await supabase.from('events').insert([event]);
   handleSupabaseError(error);
+};
+
+export const dbDeleteEvent = async (id: string) => {
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    handleSupabaseError(error);
 };
 
 // --- REPORTS ---
@@ -203,7 +204,7 @@ export const dbCreateSocialProject = async (p: Partial<SocialProject>) => {
     await supabase.from('social_projects').insert([p]);
 };
 
-// --- TRANSPORT (MIGRATED) ---
+// --- TRANSPORT ---
 export const dbFetchFleet = async (): Promise<Vehicle[]> => {
     const { data } = await supabase.from('vehicles').select('*');
     return data || [];
@@ -238,6 +239,48 @@ export const dbFetchSchedules = async (): Promise<TransportSchedule[]> => {
 };
 export const dbCreateSchedule = async (s: TransportSchedule) => {
     await supabase.from('trips').insert([s]);
+};
+
+// --- TICKETING ---
+export const dbFetchTickets = async (): Promise<TicketItem[]> => {
+    const { data } = await supabase.from('tickets').select('*');
+    return data || [];
+};
+export const dbCreateTicket = async (t: TicketItem) => {
+    await supabase.from('tickets').insert([t]);
+};
+export const dbUpdateTicket = async (id: string, u: Partial<TicketItem>) => {
+    await supabase.from('tickets').update(u).eq('id', id);
+};
+export const dbDeleteTicket = async (id: string) => {
+    await supabase.from('tickets').delete().eq('id', id);
+};
+
+// --- INVENTORY (ORGANISATION) ---
+export const dbFetchInventory = async (): Promise<InventoryItem[]> => {
+    const { data } = await supabase.from('inventory').select('*');
+    return data || [];
+};
+export const dbCreateInventoryItem = async (i: InventoryItem) => {
+    await supabase.from('inventory').insert([i]);
+};
+export const dbUpdateInventoryItem = async (id: string, u: Partial<InventoryItem>) => {
+    await supabase.from('inventory').update(u).eq('id', id);
+};
+export const dbDeleteInventoryItem = async (id: string) => {
+    await supabase.from('inventory').delete().eq('id', id);
+};
+
+// --- ACADEMY (CULTURELLE) ---
+export const dbFetchKhassaideModules = async (): Promise<KhassaideModule[]> => {
+    const { data } = await supabase.from('khassaide_modules').select('*');
+    return data || [];
+};
+export const dbCreateKhassaideModule = async (m: KhassaideModule) => {
+    await supabase.from('khassaide_modules').insert([m]);
+};
+export const dbUpdateKhassaideModule = async (id: string, u: Partial<KhassaideModule>) => {
+    await supabase.from('khassaide_modules').update(u).eq('id', id);
 };
 
 // --- FINANCE EXTRAS ---

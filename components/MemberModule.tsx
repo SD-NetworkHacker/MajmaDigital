@@ -3,7 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, Plus, MapPin, ChevronRight, Filter, Users, 
   LayoutGrid, List, Trash2, CheckCircle, 
-  FileSpreadsheet, Briefcase, GraduationCap, School, Eye, Activity
+  FileSpreadsheet, Briefcase, GraduationCap, School, Eye, Activity,
+  Square, CheckSquare, X
 } from 'lucide-react';
 import { MemberCategory, GlobalRole, Member } from '../types';
 import MemberForm from './MemberForm';
@@ -71,7 +72,7 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
     });
   }, [searchTerm, categoryFilter, roleFilter, statusFilter, members]);
 
-  // --- HANDLERS ---
+  // --- SELECTION LOGIC ---
 
   const toggleSelection = (id: string) => {
     const newSet = new Set(selectedIds);
@@ -80,12 +81,19 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
     setSelectedIds(newSet);
   };
 
+  // Check if all *currently filtered* members are selected
+  const allFilteredSelected = filteredMembers.length > 0 && filteredMembers.every(m => selectedIds.has(m.id));
+
   const handleSelectAll = () => {
-    if (selectedIds.size === filteredMembers.length) {
-      setSelectedIds(new Set());
+    const newSet = new Set(selectedIds);
+    if (allFilteredSelected) {
+      // Deselect visible
+      filteredMembers.forEach(m => newSet.delete(m.id));
     } else {
-      setSelectedIds(new Set(filteredMembers.map(m => m.id)));
+      // Select visible
+      filteredMembers.forEach(m => newSet.add(m.id));
     }
+    setSelectedIds(newSet);
   };
 
   const handleBatchDelete = () => {
@@ -249,12 +257,18 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
         
         {/* Actions de masse si sélection */}
         {selectedIds.size > 0 ? (
-           <div className="flex items-center gap-2 w-full xl:w-auto animate-in slide-in-from-right-4 bg-slate-900 text-white p-1.5 rounded-2xl px-4">
-              <span className="text-[10px] font-black uppercase tracking-widest mr-2">{selectedIds.size} Sélectionnés</span>
-              <div className="h-4 w-px bg-white/20 mx-2"></div>
-              <button onClick={handleBatchExport} className="p-2 hover:bg-white/20 rounded-lg transition-all" title="Exporter CSV"><FileSpreadsheet size={16}/></button>
-              <button onClick={handleBatchDelete} className="p-2 hover:bg-rose-500 rounded-lg transition-all text-rose-300 hover:text-white" title="Supprimer"><Trash2 size={16}/></button>
-              <button onClick={() => setSelectedIds(new Set())} className="ml-2 text-[9px] font-bold hover:underline">Annuler</button>
+           <div className="flex items-center gap-3 w-full xl:w-auto animate-in slide-in-from-right-4 bg-emerald-50 border border-emerald-100 p-2 rounded-2xl px-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800">{selectedIds.size} Sélectionné(s)</span>
+              <div className="h-4 w-px bg-emerald-200 mx-2"></div>
+              <button onClick={handleBatchExport} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-emerald-200 text-emerald-700 rounded-xl text-[9px] font-bold uppercase hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
+                 <FileSpreadsheet size={14}/> Exporter
+              </button>
+              <button onClick={handleBatchDelete} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-rose-200 text-rose-600 rounded-xl text-[9px] font-bold uppercase hover:bg-rose-600 hover:text-white transition-all shadow-sm">
+                 <Trash2 size={14}/> Supprimer
+              </button>
+              <button onClick={() => setSelectedIds(new Set())} className="p-1.5 hover:bg-emerald-200/50 rounded-lg text-emerald-600 transition-colors ml-1">
+                 <X size={14}/>
+              </button>
            </div>
         ) : (
            <div className="flex gap-2 w-full xl:w-auto overflow-x-auto pb-1 xl:pb-0 no-scrollbar">
@@ -323,19 +337,17 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
                   </div>
                   
                   <div className="flex flex-col items-end gap-2">
+                     <button 
+                       onClick={(e) => { e.stopPropagation(); toggleSelection(member.id); }}
+                       className="text-slate-300 hover:text-emerald-600"
+                     >
+                        {selectedIds.has(member.id) ? <CheckSquare size={20} className="text-emerald-500"/> : <Square size={20}/>}
+                     </button>
                      <span className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest border ${
                        member.role === GlobalRole.DIEUWRINE ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-slate-50 text-slate-500 border-slate-100'
                      }`}>
                        {member.role}
                      </span>
-                     <button 
-                       onClick={(e) => { e.stopPropagation(); toggleSelection(member.id); }}
-                       className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                         selectedIds.has(member.id) ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200 text-transparent hover:border-emerald-300'
-                       }`}
-                     >
-                        <CheckCircle size={14} className="fill-current"/>
-                     </button>
                   </div>
                 </div>
 
@@ -372,7 +384,9 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
                   <thead className="bg-slate-50/80 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
                      <tr>
                         <th className="px-6 py-4 w-12 text-center">
-                           <button onClick={handleSelectAll} className={`w-4 h-4 rounded border transition-all ${selectedIds.size === filteredMembers.length && filteredMembers.length > 0 ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 bg-white'}`}></button>
+                           <button onClick={handleSelectAll} className="text-slate-400 hover:text-emerald-600 transition-colors">
+                              {allFilteredSelected ? <CheckSquare size={18} className="text-emerald-600"/> : <Square size={18}/>}
+                           </button>
                         </th>
                         <th className="px-6 py-4">Membre</th>
                         <th className="px-6 py-4">Contact</th>
@@ -388,9 +402,9 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
                            <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                               <button 
                                 onClick={() => toggleSelection(member.id)} 
-                                className={`w-4 h-4 rounded border transition-all ${selectedIds.has(member.id) ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 hover:border-emerald-400'}`}
+                                className="text-slate-300 hover:text-emerald-600"
                               >
-                                 {selectedIds.has(member.id) && <CheckCircle size={12} className="text-white"/>}
+                                 {selectedIds.has(member.id) ? <CheckSquare size={18} className="text-emerald-600"/> : <Square size={18}/>}
                               </button>
                            </td>
                            <td className="px-6 py-4">

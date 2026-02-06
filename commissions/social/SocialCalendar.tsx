@@ -1,59 +1,51 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, Users, MapPin, ChevronRight, Plus, Image as ImageIcon, Camera, CheckCircle, X, Save, Clock, Tag, Trash2 } from 'lucide-react';
-import { getCollection, addItem, deleteItem, STORAGE_KEYS } from '../../services/storage';
-
-interface SocialEvent {
-  id: string;
-  title: string;
-  type: string;
-  date: string;
-  time: string;
-  location: string;
-  participants: number;
-  color: string;
-}
+import { useData } from '../../contexts/DataContext';
+import { Event, CommissionType } from '../../types';
 
 const SocialCalendar: React.FC = () => {
-  const [socialEvents, setSocialEvents] = useState<SocialEvent[]>([]);
+  const { events, addEvent, deleteEvent } = useData();
+  const [socialEvents, setSocialEvents] = useState<Event[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [newEvent, setNewEvent] = useState<Partial<SocialEvent>>({
+  const [newEvent, setNewEvent] = useState({
+    title: '',
     type: 'Sortie',
     date: new Date().toISOString().split('T')[0],
-    color: 'bg-rose-500'
+    time: '10:00',
+    location: '',
   });
 
   useEffect(() => {
-    setSocialEvents(getCollection<SocialEvent>(STORAGE_KEYS.SOCIAL_EVENTS));
-  }, []);
+    // Filter events for Social Commission
+    setSocialEvents(events.filter(e => e.organizingCommission === CommissionType.SOCIAL));
+  }, [events]);
 
   const handleAddEvent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.title) return;
 
-    const event: SocialEvent = {
-      id: Date.now().toString(),
+    const event: Event = {
+      id: '', // Backend generated
       title: newEvent.title,
-      type: newEvent.type || 'Sortie',
-      date: new Date(newEvent.date!).toLocaleString('fr-FR', { day: '2-digit', month: 'long' }),
-      time: newEvent.time || '10:00',
+      type: newEvent.type as any,
+      date: newEvent.date,
+      time: newEvent.time,
       location: newEvent.location || 'Dakar',
-      participants: 0,
-      color: newEvent.color || 'bg-rose-500'
+      organizingCommission: CommissionType.SOCIAL,
+      description: 'Activité sociale',
+      status: 'planifie'
     };
 
-    const updated = addItem(STORAGE_KEYS.SOCIAL_EVENTS, event);
-    setSocialEvents(updated);
-    
+    addEvent(event);
     setShowModal(false);
-    setNewEvent({ type: 'Sortie', date: new Date().toISOString().split('T')[0], color: 'bg-rose-500' });
+    setNewEvent({ title: '', type: 'Sortie', date: new Date().toISOString().split('T')[0], time: '10:00', location: '' });
   };
 
   const handleDeleteEvent = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if(confirm("Supprimer cet événement social ?")) {
-      const updated = deleteItem<SocialEvent>(STORAGE_KEYS.SOCIAL_EVENTS, id);
-      setSocialEvents(updated);
+      deleteEvent(id);
     }
   };
 
@@ -161,26 +153,19 @@ const SocialCalendar: React.FC = () => {
              <div key={event.id} className="glass-card p-1 relative overflow-hidden group cursor-pointer hover:border-rose-200 transition-all">
                 <div className="p-8 flex flex-col md:flex-row items-center gap-8">
                    <div className="flex flex-col items-center text-center shrink-0 w-24">
-                      <p className="text-3xl font-black text-slate-900 leading-none">{event.date.split(' ')[0]}</p>
-                      <p className="text-[10px] font-black text-rose-600 uppercase mt-1 tracking-widest">{event.date.split(' ').slice(1).join(' ')}</p>
+                      <p className="text-3xl font-black text-slate-900 leading-none">{new Date(event.date).getDate()}</p>
+                      <p className="text-[10px] font-black text-rose-600 uppercase mt-1 tracking-widest">{new Date(event.date).toLocaleString('default', { month: 'short' })}</p>
                    </div>
                    <div className="w-px h-12 bg-slate-100 hidden md:block"></div>
                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                         <span className={`px-2 py-0.5 rounded text-[8px] font-black text-white uppercase tracking-tighter ${event.color}`}>{event.type}</span>
+                         <span className={`px-2 py-0.5 rounded text-[8px] font-black text-white uppercase tracking-tighter bg-rose-500`}>{event.type}</span>
                          <span className="text-[10px] font-black text-slate-300 flex items-center gap-1 uppercase"><MapPin size={10}/> {event.location}</span>
                          <span className="text-[10px] font-black text-slate-300 flex items-center gap-1 uppercase"><Clock size={10}/> {event.time}</span>
                       </div>
                       <h4 className="text-xl font-black text-slate-900 leading-tight group-hover:text-rose-700 transition-colors">{event.title}</h4>
                    </div>
                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden sm:block">
-                         <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Inscrits</p>
-                         <div className="flex items-center gap-2">
-                            <Users size={14} className="text-slate-300" />
-                            <span className="text-sm font-black text-slate-800">{event.participants}</span>
-                         </div>
-                      </div>
                       <button 
                         onClick={(e) => handleDeleteEvent(e, event.id)}
                         className="p-3 bg-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"

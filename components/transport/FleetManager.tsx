@@ -291,6 +291,7 @@ const FleetManager: React.FC = () => {
                   {getVehicleIcon(vehicle.type)}
                 </div>
                 
+                {/* QUICK ACTION DROPDOWN SIMULATION */}
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={(e) => handleDeleteVehicle(e, vehicle.id)}

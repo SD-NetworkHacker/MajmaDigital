@@ -1,21 +1,13 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  User, Car, Phone, Award, Star, MapPin, Plus, Search, Filter, 
-  MoreVertical, FileText, CheckCircle, XCircle, Clock, Shield, 
-  MessageSquare, Edit, Trash2, X, Save, Bus, Calendar, ChevronRight
+  User, Car, Phone, MapPin, Plus, Search, 
+  Trash2, X, Save, Clock
 } from 'lucide-react';
 import { Driver } from '../../types';
-import { getCollection, addItem, deleteItem, updateItem, STORAGE_KEYS } from '../../services/storage';
-
-// Mock historique trajets pour la démo (reste statique pour l'instant)
-const MOCK_TRIPS_HISTORY = [
-  { id: 101, date: '12/08/2024', route: 'Dakar -> Touba', vehicle: 'Grand Bus DK-2022', status: 'Terminé', rating: 5 },
-  { id: 102, date: '15/07/2024', route: 'Touba -> Thiès', vehicle: 'Minibus AA-123', status: 'Terminé', rating: 4 },
-];
+import { useData } from '../../contexts/DataContext';
 
 const DriverRoster: React.FC = () => {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const { drivers, addDriver, deleteDriver, updateDriver } = useData(); // Utilisation du contexte global
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'disponible' | 'en_mission' | 'repos'>('all');
   
@@ -23,18 +15,6 @@ const DriverRoster: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [newDriver, setNewDriver] = useState<Partial<Driver>>({ status: 'disponible', licenseType: 'Permis D' });
-
-  // Load Data
-  useEffect(() => {
-    setDrivers(getCollection<Driver>(STORAGE_KEYS.DRIVERS));
-    
-    // Listen for updates from other tabs/components
-    const handleStorageChange = () => {
-        setDrivers(getCollection<Driver>(STORAGE_KEYS.DRIVERS));
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
 
   // --- STATS ---
   const stats = useMemo(() => {
@@ -59,8 +39,8 @@ const DriverRoster: React.FC = () => {
     if (!newDriver.name || !newDriver.phone) return;
     
     const driver: Driver = {
-      id: Date.now().toString(),
-      memberId: 'TEMP-' + Date.now(), // Devrait être lié à un membre réel
+      id: '', // Sera généré par backend
+      memberId: '', 
       name: newDriver.name!,
       licenseType: newDriver.licenseType || 'Permis D',
       status: newDriver.status as any || 'disponible',
@@ -68,23 +48,20 @@ const DriverRoster: React.FC = () => {
       tripsCompleted: 0
     };
     
-    const updated = addItem(STORAGE_KEYS.DRIVERS, driver);
-    setDrivers(updated);
+    addDriver(driver);
     setShowAddModal(false);
     setNewDriver({ status: 'disponible', licenseType: 'Permis D' });
   };
 
   const handleDeleteDriver = (id: string) => {
     if (confirm("Retirer ce chauffeur de la liste ?")) {
-      const updated = deleteItem<Driver>(STORAGE_KEYS.DRIVERS, id);
-      setDrivers(updated);
+      deleteDriver(id);
       if (selectedDriver?.id === id) setSelectedDriver(null);
     }
   };
 
   const handleUpdateStatus = (id: string, status: 'disponible' | 'en_mission' | 'repos') => {
-    const updated = updateItem<Driver>(STORAGE_KEYS.DRIVERS, id, { status });
-    setDrivers(updated);
+    updateDriver(id, { status });
     if (selectedDriver?.id === id) setSelectedDriver({ ...selectedDriver, status });
   };
 
@@ -225,23 +202,6 @@ const DriverRoster: React.FC = () => {
                         </button>
                      </div>
                   </div>
-
-                  {/* History Section */}
-                  <div>
-                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Clock size={14}/> Historique (Démo)
-                     </h4>
-                     <div className="space-y-3">
-                        {MOCK_TRIPS_HISTORY.map(trip => (
-                           <div key={trip.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-2 shadow-sm">
-                              <div className="flex justify-between items-start">
-                                 <span className="text-xs font-bold text-slate-800">{trip.route}</span>
-                                 <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">{trip.date}</span>
-                              </div>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
                   
                   {/* Delete Button */}
                   <div className="pt-4">
@@ -359,13 +319,6 @@ const DriverRoster: React.FC = () => {
                 <div className="flex items-center justify-between">
                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2"><Phone size={12}/> Contact</span>
                    <span className="text-xs font-mono text-slate-600">{driver.phone}</span>
-                </div>
-             </div>
-             
-             {/* Hover Action */}
-             <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                <div className="p-2 bg-slate-900 text-white rounded-xl shadow-lg">
-                   <ChevronRight size={16}/>
                 </div>
              </div>
           </div>

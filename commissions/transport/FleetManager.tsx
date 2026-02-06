@@ -1,15 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  Bus, Truck, Car, Wrench, CheckCircle, AlertTriangle, Battery, Plus, 
-  Fuel, X, Save, Trash2, FileText, ChevronRight, Briefcase, Phone, 
-  Building2, Coins, Search, Filter, MoreHorizontal, PlayCircle, StopCircle 
+  Bus, Truck, Car, Wrench, CheckCircle, X, Save, Trash2, Phone, 
+  Building2, Coins, Search, PlayCircle, StopCircle, Plus
 } from 'lucide-react';
 import { Vehicle, VehicleType, VehicleStatus } from '../../types';
-import { getCollection, addItem, deleteItem, updateItem, STORAGE_KEYS } from '../../services/storage';
+import { useData } from '../../contexts/DataContext';
 
 const FleetManager: React.FC = () => {
-  const [fleet, setFleet] = useState<Vehicle[]>([]);
+  const { fleet, addVehicle, updateVehicleStatus, deleteVehicle } = useData();
   const [showModal, setShowModal] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState<Vehicle | null>(null);
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal');
@@ -25,33 +24,23 @@ const FleetManager: React.FC = () => {
     ownership: 'internal'
   });
 
-  // Chargement des données au montage
-  useEffect(() => {
-    setFleet(getCollection<Vehicle>(STORAGE_KEYS.FLEET));
-  }, []);
-
-  const refreshFleet = () => {
-      setFleet(getCollection<Vehicle>(STORAGE_KEYS.FLEET));
-  };
-
   const handleAddVehicle = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVehicle.registrationNumber || !newVehicle.capacity) return;
 
     const vehicle: Vehicle = {
-      id: Date.now().toString(),
+      id: '', // Sera généré par le backend
       type: newVehicle.type as VehicleType,
       capacity: Number(newVehicle.capacity),
       registrationNumber: newVehicle.registrationNumber,
       status: 'disponible',
       features: newVehicle.features || [],
-      ownership: activeTab, // Déterminé par l'onglet actif
+      ownership: activeTab,
       maintenance: {
         lastDate: new Date().toISOString().split('T')[0],
-        nextDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +3 mois
+        nextDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: 'ok'
       },
-      // Ajout des détails externes si nécessaire
       externalDetails: activeTab === 'external' ? {
         companyName: newVehicle.externalDetails?.companyName || 'Prestataire Inconnu',
         contactPhone: newVehicle.externalDetails?.contactPhone || '',
@@ -59,32 +48,20 @@ const FleetManager: React.FC = () => {
       } : undefined
     };
 
-    // Sauvegarde via le service
-    addItem(STORAGE_KEYS.FLEET, vehicle);
-    refreshFleet();
-    
+    addVehicle(vehicle);
     setShowModal(false);
-    setNewVehicle({ 
-      type: 'bus_grand', 
-      status: 'disponible', 
-      features: ['Climatisation'],
-      ownership: 'internal',
-      externalDetails: { companyName: '', contactPhone: '', dailyCost: 0 }
-    });
   };
 
   const handleDeleteVehicle = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm("Voulez-vous vraiment retirer ce véhicule du parc ?")) {
-      deleteItem<Vehicle>(STORAGE_KEYS.FLEET, id);
-      refreshFleet();
+      deleteVehicle(id);
     }
   };
 
   const handleUpdateStatus = (e: React.MouseEvent, id: string, status: VehicleStatus) => {
     e.stopPropagation();
-    updateItem<Vehicle>(STORAGE_KEYS.FLEET, id, { status });
-    refreshFleet();
+    updateVehicleStatus(id, status);
   };
 
   const getVehicleIcon = (type: string) => {
@@ -117,7 +94,7 @@ const FleetManager: React.FC = () => {
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500 relative pb-20">
       
-      {/* MAINTENANCE LOG MODAL (Seulement pertinent pour flotte interne) */}
+      {/* MAINTENANCE LOG MODAL */}
       {showMaintenanceModal && (
          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200 flex flex-col max-h-[90vh]">
@@ -132,7 +109,6 @@ const FleetManager: React.FC = () => {
                </div>
                
                <div className="p-8 overflow-y-auto custom-scrollbar space-y-8">
-                  {/* Status Actuel */}
                   <div className="flex gap-4">
                      <div className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
                         <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Prochaine Visite</p>
@@ -145,48 +121,6 @@ const FleetManager: React.FC = () => {
                         </p>
                      </div>
                   </div>
-
-                  {/* Logs Historique (Mock) */}
-                  <div>
-                     <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4">Historique Interventions</h4>
-                     <div className="space-y-4 relative pl-4 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-px before:bg-slate-100">
-                        {[
-                           { date: '12 Jan 2024', type: 'Vidange Complète', cout: '45 000 F', garage: 'Garage Central' },
-                           { date: '05 Nov 2023', type: 'Changement Pneus (x2)', cout: '120 000 F', garage: 'Auto-Pneu' },
-                        ].map((log, i) => (
-                           <div key={i} className="relative flex gap-4">
-                              <div className="w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white relative z-10 mt-1.5 shadow-sm"></div>
-                              <div className="flex-1 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                 <div className="flex justify-between">
-                                    <p className="text-sm font-bold text-slate-800">{log.type}</p>
-                                    <span className="text-xs font-black text-slate-600">{log.cout}</span>
-                                 </div>
-                                 <p className="text-[10px] text-slate-400 mt-1">{log.date} • {log.garage}</p>
-                              </div>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-
-                  {/* Fuel Stats */}
-                  <div className="p-6 bg-slate-900 rounded-2xl text-white">
-                     <div className="flex items-center gap-3 mb-4">
-                        <Fuel size={20} className="text-orange-500" />
-                        <h4 className="text-xs font-black uppercase tracking-widest">Consommation Carburant</h4>
-                     </div>
-                     <div className="flex items-end gap-2">
-                        <span className="text-4xl font-black">18.5</span>
-                        <span className="text-xs text-slate-400 font-bold mb-2">L / 100km</span>
-                     </div>
-                     <div className="w-full bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                        <div className="bg-orange-500 h-full w-[60%]"></div>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="p-6 border-t border-slate-100 bg-white flex gap-3">
-                  <button className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200">Ajouter Entretien</button>
-                  <button className="flex-1 py-3 bg-orange-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-700 shadow-lg">Signaler Panne</button>
                </div>
             </div>
          </div>
@@ -243,43 +177,19 @@ const FleetManager: React.FC = () => {
                 </div>
               </div>
 
-              {/* CHAMPS SPÉCIFIQUES EXTERNES */}
               {activeTab === 'external' && (
                 <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100 space-y-3 mt-2">
                    <h4 className="text-[10px] font-black uppercase text-purple-700 flex items-center gap-2">
-                      <Briefcase size={12}/> Infos Prestataire
+                      <Building2 size={12}/> Infos Prestataire
                    </h4>
                    <div className="space-y-2">
                       <label className="text-[10px] font-bold uppercase text-purple-400">Nom Compagnie</label>
                       <input 
                         type="text" 
-                        placeholder="Ex: Gie Transport Touba"
                         className="w-full p-2 bg-white rounded-lg text-xs font-bold outline-none border border-purple-200"
                         value={newVehicle.externalDetails?.companyName || ''}
                         onChange={e => setNewVehicle({...newVehicle, externalDetails: {...newVehicle.externalDetails!, companyName: e.target.value}})}
                       />
-                   </div>
-                   <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase text-purple-400">Contact</label>
-                        <input 
-                            type="text" 
-                            placeholder="77 000 00 00"
-                            className="w-full p-2 bg-white rounded-lg text-xs font-bold outline-none border border-purple-200"
-                            value={newVehicle.externalDetails?.contactPhone || ''}
-                            onChange={e => setNewVehicle({...newVehicle, externalDetails: {...newVehicle.externalDetails!, contactPhone: e.target.value}})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase text-purple-400">Coût / Jour</label>
-                        <input 
-                            type="number" 
-                            placeholder="FCFA"
-                            className="w-full p-2 bg-white rounded-lg text-xs font-bold outline-none border border-purple-200"
-                            value={newVehicle.externalDetails?.dailyCost || ''}
-                            onChange={e => setNewVehicle({...newVehicle, externalDetails: {...newVehicle.externalDetails!, dailyCost: Number(e.target.value)}})}
-                        />
-                      </div>
                    </div>
                 </div>
               )}
@@ -399,28 +309,13 @@ const FleetManager: React.FC = () => {
               <h4 className="text-xl font-black text-slate-900 mb-1">{vehicle.registrationNumber}</h4>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-6">{vehicle.type.replace('_', ' ')} • {vehicle.capacity} places</p>
 
-              {vehicle.ownership === 'external' ? (
+              {vehicle.ownership === 'external' && (
                  <div className="space-y-3 bg-purple-50 p-3 rounded-xl border border-purple-100">
                     <div className="flex items-center gap-3 text-xs font-bold text-purple-800">
                        <Building2 size={14} />
                        <span className="truncate">{vehicle.externalDetails?.companyName}</span>
                     </div>
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                       <div className="flex items-center gap-2"><Phone size={14} className="text-purple-400" /> {vehicle.externalDetails?.contactPhone}</div>
-                       <div className="flex items-center gap-2"><Coins size={14} className="text-purple-400" /> {vehicle.externalDetails?.dailyCost.toLocaleString()} F/j</div>
-                    </div>
                  </div>
-              ) : (
-                <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600">
-                    <Wrench size={14} className={vehicle.maintenance.status === 'ok' ? 'text-emerald-500' : 'text-rose-500'} />
-                    <span>Maint. : {new Date(vehicle.maintenance.nextDate).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600">
-                    <Fuel size={14} className="text-slate-400" />
-                    <span>Conso. Moyenne: 18L/100</span>
-                    </div>
-                </div>
               )}
             </div>
 
@@ -450,22 +345,12 @@ const FleetManager: React.FC = () => {
                         <StopCircle size={14}/>
                     </button>
                 </div>
-
-                {vehicle.ownership !== 'external' && (
-                    <button 
-                        onClick={() => setShowMaintenanceModal(vehicle)}
-                        className="text-[9px] font-black uppercase text-orange-600 flex items-center gap-1 hover:gap-2 transition-all"
-                    >
-                        Carnet <ChevronRight size={12} />
-                    </button>
-                )}
             </div>
           </div>
         )) : (
           <div className="col-span-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-slate-200 rounded-[3rem] text-slate-400">
              <Bus size={48} className="mb-4 opacity-20"/>
              <p className="text-xs font-bold uppercase">Aucun véhicule {activeTab === 'internal' ? 'interne' : 'externe'} trouvé</p>
-             <button onClick={() => setShowModal(true)} className={`mt-4 text-[10px] font-black uppercase hover:underline ${activeTab === 'internal' ? 'text-orange-600' : 'text-purple-600'}`}>Ajouter le premier</button>
           </div>
         )}
       </div>

@@ -1,21 +1,23 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Member, Event, Contribution, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, UserProfile, AdiyaCampaign, FundraisingEvent, Task, Vehicle, Driver, TransportSchedule, LibraryResource, SocialCase, SocialProject } from '../types';
+import { Member, Event, Contribution, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, UserProfile, AdiyaCampaign, FundraisingEvent, Task, Vehicle, Driver, TransportSchedule, LibraryResource, SocialCase, SocialProject, TicketItem, InventoryItem, KhassaideModule } from '../types';
 import { 
   dbFetchMembers, dbFetchContributions, dbFetchEvents, dbFetchReports, 
   dbCreateMember, dbUpdateMember, dbDeleteMember,
   dbCreateContribution, dbCreateEvent, dbCreateReport, dbFetchTasks, 
   dbFetchAdiyaCampaigns, dbFetchFleet, dbFetchDrivers, dbFetchSchedules, dbFetchResources,
-  dbFetchSocialCases, dbFetchSocialProjects,
+  dbFetchSocialCases, dbFetchSocialProjects, dbFetchTickets, dbFetchInventory,
   dbCreateVehicle, dbCreateDriver, dbCreateSchedule, dbCreateResource, dbUpdateVehicle, 
   dbDeleteVehicle, dbUpdateDriver, dbDeleteDriver, dbDeleteResource,
   dbCreateTask, dbUpdateTask, dbDeleteTask, dbCreateAdiyaCampaign, dbUpdateAdiyaCampaign,
-  dbCreateSocialCase, dbCreateSocialProject
+  dbCreateSocialCase, dbCreateSocialProject, dbCreateTicket, dbUpdateTicket, dbDeleteTicket,
+  dbCreateInventoryItem, dbDeleteInventoryItem, dbDeleteEvent,
+  dbFetchKhassaideModules, dbCreateKhassaideModule, dbUpdateKhassaideModule
 } from '../services/dbService';
 import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 import { WifiOff, RefreshCcw, ServerCrash } from 'lucide-react';
-import { supabase } from '../lib/supabase'; // Fixed import
+import { supabase } from '../lib/supabase';
 
 interface DataContextType {
   userProfile: UserProfile;
@@ -34,6 +36,9 @@ interface DataContextType {
   library: LibraryResource[];
   socialCases: SocialCase[];
   socialProjects: SocialProject[];
+  tickets: TicketItem[];
+  inventory: InventoryItem[];
+  khassaideModules: KhassaideModule[];
   
   updateUserProfile: (data: Partial<UserProfile>) => void;
   addMember: (member: Member) => void;
@@ -43,6 +48,8 @@ interface DataContextType {
   updateMemberStatus: (id: string, status: 'active' | 'inactive') => void;
   
   addEvent: (event: Event) => void;
+  deleteEvent: (id: string) => void;
+  
   addContribution: (contribution: Contribution) => void;
   updateContribution: (id: string, data: Partial<Contribution>) => void;
   deleteContribution: (id: string) => void;
@@ -52,15 +59,27 @@ interface DataContextType {
   // Transport
   addVehicle: (vehicle: Vehicle) => void;
   updateVehicleStatus: (id: string, status: any) => void;
+  updateVehicle: (id: string, data: Partial<Vehicle>) => void;
   deleteVehicle: (id: string) => void;
   addDriver: (driver: Driver) => void;
   updateDriver: (id: string, data: Partial<Driver>) => void;
   deleteDriver: (id: string) => void;
   addSchedule: (trip: TransportSchedule) => void;
 
+  // Tickets
+  addTicket: (ticket: TicketItem) => void;
+  updateTicket: (id: string, data: Partial<TicketItem>) => void;
+  deleteTicket: (id: string) => void;
+
+  // Inventory
+  addInventoryItem: (item: InventoryItem) => void;
+  deleteInventoryItem: (id: string) => void;
+
   // Culture
   addResource: (res: LibraryResource) => void;
   deleteResource: (id: string) => void;
+  addKhassaideModule: (module: KhassaideModule) => void;
+  updateKhassaideModule: (id: string, data: Partial<KhassaideModule>) => void;
 
   // Campaigns & Tasks
   addAdiyaCampaign: (campaign: AdiyaCampaign) => void;
@@ -106,7 +125,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [fleet, setFleet] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [schedules, setSchedules] = useState<TransportSchedule[]>([]);
+  const [tickets, setTickets] = useState<TicketItem[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [library, setLibrary] = useState<LibraryResource[]>([]);
+  const [khassaideModules, setKhassaideModules] = useState<KhassaideModule[]>([]);
   const [socialCases, setSocialCases] = useState<SocialCase[]>([]);
   const [socialProjects, setSocialProjects] = useState<SocialProject[]>([]);
 
@@ -124,7 +146,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     try {
       // Chargement parallèle de toutes les collections
-      const [m, c, e, r, t, a, f, d, s, l, sc, sp] = await Promise.all([
+      const [m, c, e, r, t, a, f, d, s, tick, inv, l, k, sc, sp] = await Promise.all([
         dbFetchMembers(),
         dbFetchContributions(),
         dbFetchEvents(),
@@ -134,7 +156,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         dbFetchFleet(),
         dbFetchDrivers(),
         dbFetchSchedules(),
+        dbFetchTickets(),
+        dbFetchInventory(),
         dbFetchResources(),
+        dbFetchKhassaideModules(),
         dbFetchSocialCases(),
         dbFetchSocialProjects()
       ]);
@@ -148,7 +173,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setFleet(f);
       setDrivers(d);
       setSchedules(s);
+      setTickets(tick);
+      setInventory(inv);
       setLibrary(l);
+      setKhassaideModules(k);
       setSocialCases(sc);
       setSocialProjects(sp);
       
@@ -217,6 +245,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
   };
 
+  const deleteEvent = async (id: string) => {
+     try {
+         await dbDeleteEvent(id);
+         setEvents(prev => prev.filter(e => e.id !== id));
+         addNotification("Événement supprimé", "info");
+     } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
   const addContribution = async (c: Contribution) => {
       try {
           await dbCreateContribution(c);
@@ -254,6 +290,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await dbUpdateVehicle(id, { status });
           setFleet(prev => prev.map(v => v.id === id ? { ...v, status } : v));
           addNotification("Statut véhicule mis à jour", "success");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const updateVehicle = async (id: string, data: Partial<Vehicle>) => {
+      try {
+          await dbUpdateVehicle(id, data);
+          setFleet(prev => prev.map(v => v.id === id ? { ...v, ...data } : v));
+          addNotification("Véhicule mis à jour", "success");
       } catch(e: any) { addNotification(e.message, "error"); }
   };
 
@@ -297,6 +341,48 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch(e: any) { addNotification(e.message, "error"); }
   };
 
+  // --- TICKET ACTIONS ---
+  const addTicket = async (t: TicketItem) => {
+      try {
+          await dbCreateTicket(t);
+          setTickets(await dbFetchTickets());
+          addNotification("Billet émis", "success");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const updateTicket = async (id: string, data: Partial<TicketItem>) => {
+      try {
+          await dbUpdateTicket(id, data);
+          setTickets(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
+          addNotification("Billet mis à jour", "success");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const deleteTicket = async (id: string) => {
+      try {
+          await dbDeleteTicket(id);
+          setTickets(prev => prev.filter(t => t.id !== id));
+          addNotification("Billet annulé", "info");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  // --- INVENTORY ACTIONS ---
+  const addInventoryItem = async (i: InventoryItem) => {
+      try {
+          await dbCreateInventoryItem(i);
+          setInventory(await dbFetchInventory());
+          addNotification("Matériel ajouté", "success");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const deleteInventoryItem = async (id: string) => {
+      try {
+          await dbDeleteInventoryItem(id);
+          setInventory(prev => prev.filter(i => i.id !== id));
+          addNotification("Matériel retiré", "info");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
   // --- CULTURE ACTIONS ---
   const addResource = async (r: LibraryResource) => {
       try {
@@ -311,6 +397,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await dbDeleteResource(id);
           setLibrary(prev => prev.filter(r => r.id !== id));
           addNotification("Ressource supprimée", "info");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const addKhassaideModule = async (m: KhassaideModule) => {
+      try {
+          await dbCreateKhassaideModule(m);
+          setKhassaideModules(await dbFetchKhassaideModules());
+          addNotification("Module ajouté", "success");
+      } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const updateKhassaideModule = async (id: string, data: Partial<KhassaideModule>) => {
+      try {
+          await dbUpdateKhassaideModule(id, data);
+          setKhassaideModules(prev => prev.map(m => m.id === id ? { ...m, ...data } : m));
       } catch(e: any) { addNotification(e.message, "error"); }
   };
 
@@ -424,11 +525,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <DataContext.Provider value={{
       userProfile, members, events, contributions, reports, financialReports, budgetRequests, adiyaCampaigns, fundraisingEvents, tasks,
-      fleet, drivers, schedules, library, socialCases, socialProjects,
+      fleet, drivers, schedules, tickets, inventory, library, khassaideModules, socialCases, socialProjects,
       updateUserProfile, addMember, updateMember, deleteMember, importMembers, updateMemberStatus,
-      addEvent, addContribution, updateContribution, deleteContribution, addReport,
-      addVehicle, updateVehicleStatus, deleteVehicle, addDriver, updateDriver, deleteDriver, addSchedule, 
-      addResource, deleteResource,
+      addEvent, deleteEvent, addContribution, updateContribution, deleteContribution, addReport,
+      addVehicle, updateVehicleStatus, updateVehicle, deleteVehicle, addDriver, updateDriver, deleteDriver, addSchedule, 
+      addTicket, updateTicket, deleteTicket,
+      addInventoryItem, deleteInventoryItem,
+      addResource, deleteResource, addKhassaideModule, updateKhassaideModule,
       addAdiyaCampaign, updateAdiyaCampaign,
       addFundraisingEvent, updateFundraisingEvent,
       addTask, updateTask, deleteTask,

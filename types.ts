@@ -49,7 +49,7 @@ export interface Task {
   commission: CommissionType;
   createdBy: string;
   createdAt: string;
-  comments?: TaskComment[]; // Added comments array
+  comments?: TaskComment[];
 }
 
 export interface NotificationSettings {
@@ -59,11 +59,11 @@ export interface NotificationSettings {
     sms: boolean;
   };
   types: {
-    meetings: boolean;     // Rappels réunions
-    contributions: boolean; // Rappels Sass/Adiyas
-    events: boolean;       // Magal, Ziar, etc.
-    info: boolean;         // Annonces générales
-    security: boolean;     // Connexions suspectes
+    meetings: boolean;
+    contributions: boolean;
+    events: boolean;
+    info: boolean;
+    security: boolean;
   };
 }
 
@@ -153,12 +153,11 @@ export interface SocialCase {
 export interface Contribution {
   id: string;
   memberId: string;
-  type: 'Adiyas' | 'Sass' | 'Diayanté' | 'Adiya Élite' | 'Gott'; // Added 'Gott'
+  type: 'Adiyas' | 'Sass' | 'Diayanté' | 'Adiya Élite' | 'Gott';
   amount: number;
   date: string;
   eventLabel?: string;
   status: 'paid' | 'pending';
-  // Optional links to specific fundraising contexts
   fundraisingEventId?: string;
   fundraisingGroupId?: string;
 }
@@ -173,26 +172,25 @@ export interface AdiyaCampaignParticipant {
 
 export interface AdiyaCampaign {
   id: string;
-  title: string; // Ex: "Groupe 100.000F - Magal"
+  title: string;
   description?: string;
-  unitAmount: number; // Montant attendu par personne
-  targetAmount?: number; // Objectif global (optionnel)
+  unitAmount: number;
+  targetAmount?: number;
   deadline: string;
   status: 'open' | 'closed' | 'draft';
   participants: AdiyaCampaignParticipant[];
   createdBy: string;
 }
 
-// --- NEW TYPES FOR EVENTS FUNDRAISING ---
 export interface FundraisingGroup {
   id: string;
-  name: string; // Ex: "Groupe 50.000F"
+  name: string;
   amount: number;
 }
 
 export interface FundraisingEvent {
   id: string;
-  name: string; // Ex: "Magal Touba 2024"
+  name: string;
   type: 'Magal' | 'Gott' | 'Ziar' | 'Autre';
   status: 'active' | 'closed';
   groups: FundraisingGroup[];
@@ -205,9 +203,11 @@ export interface Event {
   title: string;
   type: 'Magal' | 'Ziar' | 'Gott' | 'Thiant' | 'Réunion' | 'Autre';
   date: string;
+  time?: string;
   location: string;
   organizingCommission: CommissionType;
   description: string;
+  status?: 'planifie' | 'en_cours' | 'termine' | 'annule';
 }
 
 export interface Commission {
@@ -288,7 +288,7 @@ export type CrisisType = 'FINANCE' | 'SECURITY' | 'HEALTH' | 'SOCIAL' | 'LEGAL';
 export interface CrisisProtocolStep {
   id: string;
   label: string;
-  role: string; // Qui doit agir
+  role: string;
   status: 'pending' | 'in_progress' | 'done';
   isCritical: boolean;
 }
@@ -381,7 +381,7 @@ export type AttendanceStatus = 'present' | 'absent_excuse' | 'absent';
 export interface MeetingAttendee {
   memberId: string;
   name: string;
-  role: string; // 'président', 'secrétaire', 'participant'
+  role: string;
   status: AttendanceStatus;
 }
 
@@ -396,7 +396,7 @@ export interface AgendaItem {
 export interface MeetingActionItem {
   id: string;
   description: string;
-  assignedTo: string; // Nom ou ID
+  assignedTo: string;
   dueDate: string;
   status: 'a_faire' | 'en_cours' | 'termine' | 'retard';
 }
@@ -423,8 +423,8 @@ export interface InternalMeetingReport {
   type: MeetingType;
   attendees: MeetingAttendee[];
   agenda: AgendaItem[];
-  discussions: string; // Résumé riche ou texte
-  decisions: MeetingDecision[]; // Updated to object array
+  discussions: string;
+  decisions: MeetingDecision[];
   actionItems: MeetingActionItem[];
   nextMeetingDate?: string;
   status: MeetingReportStatus;
@@ -433,7 +433,7 @@ export interface InternalMeetingReport {
   adminFeedback?: string;
   bureauFeedback?: string;
   confidentiality: 'interne' | 'confidentiel';
-  meetingQrCode?: string; // QR code pour l'enregistrement des présences
+  meetingQrCode?: string;
 }
 
 // --- Types Commission Transport ---
@@ -454,7 +454,7 @@ export interface Vehicle {
     nextDate: string;
     status: 'ok' | 'warning' | 'critical';
   };
-  ownership?: 'internal' | 'external'; // Appartenance
+  ownership?: 'internal' | 'external';
   externalDetails?: {
     companyName: string;
     contactPhone: string;
@@ -492,6 +492,30 @@ export interface Driver {
   status: 'disponible' | 'en_mission' | 'repos';
   phone: string;
   tripsCompleted: number;
+}
+
+export interface TicketItem {
+  id: string;
+  passenger: string;
+  phone: string;
+  tripId: string;
+  trip: string; // Nom du trajet (ex: Dakar -> Touba)
+  seat: string;
+  status: 'paye' | 'attente' | 'annule';
+  type: 'Espèces' | 'Wave' | 'Orange Money';
+  amount: number;
+  date: string;
+  issuedBy?: string;
+}
+
+// --- Types Commission Organisation (Logistique) ---
+export interface InventoryItem {
+  id: string;
+  name: string;
+  qty: number;
+  condition: 'Neuf' | 'Bon état' | 'Usagé' | 'Réparation';
+  sub: string; // Sous-commission (Cuisine, Sonorisation, etc.)
+  nextCheck: string;
 }
 
 // --- Types Commission Culturelle ---
