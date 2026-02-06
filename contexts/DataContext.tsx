@@ -27,7 +27,6 @@ import { useAuth } from '../context/AuthContext';
 import { WifiOff, RefreshCcw, ServerCrash } from 'lucide-react';
 
 interface DataContextType {
-  // ... existing types
   userProfile: UserProfile;
   members: Member[];
   events: Event[];
@@ -51,7 +50,6 @@ interface DataContextType {
   socialPosts: SocialPost[];
   studyGroups: StudyGroup[];
   
-  // Actions
   updateUserProfile: (data: Partial<UserProfile>) => void;
   addMember: (member: Member) => void;
   updateMember: (id: string, data: Partial<Member>) => void;
@@ -102,7 +100,6 @@ interface DataContextType {
   addFundraisingEvent: (event: FundraisingEvent) => void;
   updateFundraisingEvent: (id: string, data: Partial<FundraisingEvent>) => void;
 
-  // New Actions
   addPartner: (partner: Partial<Partner>) => void;
   addSocialPost: (post: Partial<SocialPost>) => void;
   addStudyGroup: (group: Partial<StudyGroup>) => void;
@@ -123,7 +120,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState(false);
   
-  // Data States
   const [userProfile, setUserProfile] = useState<UserProfile>({} as UserProfile);
   const [members, setMembers] = useState<Member[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -140,13 +136,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [khassaideModules, setKhassaideModules] = useState<KhassaideModule[]>([]);
   const [socialCases, setSocialCases] = useState<SocialCase[]>([]);
   const [socialProjects, setSocialProjects] = useState<SocialProject[]>([]);
-  
-  // New Data States
   const [partners, setPartners] = useState<Partner[]>([]);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
   const [studyGroups, setStudyGroups] = useState<StudyGroup[]>([]);
-
-  // Placeholders
   const [financialReports] = useState<CommissionFinancialReport[]>([]);
   const [budgetRequests] = useState<BudgetRequest[]>([]);
   const [fundraisingEvents, setFundraisingEvents] = useState<FundraisingEvent[]>([]);
@@ -158,40 +150,38 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setServerError(false);
     
     try {
+      // Timeout Promise pour éviter le blocage infini (8 secondes)
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Data Fetch Timeout')), 8000));
+
+      const dataPromise = Promise.all([
+        dbFetchMembers(), dbFetchContributions(), dbFetchEvents(), dbFetchReports(),
+        dbFetchTasks(), dbFetchAdiyaCampaigns(), dbFetchFleet(), dbFetchDrivers(),
+        dbFetchSchedules(), dbFetchTickets(), dbFetchInventory(), dbFetchResources(),
+        dbFetchKhassaideModules(), dbFetchSocialCases(), dbFetchSocialProjects(),
+        dbFetchPartners(), dbFetchSocialPosts(), dbFetchStudyGroups()
+      ]);
+
       const [
           m, c, e, r, t, a, f, d, s, tick, inv, l, k, sc, sp, 
           prt, pst, grp
-      ] = await Promise.all([
-        dbFetchMembers(),
-        dbFetchContributions(),
-        dbFetchEvents(),
-        dbFetchReports(),
-        dbFetchTasks(),
-        dbFetchAdiyaCampaigns(),
-        dbFetchFleet(),
-        dbFetchDrivers(),
-        dbFetchSchedules(),
-        dbFetchTickets(),
-        dbFetchInventory(),
-        dbFetchResources(),
-        dbFetchKhassaideModules(),
-        dbFetchSocialCases(),
-        dbFetchSocialProjects(),
-        dbFetchPartners(),
-        dbFetchSocialPosts(),
-        dbFetchStudyGroups()
-      ]);
+      ] = await Promise.race([dataPromise, timeoutPromise]) as any;
       
-      setMembers(m); setContributions(c); setEvents(e); setReports(r);
-      setTasks(t); setAdiyaCampaigns(a); setFleet(f); setDrivers(d);
-      setSchedules(s); setTickets(tick); setInventory(inv); setLibrary(l);
-      setKhassaideModules(k); setSocialCases(sc); setSocialProjects(sp);
-      setPartners(prt); setSocialPosts(pst); setStudyGroups(grp);
+      setMembers(m || []); setContributions(c || []); setEvents(e || []); setReports(r || []);
+      setTasks(t || []); setAdiyaCampaigns(a || []); setFleet(f || []); setDrivers(d || []);
+      setSchedules(s || []); setTickets(tick || []); setInventory(inv || []); setLibrary(l || []);
+      setKhassaideModules(k || []); setSocialCases(sc || []); setSocialProjects(sp || []);
+      setPartners(prt || []); setSocialPosts(pst || []); setStudyGroups(grp || []);
       
     } catch (error: any) {
-      console.error("ERREUR CRITIQUE API:", error);
-      setServerError(true);
-      addNotification("Serveur inaccessible. Vérifiez votre connexion.", "error");
+      console.error("ERREUR CHARGEMENT DONNÉES:", error);
+      // On ne marque pas serverError à true pour les timeouts mineurs, on laisse l'app charger avec des données vides si besoin
+      // Mais on notifie l'utilisateur
+      if (error.message === 'Data Fetch Timeout') {
+          addNotification("Le chargement des données prend plus de temps que prévu.", "warning");
+      } else {
+          setServerError(true);
+          addNotification("Problème de connexion serveur.", "error");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +191,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadData();
   }, [isAuthenticated]);
 
-  // Actions wrappers
   const updateUserProfile = (data: Partial<UserProfile>) => setUserProfile({ ...userProfile, ...data });
   const addMember = async (m: Member) => { await dbCreateMember(m); setMembers(await dbFetchMembers()); addNotification("Membre ajouté", "success"); };
   const updateMember = async (id: string, d: Partial<Member>) => { await dbUpdateMember(id, d); setMembers(prev => prev.map(m => m.id === id ? {...m, ...d} : m)); addNotification("Profil mis à jour", "success"); };
@@ -211,11 +200,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addEvent = async (e: Event) => { await dbCreateEvent(e); setEvents(await dbFetchEvents()); addNotification("Événement créé", "success"); };
   const deleteEvent = async (id: string) => { await dbDeleteEvent(id); setEvents(prev => prev.filter(e => e.id !== id)); addNotification("Événement supprimé", "info"); };
   const addContribution = async (c: Contribution) => { await dbCreateContribution(c); setContributions(await dbFetchContributions()); addNotification("Paiement enregistré", "success"); };
-  const updateContribution = (id: string, d: Partial<Contribution>) => {}; // To Implement
-  const deleteContribution = (id: string) => {}; // To Implement
+  const updateContribution = (id: string, d: Partial<Contribution>) => {}; 
+  const deleteContribution = (id: string) => {}; 
   const addReport = async (r: InternalMeetingReport) => { await dbCreateReport(r); setReports(await dbFetchReports()); addNotification("Rapport créé", "success"); };
   
-  // Transport wrappers
   const addVehicle = async (v: Vehicle) => { await dbCreateVehicle(v); setFleet(await dbFetchFleet()); addNotification("Véhicule ajouté", "success"); };
   const updateVehicleStatus = async (id: string, status: any) => { await dbUpdateVehicle(id, { status }); setFleet(prev => prev.map(v => v.id === id ? { ...v, status } : v)); };
   const updateVehicle = async (id: string, data: Partial<Vehicle>) => { await dbUpdateVehicle(id, data); setFleet(prev => prev.map(v => v.id === id ? { ...v, ...data } : v)); };
@@ -228,7 +216,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateTicket = async (id: string, data: Partial<TicketItem>) => { await dbUpdateTicket(id, data); setTickets(prev => prev.map(t => t.id === id ? { ...t, ...data } : t)); };
   const deleteTicket = async (id: string) => { await dbDeleteTicket(id); setTickets(prev => prev.filter(t => t.id !== id)); };
 
-  // Other wrappers
   const addInventoryItem = async (i: InventoryItem) => { await dbCreateInventoryItem(i); setInventory(await dbFetchInventory()); };
   const deleteInventoryItem = async (id: string) => { await dbDeleteInventoryItem(id); setInventory(prev => prev.filter(i => i.id !== id)); };
   const addResource = async (r: LibraryResource) => { await dbCreateResource(r); setLibrary(await dbFetchResources()); };
@@ -243,11 +230,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addSocialCase = async (sc: Partial<SocialCase>) => { await dbCreateSocialCase(sc); setSocialCases(await dbFetchSocialCases()); };
   const addSocialProject = async (p: Partial<SocialProject>) => { await dbCreateSocialProject(p); setSocialProjects(await dbFetchSocialProjects()); };
   
-  // Placeholders
   const addFundraisingEvent = (event: FundraisingEvent) => { setFundraisingEvents(prev => [...prev, event]); };
   const updateFundraisingEvent = (id: string, data: Partial<FundraisingEvent>) => { setFundraisingEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e)); };
 
-  // New Actions Implementation
   const addPartner = async (p: Partial<Partner>) => {
       try {
           await dbCreatePartner(p);
@@ -277,18 +262,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const resetData = () => { localStorage.clear(); window.location.reload(); };
 
   if (serverError) {
-      // ... (Keep existing error UI)
-      return <div className="p-10 text-center">Erreur Serveur (Voir console)</div>;
+      return <div className="p-10 text-center flex flex-col items-center justify-center h-screen bg-slate-50">
+        <ServerCrash size={48} className="text-red-500 mb-4"/>
+        <h3 className="text-lg font-bold text-slate-800">Serveur Inaccessible</h3>
+        <p className="text-sm text-slate-500 mb-6">Impossible de charger les données. Vérifiez votre connexion.</p>
+        <button onClick={() => window.location.reload()} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2">
+            <RefreshCcw size={16}/> Réessayer
+        </button>
+      </div>;
   }
 
   return (
     <DataContext.Provider value={{
-      // ... existing props
       userProfile, members, events, contributions, reports, financialReports, budgetRequests, adiyaCampaigns, fundraisingEvents, tasks,
       fleet, drivers, schedules, tickets, inventory, library, khassaideModules, socialCases, socialProjects,
-      // New props
       partners, socialPosts, studyGroups,
-      
       updateUserProfile, addMember, updateMember, deleteMember, importMembers, updateMemberStatus,
       addEvent, deleteEvent, addContribution, updateContribution, deleteContribution, addReport,
       addVehicle, updateVehicleStatus, updateVehicle, deleteVehicle, addDriver, updateDriver, deleteDriver, addSchedule, 
@@ -299,10 +287,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addFundraisingEvent, updateFundraisingEvent,
       addTask, updateTask, deleteTask,
       addSocialCase, addSocialProject,
-      
-      // New Actions
       addPartner, addSocialPost, addStudyGroup,
-      
       totalTreasury, activeMembersCount, resetData, isLoading, serverError
     }}>
       {children}

@@ -24,6 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isImpersonating: boolean;
   isSwitching: boolean;
+  loading: boolean; // Nouvel état pour gérer l'initialisation
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: (reason?: string) => void;
@@ -40,6 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true); // Initialisation à true
   
   const [originalAdminSession, setOriginalAdminSession] = useState<UserProfile | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -57,8 +59,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (error) {
-        console.error('Erreur chargement profil Supabase:', error);
-        // Fallback minimal pour éviter le blocage
+        console.warn('Profil introuvable ou erreur Supabase, utilisation du profil par défaut:', error.message);
+        // Fallback minimal pour ne pas bloquer l'app
         return {
            id: userId,
            email: email,
@@ -80,34 +82,61 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         bio: data.bio
       };
     } catch (e) {
-      console.error(e);
+      console.error("Erreur critique fetchProfile:", e);
       return null;
     }
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchProfile(session.user.id, session.user.email!).then(profile => {
-          if (profile) setUser(profile);
-        });
-      }
-    });
+    let mounted = true;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const initializeAuth = async () => {
+      try {
+        // Timeout de sécurité de 5 secondes pour ne pas bloquer indéfiniment
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Auth Timeout')), 5000));
+
+        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+
+        if (error) throw error;
+        
+        if (mounted) setSession(session);
+
+        if (session?.user) {
+          try {
+            const profile = await fetchProfile(session.user.id, session.user.email!);
+            if (mounted && profile) setUser(profile);
+          } catch (profileError) {
+             console.error("Erreur lors de la récupération du profil connecté", profileError);
+             // On ne déconnecte pas l'utilisateur, on le laisse avec un état partiel si besoin
+          }
+        }
+      } catch (error) {
+        console.error("Erreur d'initialisation Auth:", error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
       setSession(session);
       if (session?.user) {
+         // On ne remet pas loading à true ici pour éviter le clignotement, on charge en arrière-plan
          const profile = await fetchProfile(session.user.id, session.user.email!);
          setUser(profile);
       } else {
          setUser(null);
       }
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -145,12 +174,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (authError) throw authError;
       if (!authData.user) throw new Error("Erreur création utilisateur");
 
-      // Génération du matricule : MAJ-AAAA-XXXX
       const year = new Date().getFullYear();
       const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
       const matricule = `MAJ-${year}-${randomSuffix}`;
 
-      // Création immédiate du profil dans la table publique
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([{
@@ -159,7 +186,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           last_name: formData.lastName,
           email: formData.email,
           phone: formData.phone,
-          role: 'MEMBRE', // Rôle par défaut
+          role: 'MEMBRE',
           category: formData.category,
           matricule: matricule,
           created_at: new Date().toISOString()
@@ -167,7 +194,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (profileError) {
          console.error("Erreur création profil DB:", profileError);
-         // On ne bloque pas, l'utilisateur est créé dans Auth
       }
 
       addNotification("Compte créé ! Veuillez vous connecter.", "success");
@@ -181,7 +207,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = useCallback(async (reason?: string) => {
-    await supabase.auth.signOut();
+    try {
+        await supabase.auth.signOut();
+    } catch (e) {
+        console.warn("Erreur lors du signout Supabase", e);
+    }
     setUser(null);
     setOriginalAdminSession(null);
     if (reason) addNotification(reason, 'info');
@@ -257,7 +287,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <AuthContext.Provider 
-      value={{ user, token: session?.access_token, isAuthenticated: !!user, isImpersonating: !!originalAdminSession, isSwitching, login, register, logout, updateUser, impersonate, stopImpersonation, getRedirectPath, refreshProfile, loginAsGuest }}
+      value={{ user, token: session?.access_token, isAuthenticated: !!user, loading, isImpersonating: !!originalAdminSession, isSwitching, login, register, logout, updateUser, impersonate, stopImpersonation, getRedirectPath, refreshProfile, loginAsGuest }}
     >
       {children}
     </AuthContext.Provider>

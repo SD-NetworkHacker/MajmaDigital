@@ -28,7 +28,7 @@ const MemberDashboard = React.lazy(() => import('./components/member/MemberDashb
 
 import GuestDashboard from './components/GuestDashboard';
 
-import { Menu, Power, Eye, VenetianMask, Loader2 } from 'lucide-react';
+import { Menu, Power, Eye, VenetianMask, Loader2, RefreshCcw, LogOut } from 'lucide-react';
 import { DataProvider, useData } from './contexts/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -36,23 +36,52 @@ import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { supabase } from './lib/supabase';
 
-// Fallback Loader (Gold Color #D4AF37)
-const PageLoader = () => (
-  <div className="h-full w-full flex items-center justify-center bg-slate-50">
-     <div className="flex flex-col items-center gap-4">
-        <Loader2 size={48} className="animate-spin text-[#D4AF37]" />
-        <p className="text-xs font-black uppercase tracking-widest text-slate-500">Chargement MajmaDigital...</p>
-     </div>
-  </div>
-);
+// Enhanced Loader with Timeout
+const PageLoader = () => {
+    const [showRetry, setShowRetry] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowRetry(true);
+        }, 5000); // Afficher option secours après 5s
+        return () => clearTimeout(timer);
+    }, []);
+
+    return (
+        <div className="h-full w-full flex items-center justify-center bg-slate-50 flex-col gap-6 fixed inset-0 z-50">
+            <div className="flex flex-col items-center gap-4">
+                <Loader2 size={48} className="animate-spin text-[#D4AF37]" />
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">Chargement MajmaDigital...</p>
+            </div>
+            
+            {showRetry && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 flex flex-col items-center gap-3">
+                    <p className="text-[10px] text-slate-400">Le chargement prend plus de temps que prévu.</p>
+                    <button 
+                        onClick={() => window.location.reload()} 
+                        className="px-6 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-50 flex items-center gap-2"
+                    >
+                        <RefreshCcw size={14} /> Recharger
+                    </button>
+                    <button 
+                        onClick={() => { localStorage.clear(); window.location.reload(); }}
+                        className="text-[10px] text-rose-500 font-bold hover:underline"
+                    >
+                        Réinitialiser Cache
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const MainContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewProfileId, setViewProfileId] = useState<string | null>(null);
   
-  const { members, events, contributions, isLoading } = useData();
-  const { user, isImpersonating, stopImpersonation, updateUser, refreshProfile } = useAuth();
+  const { isLoading: isDataLoading } = useData();
+  const { user, isImpersonating, stopImpersonation, updateUser, loading: isAuthLoading } = useAuth();
 
   // --- SUPABASE REALTIME ROLE LISTENER ---
   useEffect(() => {
@@ -85,6 +114,11 @@ const MainContent: React.FC = () => {
     };
   }, [user, updateUser]);
 
+  // Priority to Auth Loading
+  if (isAuthLoading) {
+      return <PageLoader />;
+  }
+
   // --- 1. GESTION DES VISITEURS ---
   if (!user) {
     return <GuestDashboard />;
@@ -97,7 +131,7 @@ const MainContent: React.FC = () => {
   if (role === 'SYMPATHISANT' || role === 'NEW_USER') {
       return (
         <Suspense fallback={<PageLoader />}>
-            <ProfileCompletion onComplete={() => refreshProfile()} />
+            <ProfileCompletion onComplete={() => window.location.reload()} />
         </Suspense>
       );
   }
@@ -105,7 +139,7 @@ const MainContent: React.FC = () => {
   // Dashboard Switching Logic
   const getDashboardComponent = () => {
      if (['SG', 'ADMIN', 'ADJOINT_SG', 'DIEUWRINE'].includes(role)) {
-         return <AdminDashboard setActiveTab={setActiveTab} members={members} events={events} contributions={contributions} />;
+         return <AdminDashboard setActiveTab={setActiveTab} members={[]} events={[]} contributions={[]} />;
      } else {
          return <MemberDashboard setActiveTab={setActiveTab} />;
      }
@@ -134,8 +168,8 @@ const MainContent: React.FC = () => {
           switch (activeTab) {
             case 'dashboard': return getDashboardComponent();
             case 'members': return <MemberModule onViewProfile={navigateToProfile} />;
-            case 'map': return <MemberMapModule members={members} />;
-            case 'commissions': return <CommissionModule members={members} events={events} />;
+            case 'map': return <MemberMapModule members={[]} />;
+            case 'commissions': return <CommissionModule members={[]} events={[]} />;
             case 'pedagogy': return <PedagogicalModule />;
             case 'social': return <SocialModule />;
             case 'health': return <HealthModule />;
@@ -154,7 +188,7 @@ const MainContent: React.FC = () => {
     );
   };
 
-  if (isLoading) {
+  if (isDataLoading) {
       return <PageLoader />;
   }
 
