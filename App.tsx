@@ -1,38 +1,38 @@
 
 import React, { useState, Suspense, useEffect } from 'react';
-import Sidebar from '@/components/Sidebar';
-import Dashboard from '@/components/Dashboard';
+import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
 
-// Lazy Components
-const MemberModule = React.lazy(() => import('@/components/MemberModule'));
-const MemberMapModule = React.lazy(() => import('@/components/MemberMapModule'));
-const CommissionModule = React.lazy(() => import('@/components/CommissionModule'));
-const FinanceModule = React.lazy(() => import('@/components/FinanceModule'));
-const EventModule = React.lazy(() => import('@/components/EventModule'));
-const MessagesModule = React.lazy(() => import('@/components/MessagesModule'));
-const AdminModule = React.lazy(() => import('@/components/AdminModule'));
-const SettingsModule = React.lazy(() => import('@/components/SettingsModule'));
-const PedagogicalModule = React.lazy(() => import('@/components/PedagogicalModule'));
-const HealthModule = React.lazy(() => import('@/components/HealthModule'));
-const SocialModule = React.lazy(() => import('@/components/SocialModule'));
-const AIChatBot = React.lazy(() => import('@/components/AIChatBot'));
-const WarRoomLayout = React.lazy(() => import('@/components/bureau/WarRoomLayout'));
-const UserProfile = React.lazy(() => import('@/components/profile/UserProfile'));
-const TransportDashboard = React.lazy(() => import('@/commissions/transport/TransportDashboard'));
-const CulturalDashboard = React.lazy(() => import('@/commissions/culturelle/CulturalDashboard'));
+// Lazy Components with relative paths
+const MemberModule = React.lazy(() => import('./components/MemberModule'));
+const MemberMapModule = React.lazy(() => import('./components/MemberMapModule'));
+const CommissionModule = React.lazy(() => import('./components/CommissionModule'));
+const FinanceModule = React.lazy(() => import('./components/FinanceModule'));
+const EventModule = React.lazy(() => import('./components/EventModule'));
+const MessagesModule = React.lazy(() => import('./components/MessagesModule'));
+const AdminModule = React.lazy(() => import('./components/AdminModule'));
+const SettingsModule = React.lazy(() => import('./components/SettingsModule'));
+const PedagogicalModule = React.lazy(() => import('./components/PedagogicalModule'));
+const HealthModule = React.lazy(() => import('./components/HealthModule'));
+const SocialModule = React.lazy(() => import('./components/SocialModule'));
+const AIChatBot = React.lazy(() => import('./components/AIChatBot'));
+const WarRoomLayout = React.lazy(() => import('./components/bureau/WarRoomLayout'));
+const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
+const TransportDashboard = React.lazy(() => import('./commissions/transport/TransportDashboard'));
+const CulturalDashboard = React.lazy(() => import('./commissions/culturelle/CulturalDashboard'));
 // Dashboards spécifiques demandés
-const AdminDashboard = React.lazy(() => import('@/components/admin/AdminDashboard'));
-const MemberDashboard = React.lazy(() => import('@/components/member/MemberDashboard'));
+const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
+const MemberDashboard = React.lazy(() => import('./components/member/MemberDashboard'));
 
-import GuestDashboard from '@/components/GuestDashboard';
+import GuestDashboard from './components/GuestDashboard';
 
 import { Menu, Power, Eye, VenetianMask, Loader2 } from 'lucide-react';
-import { DataProvider, useData } from '@/contexts/DataContext';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { NotificationProvider } from '@/context/NotificationContext';
-import { LoadingProvider } from '@/context/LoadingContext';
-import { ThemeProvider } from '@/context/ThemeContext';
-import { supabase } from '@/lib/supabase'; // Import direct pour le realtime
+import { DataProvider, useData } from './contexts/DataContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+import { LoadingProvider } from './context/LoadingContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { supabase } from './lib/supabase';
 
 // Fallback Loader (Gold Color #D4AF37)
 const PageLoader = () => (

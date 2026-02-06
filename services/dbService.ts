@@ -1,6 +1,6 @@
 
 import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase } from '../types';
-import { supabase } from '../src/lib/supabase';
+import { supabase } from '../lib/supabase'; // Fixed import
 
 // --- HELPERS ---
 

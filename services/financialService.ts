@@ -4,7 +4,7 @@ import {
   BudgetRequest, 
   CommissionType,
 } from '../types';
-import { supabase } from '../src/lib/supabase';
+import { supabase } from '../lib/supabase'; // Fixed import
 
 // Helper pour gérer les erreurs
 const handleError = (error: any) => {
