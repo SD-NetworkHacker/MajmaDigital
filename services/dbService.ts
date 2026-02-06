@@ -1,17 +1,22 @@
+
 import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase, TicketItem, InventoryItem, KhassaideModule, Partner, SocialPost, StudyGroup } from '../types';
 import { supabase } from '../lib/supabase';
 
 const handleSupabaseError = (error: any) => {
   if (error) {
     console.error("Supabase Error:", error);
-    throw new Error(error.message);
+    // Don't throw for everything to keep UI alive, but log it.
+    // throw new Error(error.message); 
   }
 };
 
 // --- MEMBERS ---
 export const dbFetchMembers = async (): Promise<Member[]> => {
   const { data, error } = await supabase.from('members').select('*');
-  if (error) return [];
+  if (error) {
+      console.error("Fetch Members Error:", error);
+      return [];
+  }
   return data || [];
 };
 
@@ -284,11 +289,12 @@ export const dbCreateSocialPost = async (p: Partial<SocialPost>) => {
 export const dbFetchStudyGroups = async (): Promise<StudyGroup[]> => {
     const { data, error } = await supabase.from('study_groups').select('*');
     if (error) return [];
+    // Adapter le retour si les noms de colonnes DB diffèrent
     return data.map((g: any) => ({
         id: g.id,
         name: g.name,
         theme: g.theme,
-        membersCount: g.members_count
+        membersCount: g.members_count || 0
     }));
 };
 export const dbCreateStudyGroup = async (g: Partial<StudyGroup>) => {

@@ -1,8 +1,15 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-// Initialization with process.env.API_KEY per guidelines
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize safely to prevent app crash if API Key is missing
+const getClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    console.warn("Gemini API Key is missing. AI features are disabled.");
+    return null;
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 const SPIRITUAL_FALLBACKS = [
   "La fraternité est le socle de notre Dahira. Cultivons l'entraide et la discipline.",
@@ -15,6 +22,9 @@ const SPIRITUAL_FALLBACKS = [
 const getRandomFallback = () => SPIRITUAL_FALLBACKS[Math.floor(Math.random() * SPIRITUAL_FALLBACKS.length)];
 
 export const getSmartInsight = async (topic: string) => {
+  const ai = getClient();
+  if (!ai) return getRandomFallback();
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -28,6 +38,9 @@ export const getSmartInsight = async (topic: string) => {
 };
 
 export const explainXassaid = async (title: string) => {
+  const ai = getClient();
+  if (!ai) return "L'analyse IA est désactivée (Clé API manquante).";
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -40,6 +53,9 @@ export const explainXassaid = async (title: string) => {
 };
 
 export const translateXassaid = async (text: string) => {
+  const ai = getClient();
+  if (!ai) return "Traduction IA désactivée.";
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -52,6 +68,9 @@ export const translateXassaid = async (text: string) => {
 };
 
 export const startChat = () => {
+  const ai = getClient();
+  if (!ai) return null;
+
   try {
     return ai.chats.create({
       model: 'gemini-2.5-flash',
@@ -66,9 +85,10 @@ export const startChat = () => {
 };
 
 export const transcribeAudio = async (base64Audio: string) => {
+  const ai = getClient();
+  if (!ai) return "Transcription désactivée.";
+
   try {
-      // Placeholder: The actual implementation would use a multimodal model if available
-      // or specific audio model. For 'gemini-2.5-flash', we can send audio parts.
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: {
@@ -86,13 +106,14 @@ export const transcribeAudio = async (base64Audio: string) => {
 };
 
 export const generateSpeech = async (text: string) => {
-  // TTS implementation placeholder as 2.5-flash doesn't support TTS natively via generateContent in the same way 
-  // without specific config, or requires 'gemini-2.5-flash-preview-tts'.
-  // Returning null to be safe as per previous code behavior
+  // TTS not implemented for basic flash model directly in this wrapper
   return null;
 };
 
 export const getMapsLocationInfo = async (query: string, lat?: number, lng?: number) => {
+  const ai = getClient();
+  if (!ai) return { text: "Info lieu indisponible (IA off)." };
+
   try {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -105,6 +126,9 @@ export const getMapsLocationInfo = async (query: string, lat?: number, lng?: num
 };
 
 export const generateSocialPost = async (topic: string, platform: string, tone: string) => {
+  const ai = getClient();
+  if (!ai) return "Génération de contenu indisponible sans clé API.";
+
   try {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -115,6 +139,9 @@ export const generateSocialPost = async (topic: string, platform: string, tone: 
 };
 
 export const generateReplyToComment = async (comment: string, context: string) => {
+    const ai = getClient();
+    if (!ai) return "IA indisponible.";
+
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -125,6 +152,9 @@ export const generateReplyToComment = async (comment: string, context: string) =
 };
 
 export const generateHooks = async (topic: string) => {
+    const ai = getClient();
+    if (!ai) return "IA indisponible.";
+
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
