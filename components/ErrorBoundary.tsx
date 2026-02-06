@@ -1,3 +1,4 @@
+
 import React, { ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCcw } from 'lucide-react';
 
@@ -48,7 +49,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return (this as any).props.children;
   }
 }
 

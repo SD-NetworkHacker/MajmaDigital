@@ -7,9 +7,17 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || (process.env.VITE_SUPABASE_URL as string);
 const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || (process.env.VITE_SUPABASE_ANON_KEY as string);
 
+// Log discret en développement pour le diagnostic
+if ((import.meta as any).env?.DEV) {
+  console.log("Checking Supabase Config:", {
+    urlDefined: !!supabaseUrl,
+    keyDefined: !!supabaseAnonKey
+  });
+}
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error("⚠️ ERREUR CONFIGURATION : VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY manquant.");
-  console.error("Vérifiez la présence du fichier .env à la racine du projet.");
+  console.error("Vérifiez la présence du fichier .env à la racine du projet ou les variables d'environnement Vercel.");
 }
 
 // Fallback to placeholder to prevent immediate crash, but log error.
@@ -21,5 +29,6 @@ export const supabase = createClient(validUrl, validKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true
   }
 });
