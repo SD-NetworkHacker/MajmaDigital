@@ -132,6 +132,25 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
     updateTask(task.id, { status: newStatus });
   };
 
+  // --- DRAG AND DROP HANDLERS ---
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData("taskId", taskId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault(); // Necessary to allow dropping
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent, newStatus: TaskStatus) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData("taskId");
+    if (taskId) {
+       updateTask(taskId, { status: newStatus });
+    }
+  };
+
   const getPriorityColor = (p: TaskPriority) => {
     switch (p) {
       case 'high': return 'text-rose-600 bg-rose-50 border-rose-100';
@@ -155,8 +174,10 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
     
     return (
       <div 
+        draggable
+        onDragStart={(e) => handleDragStart(e, task.id)}
         onClick={() => openEditModal(task)}
-        className={`bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all group cursor-pointer ${task.status === 'blocked' ? 'border-rose-200 bg-rose-50/10' : 'border-slate-100 hover:border-blue-200'}`}
+        className={`bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all group cursor-grab active:cursor-grabbing ${task.status === 'blocked' ? 'border-rose-200 bg-rose-50/10' : 'border-slate-100 hover:border-blue-200'}`}
       >
         <div className="flex justify-between items-start mb-2">
            <div className="flex gap-1 flex-wrap">
@@ -192,7 +213,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
              )}
            </div>
 
-           {/* Quick Move Actions */}
+           {/* Quick Move Actions (Click fallback) */}
            <div className="flex gap-1" onClick={e => e.stopPropagation()}>
              {task.status !== 'done' && (
                 <button 
@@ -398,7 +419,11 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
          <div className="flex gap-6 h-full min-w-[800px]">
             
             {/* COLUMN: TODO */}
-            <div className="flex-1 flex flex-col gap-4 bg-slate-50/50 rounded-[2rem] p-4 border border-slate-200/60 h-full">
+            <div 
+                className="flex-1 flex flex-col gap-4 bg-slate-50/50 rounded-[2rem] p-4 border border-slate-200/60 h-full transition-colors hover:bg-slate-100/50"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, 'todo')}
+            >
                <div className="flex items-center justify-between px-2 mb-2">
                   <h5 className="font-black text-xs text-slate-500 uppercase tracking-widest flex items-center gap-2">
                      <Circle size={12} className="text-slate-400 fill-current"/> À faire
@@ -412,7 +437,11 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
             </div>
 
             {/* COLUMN: IN PROGRESS (Includes Waiting/Blocked/Review) */}
-            <div className="flex-1 flex flex-col gap-4 bg-blue-50/30 rounded-[2rem] p-4 border border-blue-100/60 h-full">
+            <div 
+                className="flex-1 flex flex-col gap-4 bg-blue-50/30 rounded-[2rem] p-4 border border-blue-100/60 h-full transition-colors hover:bg-blue-50/50"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, 'in_progress')}
+            >
                <div className="flex items-center justify-between px-2 mb-2">
                   <h5 className="font-black text-xs text-blue-600 uppercase tracking-widest flex items-center gap-2">
                      <Clock size={12} className="text-blue-500 fill-current"/> En cours
@@ -426,7 +455,11 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
             </div>
 
             {/* COLUMN: DONE */}
-            <div className="flex-1 flex flex-col gap-4 bg-emerald-50/30 rounded-[2rem] p-4 border border-emerald-100/60 h-full">
+            <div 
+                className="flex-1 flex flex-col gap-4 bg-emerald-50/30 rounded-[2rem] p-4 border border-emerald-100/60 h-full transition-colors hover:bg-emerald-50/50"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, 'done')}
+            >
                <div className="flex items-center justify-between px-2 mb-2">
                   <h5 className="font-black text-xs text-emerald-600 uppercase tracking-widest flex items-center gap-2">
                      <CheckCircle size={12} className="text-emerald-500 fill-current"/> Terminé
