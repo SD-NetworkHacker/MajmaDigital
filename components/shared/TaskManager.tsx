@@ -1,8 +1,9 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   CheckCircle, Circle, Clock, MoreHorizontal, Plus, 
   Trash2, User, AlertCircle, Edit, Calendar, ListTodo, X,
-  MessageSquare, Lock, Hourglass, Send
+  MessageSquare, Lock, Hourglass, Send, AlertTriangle
 } from 'lucide-react';
 import { CommissionType, Task, TaskStatus, TaskPriority, TaskComment } from '../../types';
 import { useData } from '../../contexts/DataContext';
@@ -17,6 +18,10 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  
+  // Delete Confirmation State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
   
   // Comment handling
   const [newComment, setNewComment] = useState('');
@@ -110,9 +115,16 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Supprimer cette tâche ?")) {
-      deleteTask(id);
-      if(editingTask?.id === id) closeModal();
+    setTaskToDeleteId(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (taskToDeleteId) {
+      deleteTask(taskToDeleteId);
+      if (editingTask?.id === taskToDeleteId) closeModal();
+      setShowDeleteModal(false);
+      setTaskToDeleteId(null);
     }
   };
 
@@ -199,6 +211,37 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
 
   return (
     <div className="space-y-6 h-full flex flex-col">
+      {/* DELETE CONFIRMATION MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+           <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-in zoom-in duration-200">
+              <div className="flex flex-col items-center text-center space-y-4">
+                 <div className="p-4 bg-rose-50 text-rose-500 rounded-full">
+                    <AlertTriangle size={32} />
+                 </div>
+                 <div>
+                    <h3 className="text-lg font-black text-slate-800">Supprimer la tâche ?</h3>
+                    <p className="text-xs text-slate-500 font-medium mt-1">Cette action est irréversible.</p>
+                 </div>
+                 <div className="grid grid-cols-2 gap-3 w-full pt-2">
+                    <button 
+                      onClick={() => setShowDeleteModal(false)}
+                      className="py-3 bg-slate-100 text-slate-500 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+                    >
+                       Annuler
+                    </button>
+                    <button 
+                      onClick={confirmDelete}
+                      className="py-3 bg-rose-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-rose-700 transition-all"
+                    >
+                       Supprimer
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
       {/* Modal Detail / Edit */}
       {showModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">

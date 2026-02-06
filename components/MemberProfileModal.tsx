@@ -45,7 +45,6 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
   // Local State
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<Member>>({});
-  const [showMemberCard, setShowMemberCard] = useState(false);
 
   // Initialize form data
   const startEditing = () => {
