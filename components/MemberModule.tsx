@@ -155,8 +155,8 @@ const MemberModule: React.FC<MemberModuleProps> = ({ onViewProfile }) => {
             <Users size={48} className="text-slate-300" />
          </div>
          <div className="text-center max-w-md space-y-2">
-            <h3 className="text-xl font-black text-slate-800">Annuaire Vide</h3>
-            <p className="text-sm text-slate-500">Aucun membre enregistré dans la base réelle.</p>
+            <h3 className="text-xl font-black text-slate-800">Bienvenue</h3>
+            <p className="text-sm text-slate-500">En attente de données réelles...</p>
          </div>
          <button 
            onClick={() => setShowForm(true)}

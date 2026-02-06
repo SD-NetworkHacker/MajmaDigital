@@ -79,7 +79,6 @@ export const INITIAL_COMMISSIONS: Commission[] = [
 ];
 
 // --- DONNÉES DE PRODUCTION (VIDES PAR DÉFAUT) ---
-// Toutes les données doivent provenir de Supabase
 export const SEED_MEMBERS: Member[] = [];
 export const SEED_EVENTS: Event[] = [];
 export const SEED_CONTRIBUTIONS: Contribution[] = [];

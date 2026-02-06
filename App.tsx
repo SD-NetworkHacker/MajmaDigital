@@ -20,6 +20,8 @@ const WarRoomLayout = React.lazy(() => import('./components/bureau/WarRoomLayout
 const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
 const TransportDashboard = React.lazy(() => import('./commissions/transport/TransportDashboard'));
 const CulturalDashboard = React.lazy(() => import('./commissions/culturelle/CulturalDashboard'));
+const ProfileCompletion = React.lazy(() => import('./components/auth/ProfileCompletion'));
+
 // Dashboards spécifiques demandés
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 const MemberDashboard = React.lazy(() => import('./components/member/MemberDashboard'));
@@ -50,13 +52,12 @@ const MainContent: React.FC = () => {
   const [viewProfileId, setViewProfileId] = useState<string | null>(null);
   
   const { members, events, contributions, isLoading } = useData();
-  const { user, isImpersonating, stopImpersonation, updateUser } = useAuth();
+  const { user, isImpersonating, stopImpersonation, updateUser, refreshProfile } = useAuth();
 
   // --- SUPABASE REALTIME ROLE LISTENER ---
   useEffect(() => {
     if (!user) return;
 
-    // Écoute les changements sur la table 'profiles' pour l'utilisateur courant
     const channel = supabase
       .channel('public:profiles')
       .on(
@@ -65,11 +66,10 @@ const MainContent: React.FC = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'profiles',
-          filter: `id=eq.${user.id}`, // Filtre sur l'ID de l'utilisateur connecté
+          filter: `id=eq.${user.id}`,
         },
         (payload) => {
           console.log("⚡ Changement de rôle détecté en temps réel :", payload.new);
-          // Mise à jour immédiate du contexte Auth
           updateUser({ 
               role: payload.new.role,
               firstName: payload.new.first_name,
@@ -85,26 +85,32 @@ const MainContent: React.FC = () => {
     };
   }, [user, updateUser]);
 
-  // --- LOGIQUE DE ROUTING AUTOMATIQUE ---
-  // Si l'utilisateur n'est pas connecté
+  // --- 1. GESTION DES VISITEURS ---
   if (!user) {
     return <GuestDashboard />;
   }
 
-  // Dashboard Switching Logic (Facebook Style)
+  // --- 2. ROUTAGE INTELLIGENT SELON LE RÔLE ---
+  const role = (user.role || '').toUpperCase();
+
+  // Cas : Profil incomplet ou Sympathisant
+  if (role === 'SYMPATHISANT' || role === 'NEW_USER') {
+      return (
+        <Suspense fallback={<PageLoader />}>
+            <ProfileCompletion onComplete={() => refreshProfile()} />
+        </Suspense>
+      );
+  }
+
+  // Dashboard Switching Logic
   const getDashboardComponent = () => {
-     // Normalisation pour éviter les erreurs de casse
-     const role = (user.role || '').toUpperCase();
-     
      if (['SG', 'ADMIN', 'ADJOINT_SG', 'DIEUWRINE'].includes(role)) {
          return <AdminDashboard setActiveTab={setActiveTab} members={members} events={events} contributions={contributions} />;
      } else {
-         // Par défaut pour MEMBRE et tout autre rôle
          return <MemberDashboard setActiveTab={setActiveTab} />;
      }
   };
 
-  const role = (user.role || '').toUpperCase();
   const isAdminOrManager = ['ADMIN', 'SG', 'ADJOINT_SG', 'DIEUWRINE'].includes(role);
 
   const navigateToProfile = (id: string | null) => {
@@ -113,7 +119,7 @@ const MainContent: React.FC = () => {
   };
 
   const renderContent = () => {
-    // Vue Bureau Exécutif (War Room)
+    // Vue Bureau Exécutif (War Room) - Réservé
     if (activeTab === 'bureau' && isAdminOrManager) {
       return (
         <Suspense fallback={<PageLoader />}>
