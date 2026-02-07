@@ -10,28 +10,76 @@ const handleSupabaseError = (error: any) => {
   }
 };
 
-// --- MEMBERS ---
+// --- MEMBERS (MAPPED TO PROFILES TABLE) ---
 export const dbFetchMembers = async (): Promise<Member[]> => {
-  const { data, error } = await supabase.from('members').select('*');
+  // On cible la table 'profiles' qui est synchronisée avec l'Auth
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+
   if (error) {
-      console.error("Fetch Members Error:", error);
+      console.error("Fetch Profiles Error:", error);
       return [];
   }
-  return data || [];
+
+  // Transformation des données DB (snake_case) vers le format de l'app (camelCase)
+  return (data || []).map((p: any) => ({
+    id: p.id,
+    firstName: p.first_name || '',
+    lastName: p.last_name || '',
+    email: p.email || '',
+    phone: p.phone || '',
+    role: p.role || 'MEMBRE',
+    category: p.category || 'Sympathisant',
+    matricule: p.matricule || 'N/A',
+    status: 'active', // Par défaut actif si présent dans la table
+    address: p.address || 'Non renseignée', // Si vous n'avez pas ce champ en DB, mettez une valeur par défaut
+    joinDate: p.created_at,
+    // Coordonnées par défaut (Dakar) si non présentes
+    coordinates: { lat: 14.7167, lng: -17.4677 }, 
+    // Pour l'instant, tableau vide ou à récupérer via une table de liaison si implémenté
+    commissions: [], 
+    bio: p.bio
+  }));
 };
 
 export const dbCreateMember = async (member: Partial<Member>) => {
-  const { error } = await supabase.from('members').insert([member]);
+  // Conversion inverse camelCase -> snake_case pour l'insertion
+  const profileData = {
+    first_name: member.firstName,
+    last_name: member.lastName,
+    email: member.email,
+    phone: member.phone,
+    role: member.role,
+    category: member.category,
+    matricule: member.matricule,
+    // address: member.address // Décommentez si vous ajoutez la colonne address à la table profiles
+    // On laisse Supabase générer l'ID si c'est une création manuelle hors Auth
+  };
+
+  const { error } = await supabase.from('profiles').insert([profileData]);
   handleSupabaseError(error);
 };
 
 export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
-  const { error } = await supabase.from('members').update(updates).eq('id', id);
+  // Mapping partiel pour la mise à jour
+  const dbUpdates: any = {};
+  if (updates.firstName) dbUpdates.first_name = updates.firstName;
+  if (updates.lastName) dbUpdates.last_name = updates.lastName;
+  if (updates.email) dbUpdates.email = updates.email;
+  if (updates.phone) dbUpdates.phone = updates.phone;
+  if (updates.role) dbUpdates.role = updates.role;
+  if (updates.category) dbUpdates.category = updates.category;
+  if (updates.bio) dbUpdates.bio = updates.bio;
+
+  const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', id);
   handleSupabaseError(error);
 };
 
 export const dbDeleteMember = async (id: string) => {
-  const { error } = await supabase.from('members').delete().eq('id', id);
+  // Note: Supprimer un profil ne supprime pas forcément l'utilisateur Auth (sauf si configuré en cascade)
+  const { error } = await supabase.from('profiles').delete().eq('id', id);
   handleSupabaseError(error);
 };
 
@@ -39,6 +87,7 @@ export const dbDeleteMember = async (id: string) => {
 export const dbFetchContributions = async (): Promise<Contribution[]> => {
   const { data, error } = await supabase.from('contributions').select('*');
   if (error) return [];
+  // Assurez-vous que le format retourné correspond à l'interface Contribution
   return data || [];
 };
 
@@ -289,7 +338,6 @@ export const dbCreateSocialPost = async (p: Partial<SocialPost>) => {
 export const dbFetchStudyGroups = async (): Promise<StudyGroup[]> => {
     const { data, error } = await supabase.from('study_groups').select('*');
     if (error) return [];
-    // Adapter le retour si les noms de colonnes DB diffèrent
     return data.map((g: any) => ({
         id: g.id,
         name: g.name,
