@@ -26,6 +26,27 @@ export enum MemberCategory {
   ELEVE = 'Élève'
 }
 
+export interface MemberDocument {
+  id: string;
+  name: string;
+  type: 'PDF' | 'IMAGE' | 'AUTRE';
+  date: string;
+  url?: string;
+  verified: boolean;
+}
+
+export interface MemberPreferences {
+  notifications: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+  };
+  privacy: {
+    showPhone: boolean;
+    showAddress: boolean;
+  };
+}
+
 export interface Commission {
   name: CommissionType;
   slug: string;
@@ -52,6 +73,8 @@ export interface Member {
   level?: string;
   birthDate?: string;
   gender?: 'Homme' | 'Femme';
+  documents?: MemberDocument[];
+  preferences?: MemberPreferences;
 }
 
 export interface UserProfile extends Member {

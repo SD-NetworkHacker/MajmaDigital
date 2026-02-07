@@ -44,12 +44,17 @@ export const dbFetchMembers = async (): Promise<Member[]> => {
       matricule: p.matricule || 'N/A',
       status: 'active', 
       address: p.address || 'Non renseignée',
-      birthDate: p.birth_date, // Mapping date naissance
-      gender: p.gender, // Mapping genre
+      birthDate: p.birth_date, 
+      gender: p.gender, 
       joinDate: p.created_at,
       coordinates: coords, 
       commissions: [], // TODO: Gérer via table de liaison si besoin
-      bio: p.bio
+      bio: p.bio,
+      documents: p.documents || [],
+      preferences: p.preferences || {
+          notifications: { email: true, push: true, sms: false },
+          privacy: { showPhone: false, showAddress: false }
+      }
     };
   });
 };
@@ -67,7 +72,9 @@ export const dbCreateMember = async (member: Partial<Member>) => {
     address: member.address,
     birth_date: member.birthDate,
     gender: member.gender,
-    location_data: member.coordinates // Stockage JSON pour lat/lng
+    location_data: member.coordinates, // Stockage JSON pour lat/lng
+    documents: member.documents || [],
+    preferences: member.preferences || {}
   };
 
   const { error } = await supabase.from('profiles').insert([profileData]);
@@ -88,6 +95,8 @@ export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
   if (updates.birthDate) dbUpdates.birth_date = updates.birthDate;
   if (updates.gender) dbUpdates.gender = updates.gender;
   if (updates.coordinates) dbUpdates.location_data = updates.coordinates;
+  if (updates.documents) dbUpdates.documents = updates.documents;
+  if (updates.preferences) dbUpdates.preferences = updates.preferences;
 
   const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', id);
   handleSupabaseError(error);
