@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
 import { supabase } from '../lib/supabase';
-import { APP_VERSION } from '../constants';
 
 export interface UserProfile {
   id: string;
@@ -35,18 +34,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
+  // Fonction utilitaire pour ajouter un timeout à une promesse
+  const withTimeout = <T,>(promise: Promise<T>, ms: number, timeoutValue: T): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((resolve) => setTimeout(() => resolve(timeoutValue), ms))
+    ]);
+  };
+
   const fetchProfile = async (userId: string, email: string): Promise<UserProfile | null> => {
     try {
-      // 1. Essayer de récupérer le profil
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.warn("Profil non trouvé ou erreur RLS, tentative de création par défaut...");
-      }
+      // Timeout de 3 secondes pour la récupération du profil
+      const { data, error } = await withTimeout(
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        3000,
+        { data: null, error: null } as any
+      );
 
       if (data) {
         return {
@@ -62,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
       }
 
-      // 2. Si aucun profil n'existe, on en crée un automatiquement (Ghost User protection)
+      // Auto-création si manquant
       const newProfile = {
         id: userId,
         email: email,
@@ -72,84 +75,82 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         status: 'active'
       };
 
-      const { data: createdData, error: createError } = await supabase
-        .from('profiles')
-        .insert([newProfile])
-        .select()
-        .single();
+      const { data: createdData } = await withTimeout(
+        supabase.from('profiles').insert([newProfile]).select().single(),
+        3000,
+        { data: null } as any
+      );
 
-      if (createError) {
-        console.error("Erreur critique lors de la création du profil:", createError);
-        // Fallback local pour ne pas bloquer l'utilisateur
+      if (createdData) {
         return {
-          id: userId,
+          id: createdData.id,
           email,
-          firstName: newProfile.first_name,
-          lastName: '',
-          role: 'NEW_USER'
+          firstName: createdData.first_name,
+          lastName: createdData.last_name,
+          role: createdData.role,
         };
       }
 
-      return {
-        id: createdData.id,
-        email: email,
-        firstName: createdData.first_name,
-        lastName: createdData.last_name,
-        role: createdData.role,
-        status: createdData.status
-      } as any;
-
+      return { id: userId, email, firstName: 'Utilisateur', lastName: '', role: 'NEW_USER' };
     } catch (e) {
-      console.error("Erreur fatale dans fetchProfile:", e);
-      return null;
+      console.error("Profile fetch fatal error:", e);
+      return { id: userId, email, firstName: 'Utilisateur', lastName: '', role: 'NEW_USER' };
     }
   };
 
   useEffect(() => {
+    let mounted = true;
+
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+        // Timeout global d'initialisation de 5 secondes
+        const sessionPromise = supabase.auth.getSession();
+        const { data: { session } } = await withTimeout(sessionPromise, 5000, { data: { session: null } } as any);
+        
+        if (mounted && session?.user) {
           const profile = await fetchProfile(session.user.id, session.user.email!);
           setUser(profile);
         }
       } catch (err) {
         console.error("Auth init error:", err);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id, session.user.email!);
-        setUser(profile);
-      } else {
-        setUser(null);
+      if (mounted) {
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id, session.user.email!);
+          setUser(profile);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
       showLoading();
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
       if (error) throw error;
 
       if (data.user) {
         const profile = await fetchProfile(data.user.id, data.user.email!);
         setUser(profile);
-        const name = profile?.firstName || email.split('@')[0];
-        addNotification(`Heureux de vous revoir, ${name}`, 'success');
+        addNotification(`Bienvenue, ${profile?.firstName}`, 'success');
       }
     } catch (error: any) {
-      addNotification(error.message || "Échec de la connexion", 'error');
+      addNotification(error.message || "Erreur de connexion", 'error');
       throw error;
     } finally {
       hideLoading();

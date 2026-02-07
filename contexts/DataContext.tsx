@@ -75,40 +75,46 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     setServerError(false);
 
+    const wrap = async (fn: any, setter: any) => {
+      try {
+        // Timeout individuel par table (4 secondes)
+        const res = await Promise.race([
+          fn(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 4000))
+        ]);
+        setter(res || []);
+      } catch (e) {
+        console.warn(`Fetch issue for table:`, e);
+        setter([]);
+      }
+    };
+
     try {
-      // Stratégie : Chargement parallèle avec gestion d'erreur individuelle
-      const wrap = async (fn: any, setter: any) => {
-        try {
-          const res = await fn();
-          setter(res || []);
-        } catch (e) {
-          console.error(`Table loading failed:`, e);
-          setter([]);
-        }
-      };
-
-      await Promise.all([
-        wrap(dbFetchMembers, setMembers),
-        wrap(dbFetchContributions, setContributions),
-        wrap(dbFetchEvents, setEvents),
-        wrap(dbFetchTasks, setTasks),
-        wrap(dbFetchBudgetRequests, setBudgetRequests),
-        wrap(dbFetchFinancialReports, setFinancialReports),
-        wrap(dbFetchAdiyaCampaigns, setAdiyaCampaigns),
-        wrap(dbFetchFleet, setFleet),
-        wrap(dbFetchDrivers, setDrivers),
-        wrap(dbFetchSchedules, setSchedules),
-        wrap(dbFetchTickets, setTickets),
-        wrap(dbFetchInventory, setInventory),
-        wrap(dbFetchResources, setLibrary),
-        wrap(dbFetchKhassaideModules, setKhassaideModules),
-        wrap(dbFetchSocialCases, setSocialCases),
-        wrap(dbFetchSocialProjects, setSocialProjects),
-        wrap(dbFetchPartners, setPartners),
-        wrap(dbFetchSocialPosts, setSocialPosts),
-        wrap(dbFetchStudyGroups, setStudyGroups)
+      // Chargement en parallèle avec un timeout global de 10 secondes pour libérer l'UI
+      await Promise.race([
+        Promise.all([
+          wrap(dbFetchMembers, setMembers),
+          wrap(dbFetchContributions, setContributions),
+          wrap(dbFetchEvents, setEvents),
+          wrap(dbFetchTasks, setTasks),
+          wrap(dbFetchBudgetRequests, setBudgetRequests),
+          wrap(dbFetchFinancialReports, setFinancialReports),
+          wrap(dbFetchAdiyaCampaigns, setAdiyaCampaigns),
+          wrap(dbFetchFleet, setFleet),
+          wrap(dbFetchDrivers, setDrivers),
+          wrap(dbFetchSchedules, setSchedules),
+          wrap(dbFetchTickets, setTickets),
+          wrap(dbFetchInventory, setInventory),
+          wrap(dbFetchResources, setLibrary),
+          wrap(dbFetchKhassaideModules, setKhassaideModules),
+          wrap(dbFetchSocialCases, setSocialCases),
+          wrap(dbFetchSocialProjects, setSocialProjects),
+          wrap(dbFetchPartners, setPartners),
+          wrap(dbFetchSocialPosts, setSocialPosts),
+          wrap(dbFetchStudyGroups, setStudyGroups)
+        ]),
+        new Promise((resolve) => setTimeout(resolve, 10000))
       ]);
-
     } catch (error) {
       console.error("Data loading engine error:", error);
       setServerError(true);
@@ -117,12 +123,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  useEffect(() => { loadData(); }, [isAuthenticated]);
+  useEffect(() => { 
+    loadData(); 
+  }, [isAuthenticated]);
 
   const totalTreasury = contributions.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
   const activeMembersCount = members.filter(m => m.status === 'active').length;
 
-  // Stubs for actions (to be fully implemented in dbService)
   const addContribution = async (c: any) => { console.log('Add contrib', c); await loadData(); };
   const addMember = async (m: any) => { console.log('Add member', m); await loadData(); };
   const updateMember = async (id: string, u: any) => { console.log('Update member', id, u); await loadData(); };
