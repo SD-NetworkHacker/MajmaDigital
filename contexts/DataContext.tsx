@@ -2,25 +2,18 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { 
     Member, Event, Contribution, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, 
-    UserProfile, AdiyaCampaign, Task, Vehicle, Driver, TransportSchedule, 
+    AdiyaCampaign, FundraisingEvent, Task, Vehicle, Driver, TransportSchedule, 
     LibraryResource, SocialCase, SocialProject, TicketItem, InventoryItem, KhassaideModule,
     Partner, SocialPost, StudyGroup 
 } from '../types';
 import { 
-  dbFetchMembers, dbFetchContributions, dbFetchEvents, dbFetchReports, 
-  dbCreateMember, dbUpdateMember, dbDeleteMember,
-  dbCreateContribution, dbFetchAdiyaCampaigns,
-  dbFetchBudgetRequests, dbUpdateBudgetRequest,
-  dbFetchFinancialReports,
-  dbFetchTasks, dbFetchFleet, dbFetchDrivers, dbFetchSchedules, dbFetchResources,
-  dbFetchSocialCases, dbFetchSocialProjects, dbFetchTickets, dbFetchInventory,
-  dbFetchKhassaideModules, dbFetchPartners, dbFetchSocialPosts, dbFetchStudyGroups,
-  dbUploadMemberDocument, dbDeleteMemberDocument,
-  dbBatchApproveMembers
+  dbFetchMembers, dbFetchContributions, dbFetchAdiyaCampaigns, dbFetchBudgetRequests, 
+  dbFetchFinancialReports, dbFetchEvents, dbFetchTasks, dbFetchFleet, dbFetchDrivers, 
+  dbFetchSchedules, dbFetchTickets, dbFetchInventory, dbFetchResources, 
+  dbFetchKhassaideModules, dbFetchSocialCases, dbFetchSocialProjects, 
+  dbFetchPartners, dbFetchSocialPosts, dbFetchStudyGroups
 } from '../services/dbService';
-import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
-import { RefreshCcw, ServerCrash } from 'lucide-react';
 
 interface DataContextType {
   members: Member[];
@@ -29,7 +22,6 @@ interface DataContextType {
   adiyaCampaigns: AdiyaCampaign[];
   budgetRequests: BudgetRequest[];
   financialReports: CommissionFinancialReport[];
-  // ... (Autres états inchangés)
   tasks: Task[];
   fleet: Vehicle[];
   drivers: Driver[];
@@ -43,13 +35,8 @@ interface DataContextType {
   partners: Partner[];
   socialPosts: SocialPost[];
   studyGroups: StudyGroup[];
-  
-  // Methodes
-  addContribution: (c: Partial<Contribution>) => Promise<void>;
-  updateBudgetRequest: (id: string, d: Partial<BudgetRequest>) => Promise<void>;
-  updateMember: (id: string, data: Partial<Member>) => void;
-  // ... 
   totalTreasury: number;
+  activeMembersCount: number;
   isLoading: boolean;
   serverError: boolean;
 }
@@ -57,18 +44,16 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
-  const { addNotification } = useNotification();
-  
+  const { isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState(false);
   
+  // States
   const [members, setMembers] = useState<Member[]>([]);
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [adiyaCampaigns, setAdiyaCampaigns] = useState<AdiyaCampaign[]>([]);
   const [budgetRequests, setBudgetRequests] = useState<BudgetRequest[]>([]);
   const [financialReports, setFinancialReports] = useState<CommissionFinancialReport[]>([]);
-  // ... (Initialisations vides pour les autres)
   const [events, setEvents] = useState<Event[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [fleet, setFleet] = useState<Vehicle[]>([]);
@@ -87,60 +72,58 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loadData = async () => {
     if (!isAuthenticated) return;
     setIsLoading(true);
+    setServerError(false);
+
     try {
-      const [m, c, a, br, fr, e, t] = await Promise.all([
-        dbFetchMembers(), 
-        dbFetchContributions(), 
-        dbFetchAdiyaCampaigns(),
-        dbFetchBudgetRequests(),
-        dbFetchFinancialReports(),
-        dbFetchEvents(),
-        dbFetchTasks()
+      // Stratégie : On charge les données vitales d'abord
+      const [m, c, e] = await Promise.all([
+        dbFetchMembers().catch(() => []),
+        dbFetchContributions().catch(() => []),
+        dbFetchEvents().catch(() => [])
       ]);
       
       setMembers(m);
       setContributions(c);
-      setAdiyaCampaigns(a);
-      setBudgetRequests(br);
-      setFinancialReports(fr);
       setEvents(e);
-      setTasks(t);
-      // ... charger les autres modules
+
+      // On charge le reste en arrière-plan sans bloquer
+      Promise.all([
+        dbFetchAdiyaCampaigns().then(setAdiyaCampaigns).catch(() => {}),
+        dbFetchBudgetRequests().then(setBudgetRequests).catch(() => {}),
+        dbFetchFinancialReports().then(setFinancialReports).catch(() => {}),
+        dbFetchTasks().then(setTasks).catch(() => {}),
+        dbFetchFleet().then(setFleet).catch(() => {}),
+        dbFetchDrivers().then(setDrivers).catch(() => {}),
+        dbFetchSchedules().then(setSchedules).catch(() => {}),
+        dbFetchTickets().then(setTickets).catch(() => {}),
+        dbFetchInventory().then(setInventory).catch(() => {}),
+        dbFetchResources().then(setLibrary).catch(() => {}),
+        dbFetchKhassaideModules().then(setKhassaideModules).catch(() => {}),
+        dbFetchSocialCases().then(setSocialCases).catch(() => {}),
+        dbFetchSocialProjects().then(setSocialProjects).catch(() => {}),
+        dbFetchPartners().then(setPartners).catch(() => {}),
+        dbFetchSocialPosts().then(setSocialPosts).catch(() => {}),
+        dbFetchStudyGroups().then(setStudyGroups).catch(() => {})
+      ]);
+
     } catch (error) {
+      console.error("Critical Data Fetch Error:", error);
       setServerError(true);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // DÉBLOCAGE GARANTI
     }
   };
 
   useEffect(() => { loadData(); }, [isAuthenticated]);
 
-  const addContribution = async (c: Partial<Contribution>) => {
-    try {
-      await dbCreateContribution(c);
-      const updated = await dbFetchContributions();
-      setContributions(updated);
-      addNotification("Paiement enregistré avec succès", "success");
-    } catch (e) {
-      addNotification("Erreur lors de l'enregistrement", "error");
-    }
-  };
-
-  const updateBudgetRequest = async (id: string, d: Partial<BudgetRequest>) => {
-      await dbUpdateBudgetRequest(id, d);
-      setBudgetRequests(prev => prev.map(r => r.id === id ? { ...r, ...d } : r));
-      addNotification("Décision budgétaire enregistrée", "info");
-  };
-
-  const totalTreasury = contributions.reduce((acc, c) => acc + c.amount, 0);
+  const totalTreasury = contributions.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+  const activeMembersCount = members.filter(m => m.status === 'active').length;
 
   return (
     <DataContext.Provider value={{
       members, events, contributions, adiyaCampaigns, budgetRequests, financialReports, tasks,
       fleet, drivers, schedules, tickets, inventory, library, khassaideModules, socialCases, socialProjects,
-      partners, socialPosts, studyGroups,
-      addContribution, updateBudgetRequest, 
-      totalTreasury, isLoading, serverError
+      partners, socialPosts, studyGroups, totalTreasury, activeMembersCount, isLoading, serverError
     }}>
       {children}
     </DataContext.Provider>

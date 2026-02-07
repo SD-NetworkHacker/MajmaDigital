@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="fr" class="h-full antialiased">
+<html lang="fr" class="h-full antialiased scroll-smooth" style="scroll-padding-top: 80px;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -37,6 +37,7 @@
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'blob': 'blob 7s infinite',
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
                     },
                     keyframes: {
                         blob: {
@@ -44,6 +45,10 @@
                             '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
                             '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
                             '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
                         }
                     }
                 }
@@ -54,8 +59,8 @@
     <style>
         :root { --primary: #10b981; }
         html, body {
-            height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden;
-            background-color: #f8fafc; color: #0f172a;
+            height: 100%; width: 100%; margin: 0; padding: 0;
+            background-color: #ffffff; color: #0f172a;
             -webkit-tap-highlight-color: transparent;
             font-family: "Plus Jakarta Sans", sans-serif;
             -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
@@ -63,51 +68,33 @@
         #root { height: 100%; width: 100%; display: flex; flex-direction: column; }
         
         /* Glassmorphism */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.7);
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-            border-radius: 1.5rem;
-        }
-        .sidebar-glass {
-            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(226, 232, 240, 0.8);
+            border-bottom: 1px solid rgba(241, 245, 249, 1);
         }
         
         /* Utilities */
-        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 20px; }
         .arabic-glow { text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); font-family: 'Amiri', serif; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .custom-div-icon { background: transparent; border: none; }
-
-        /* Animations */
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-        
-        .animate-in { animation-duration: 0.4s; animation-fill-mode: both; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
-        .fade-in { animation-name: fadeIn; }
-        .zoom-in { animation-name: zoomIn; }
-        .slide-in-from-right-4 { animation-name: slideInRight; }
         
         /* Background */
-        .mesh-bg {
-            position: fixed; inset: 0; z-index: -1;
-            background-color: #f8fafc;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%);
-            pointer-events: none;
-        }
         .mesh-blob {
             position: absolute;
-            background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
-            filter: blur(40px); z-index: -1; border-radius: 50%;
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%);
+            filter: blur(60px); z-index: -1; border-radius: 50%;
             animation: blob 10s infinite;
+        }
+
+        .section-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .section-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -135,11 +122,7 @@
 }
 </script>
 </head>
-<body class="h-full w-full overflow-hidden selection:bg-emerald-100 selection:text-emerald-900 font-sans">
-    <div class="mesh-bg">
-        <div class="mesh-blob w-96 h-96 top-0 -left-20"></div>
-        <div class="mesh-blob w-96 h-96 bottom-0 -right-20 animation-delay-2000"></div>
-    </div>
+<body class="h-full w-full overflow-x-hidden selection:bg-emerald-100 selection:text-emerald-900 font-sans bg-white">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
 </body>
