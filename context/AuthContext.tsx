@@ -50,8 +50,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  // Helper pour récupérer le profil avec tentatives multiples
-  const fetchProfile = async (userId: string, email: string, retries = 3): Promise<UserProfile | null> => {
+  // Helper pour récupérer le profil
+  const fetchProfile = async (userId: string, email: string): Promise<UserProfile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -59,14 +59,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', userId)
         .single();
 
-      if (error || !data) {
-        if (retries > 0) {
-          console.log(`Profil non trouvé, nouvelle tentative dans 1s... (${retries} restantes)`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return fetchProfile(userId, email, retries - 1);
-        }
-        return null;
-      }
+      if (error || !data) return null;
 
       return {
         id: data.id,
@@ -85,66 +78,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // --- INITIALISATION & SANTÉ SYSTÈME ---
+  // --- INITIALISATION & ROUTINES DE SANTÉ ---
   useEffect(() => {
     let mounted = true;
 
     const performSystemHealthCheck = async () => {
-        // 1. VÉRIFICATION DE VERSION & MIGRATION SESSION
+        // 1. VÉRIFICATION DE VERSION (Nuclear Flush si mismatch)
         const storedVersion = localStorage.getItem('MAJMA_VERSION');
-        
         if (storedVersion !== APP_VERSION) {
-            console.warn(`🔄 Migration détectée : v${storedVersion} -> v${APP_VERSION}. Nettoyage du cache...`);
-            
-            // Nettoyage agressif du LocalStorage pour éviter les conflits
-            // On ne garde que les clés Supabase du projet actuel si on voulait être fin, 
-            // mais ici on suit la directive "Nuclear Flush" pour garantir la propreté.
+            console.warn(`🔄 Mise à jour système : v${storedVersion} -> v${APP_VERSION}. Nettoyage...`);
             localStorage.clear();
-            
-            // On définit la nouvelle version
             localStorage.setItem('MAJMA_VERSION', APP_VERSION);
-            
-            // Déconnexion forcée par sécurité
-            await supabase.auth.signOut();
-            if (mounted) setUser(null);
-            setLoading(false);
-            return; // Stop init here, let the user login again cleanly
+            // On continue pour forcer un état neuf
         }
 
-        // 2. VÉRIFICATION DES GHOSTS (Clefs Supabase d'autres projets ou localhost)
+        // 2. SUPPRESSION DES SESSIONS "GHOSTS" (Autres projets Supabase)
         Object.keys(localStorage).forEach(key => {
             if (key.startsWith('sb-') && !key.includes(SUPABASE_PROJECT_ID)) {
-                console.warn(`👻 Suppression ghost session: ${key}`);
+                console.warn(`👻 Ghost session detected and removed: ${key}`);
                 localStorage.removeItem(key);
             }
         });
 
-        // 3. RÉCUPÉRATION SESSION
+        // 3. RÉCUPÉRATION SESSION & GESTION ERREURS
         try {
             const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
-            if (error) throw error;
+            if (error) {
+                console.error("💥 Auth Session Error:", error);
+                await supabase.auth.signOut();
+                if (mounted) {
+                    setUser(null);
+                    setLoading(false);
+                }
+                return;
+            }
 
             if (currentSession?.user) {
                 setSession(currentSession);
                 const profile = await fetchProfile(currentSession.user.id, currentSession.user.email!);
-                
-                if (mounted) {
-                    if (profile) {
-                        setUser(profile);
-                    } else {
-                        // Profil introuvable mais Auth OK -> État incohérent -> Logout
-                        console.warn("⚠️ Auth OK mais Profil manquant. Auto-logout.");
-                        await supabase.auth.signOut();
-                        setUser(null);
-                    }
-                }
+                if (mounted) setUser(profile);
             } else {
                 if (mounted) setUser(null);
             }
-        } catch (error) {
-            console.error("💥 Erreur Critique Auth:", error);
-            // Gestion d'erreur robuste : Logout forcé en cas d'erreur de session
+        } catch (err) {
+            console.error("💥 Critical Auth Failure:", err);
             await supabase.auth.signOut();
             if (mounted) setUser(null);
         } finally {
@@ -154,7 +132,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     performSystemHealthCheck();
 
-    // Écouteur de changements (Login, Logout, Auto-refresh)
+    // Écouteur de changements d'état (Login/Logout/Token Refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
       
@@ -165,7 +143,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
            const profile = await fetchProfile(newSession.user.id, newSession.user.email!);
            setUser(profile);
         }
-      } else if (event === 'SIGNED_OUT') {
+      } else {
         setUser(null);
         setOriginalAdminSession(null);
       }
@@ -194,7 +172,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
     } catch (error: any) {
-      console.error("Login Error:", error);
       addNotification(error.message || "Erreur de connexion", 'error');
       throw error;
     } finally {
@@ -205,8 +182,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (formData: any) => {
     try {
       showLoading();
-      addNotification("Création de votre espace en cours...", "info");
-      
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -221,34 +196,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error("Erreur création utilisateur");
-
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const { data: existingProfile } = await supabase.from('profiles').select('id').eq('id', authData.user.id).single();
-
-      if (!existingProfile) {
-        const year = new Date().getFullYear();
-        const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-        const matricule = `MAJ-${year}-${randomSuffix}`;
-
-        await supabase.from('profiles').insert([{
-            id: authData.user.id,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            role: 'MEMBRE',
-            category: formData.category,
-            matricule: matricule,
-            created_at: new Date().toISOString()
-          }]);
-      }
 
       if (!authData.session) {
-         addNotification("Veuillez vérifier vos emails pour confirmer l'inscription.", "warning");
+         addNotification("Vérifiez vos emails pour confirmer l'inscription.", "warning");
       } else {
-         const fullProfile = await fetchProfile(authData.user.id, authData.user.email!);
+         const fullProfile = await fetchProfile(authData.user!.id, authData.user!.email!);
          setUser(fullProfile);
          addNotification("Compte créé avec succès !", "success");
       }
@@ -264,8 +216,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = useCallback(async (reason?: string) => {
     try {
         await supabase.auth.signOut();
-        // Clear local storage on explicit logout to ensure clean state for next user
-        localStorage.removeItem(`sb-${SUPABASE_PROJECT_ID}-auth-token`);
     } catch (e) {
         console.warn("Erreur signout", e);
     }
@@ -298,7 +248,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsSwitching(true);
     setTimeout(() => {
         if (!originalAdminSession) setOriginalAdminSession(user);
-        const simulatedUser: UserProfile = {
+        setUser({
           id: member.id,
           email: member.email,
           firstName: member.firstName,
@@ -307,8 +257,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           matricule: member.matricule,
           category: member.category,
           originalRole: member.role 
-        };
-        setUser(simulatedUser);
+        });
         setIsSwitching(false);
         addNotification(`Vue: ${member.firstName} (${member.role})`, 'info');
     }, 500); 
@@ -325,20 +274,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, 500);
   };
 
-  const getRedirectPath = useCallback(() => {
-    return '/app';
-  }, []);
-
+  const getRedirectPath = useCallback(() => '/app', []);
   const refreshProfile = async () => {
       if(user) {
           const p = await fetchProfile(user.id, user.email);
           if(p) setUser(p);
       }
   };
-  
-  const loginAsGuest = () => {
-      addNotification("Mode invité activé.", "info");
-  };
+  const loginAsGuest = () => addNotification("Mode invité activé.", "info");
 
   return (
     <AuthContext.Provider 

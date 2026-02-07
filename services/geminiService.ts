@@ -30,13 +30,14 @@ const SPIRITUAL_FALLBACKS = [
 
 const getRandomFallback = () => SPIRITUAL_FALLBACKS[Math.floor(Math.random() * SPIRITUAL_FALLBACKS.length)];
 
+// Fixed: Updated model to gemini-3-flash-preview as per guidelines for basic text tasks
 export const getSmartInsight = async (topic: string) => {
   const ai = getClient();
   if (!ai) return getRandomFallback();
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `En tant qu'assistant spirituel du Dahira, donne un court conseil (max 2 phrases) sur : ${topic}.`,
     });
     return response.text || getRandomFallback();
@@ -46,13 +47,14 @@ export const getSmartInsight = async (topic: string) => {
   }
 };
 
+// Fixed: Updated model to gemini-3-flash-preview
 export const explainXassaid = async (title: string) => {
   const ai = getClient();
   if (!ai) return "L'analyse IA est indisponible (Clé API manquante).";
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `Explique brièvement le Xassaid "${title}" et ses bienfaits.`,
     });
     return response.text || "Explication indisponible.";
@@ -61,13 +63,14 @@ export const explainXassaid = async (title: string) => {
   }
 };
 
+// Fixed: Updated model to gemini-3-flash-preview
 export const translateXassaid = async (text: string) => {
   const ai = getClient();
   if (!ai) return "Traduction IA désactivée.";
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `Traduis ce texte en français avec un contexte spirituel : "${text}"`,
     });
     return response.text || "Traduction impossible.";
@@ -76,13 +79,14 @@ export const translateXassaid = async (text: string) => {
   }
 };
 
+// Fixed: Updated model to gemini-3-flash-preview
 export const startChat = () => {
   const ai = getClient();
   if (!ai) return null;
 
   try {
     return ai.chats.create({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       config: {
         systemInstruction: "Tu es l'assistant du Dahira Majmahoun Nourayni. Tu es bienveillant, sage et serviable.",
       }
@@ -93,13 +97,14 @@ export const startChat = () => {
   }
 };
 
+// Fixed: Updated model to gemini-3-flash-preview
 export const transcribeAudio = async (base64Audio: string) => {
   const ai = getClient();
   if (!ai) return "Transcription désactivée.";
 
   try {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         contents: {
             parts: [
                 { inlineData: { mimeType: 'audio/wav', data: base64Audio } },
@@ -119,13 +124,14 @@ export const generateSpeech = async (text: string) => {
   return null;
 };
 
+// Fixed: Updated model to gemini-3-flash-preview
 export const getMapsLocationInfo = async (query: string, lat?: number, lng?: number) => {
   const ai = getClient();
   if (!ai) return { text: "Info lieu indisponible (IA off)." };
 
   try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: `Donne des infos pertinentes sur ce lieu pour un membre du Dahira : ${query}. Coordonnées: ${lat}, ${lng}`,
       });
       return { text: response.text || "Aucune info." };
@@ -134,39 +140,42 @@ export const getMapsLocationInfo = async (query: string, lat?: number, lng?: num
   }
 };
 
+// Fixed: Updated model to gemini-3-flash-preview
 export const generateSocialPost = async (topic: string, platform: string, tone: string) => {
   const ai = getClient();
   if (!ai) return "Génération indisponible.";
 
   try {
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         contents: `Rédige un post ${platform} sur "${topic}". Ton: ${tone}. Ajoute des emojis et hashtags pertinents.`,
     });
     return response.text || "";
   } catch (e) { return "Erreur génération."; }
 };
 
+// Fixed: Updated model to gemini-3-flash-preview
 export const generateReplyToComment = async (comment: string, context: string) => {
     const ai = getClient();
     if (!ai) return "IA indisponible.";
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview',
             contents: `Suggère une réponse polie et fraternelle à ce commentaire : "${comment}". Contexte: ${context}`,
         });
         return response.text || "";
     } catch (e) { return "Erreur."; }
 };
 
+// Fixed: Updated model to gemini-3-flash-preview
 export const generateHooks = async (topic: string) => {
     const ai = getClient();
     if (!ai) return "IA indisponible.";
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview',
             contents: `Donne 3 accroches virales pour un post sur : "${topic}"`,
         });
         return response.text || "";

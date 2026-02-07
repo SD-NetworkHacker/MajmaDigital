@@ -2,13 +2,13 @@
 import { CommissionType, Commission, Member, Event, Contribution, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
 // --- SYSTEM HEALTH CONSTANTS ---
-export const APP_VERSION = '2.0.0-supabase'; // Incrémenter ceci force le vidage du cache utilisateur
+export const APP_VERSION = '2.0.0-supabase'; 
 export const SUPABASE_PROJECT_ID = 'qwsivjyohprhwacjgimc';
 
-// --- CLEANUP : Aucune URL d'API externe n'est utilisée (Direct Supabase) ---
+// --- CLEANUP : Suppression des anciennes références Railway/Localhost ---
 export const API_URL = ''; 
 
-// La structure des commissions est structurelle (Code métier), on la garde.
+// La structure des commissions est structurelle (Code métier)
 export const INITIAL_COMMISSIONS: Commission[] = [
   { 
     name: CommissionType.ADMINISTRATION, 
@@ -98,5 +98,5 @@ export const SEED_CULTURAL_ACTIVITIES: CulturalActivity[] = [];
 export const SEED_LIBRARY: LibraryResource[] = [];
 export const SEED_KHASSAIDE_MODULES: KhassaideModule[] = [];
 
-// Alias vide pour compatibilité
+// Alias pour compatibilité
 export const MOCK_MEMBERS: Member[] = [];
