@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
-import { Member } from '../types';
 import { supabase } from '../lib/supabase';
 import { APP_VERSION, SUPABASE_PROJECT_ID } from '../constants';
 
@@ -38,8 +37,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchProfile = async (userId: string, email: string): Promise<UserProfile | null> => {
     try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (error || !data) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle(); // maybeSingle évite une erreur si le profil n'existe pas
+
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return null;
+      }
+
+      if (!data) {
+        // L'utilisateur est authentifié mais n'a pas encore de ligne dans la table 'profiles'
+        return {
+          id: userId,
+          email: email,
+          firstName: 'Nouvel',
+          lastName: 'Utilisateur',
+          role: 'NEW_USER' // Rôle spécial pour forcer la complétion du profil
+        };
+      }
+
       return {
         id: data.id,
         email: email,
@@ -51,40 +70,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         avatarUrl: data.avatar_url,
         bio: data.bio
       };
-    } catch (e) { return null; }
+    } catch (e) {
+      console.error("Fatal error in fetchProfile:", e);
+      return null;
+    }
   };
 
   useEffect(() => {
     const initAuth = async () => {
-      // 1. GESTION VERSION (FORCED CLEANUP)
+      // 1. GESTION VERSION
       const storedVersion = localStorage.getItem('MAJMA_VERSION');
       if (storedVersion !== APP_VERSION) {
-        console.warn("🔄 Nouvelle version détectée. Nettoyage du cache...");
-        localStorage.clear();
         localStorage.setItem('MAJMA_VERSION', APP_VERSION);
       }
 
-      // 2. SUPPRESSION DES GHOSTS (AUTRES PROJETS)
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('sb-') && !key.includes(SUPABASE_PROJECT_ID)) {
-          localStorage.removeItem(key);
-        }
-      });
-
-      // 3. RÉCUPÉRATION SESSION & GESTION ERREURS
+      // 2. RÉCUPÉRATION SESSION
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error || (session && !session.user)) {
-          console.error("💥 Session corrompue détectée.");
-          await supabase.auth.signOut();
-          setUser(null);
-        } else if (session?.user) {
+        if (error) throw error;
+
+        if (session?.user) {
           const profile = await fetchProfile(session.user.id, session.user.email!);
           setUser(profile);
         }
       } catch (err) {
-        await supabase.auth.signOut();
+        console.error("Auth initialization failed:", err);
         setUser(null);
       } finally {
         setLoading(false);
@@ -110,27 +121,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       showLoading();
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
       if (error) throw error;
+
       if (data.user) {
         const profile = await fetchProfile(data.user.id, data.user.email!);
         setUser(profile);
-        addNotification(`Bienvenue, ${profile?.firstName}`, 'success');
+        addNotification(`Heureux de vous revoir, ${profile?.firstName}`, 'success');
       }
     } catch (error: any) {
-      addNotification(error.message, 'error');
+      addNotification(error.message || "Échec de la connexion", 'error');
       throw error;
-    } finally { hideLoading(); }
+    } finally {
+      hideLoading();
+    }
   };
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (reason?: string) => {
     await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem(`sb-${SUPABASE_PROJECT_ID}-auth-token`);
-    addNotification("Déconnexion réussie", "info");
+    if (reason) addNotification(reason, "info");
   }, [addNotification]);
 
-  const updateUser = (data: Partial<UserProfile>) => setUser(prev => prev ? { ...prev, ...data } : null);
-  const refreshProfile = async () => { if(user) { const p = await fetchProfile(user.id, user.email); if(p) setUser(p); } };
+  const updateUser = (data: Partial<UserProfile>) => {
+    setUser(prev => prev ? { ...prev, ...data } : null);
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      const p = await fetchProfile(user.id, user.email);
+      if (p) setUser(p);
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, logout, updateUser, refreshProfile }}>

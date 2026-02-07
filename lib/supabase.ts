@@ -1,31 +1,25 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Access environment variables using Vite's import.meta.env
-// process.env fallback is handled via vite.config.ts define for broader compatibility
-// Cast to any to bypass TypeScript error "Property 'env' does not exist on type 'ImportMeta'"
-const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || (process.env.VITE_SUPABASE_URL as string);
-const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || (process.env.VITE_SUPABASE_ANON_KEY as string);
+// Accès universel aux variables (Vite + fallback process.env pour compatibilité)
+const getEnv = (key: string): string => {
+  const viteVar = (import.meta as any).env?.[key];
+  const processVar = typeof process !== 'undefined' ? process.env?.[key] : undefined;
+  return viteVar || processVar || '';
+};
 
-// Log discret en développement pour le diagnostic
-if ((import.meta as any).env?.DEV) {
-  console.log("Checking Supabase Config:", {
-    urlDefined: !!supabaseUrl,
-    keyDefined: !!supabaseAnonKey
-  });
-}
+const supabaseUrl = getEnv('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("⚠️ ERREUR CONFIGURATION : VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY manquant.");
-  console.error("Vérifiez la présence du fichier .env à la racine du projet ou les variables d'environnement Vercel.");
+  console.error("⚠️ CONFIGURATION MANQUANTE : Les clés Supabase ne sont pas définies dans l'environnement.");
 }
 
-// Fallback to placeholder to prevent immediate crash, but log error.
-// The app will fail to fetch data if keys are missing (Failed to fetch), which is expected.
-const validUrl = (supabaseUrl && supabaseUrl.startsWith('http')) ? supabaseUrl : 'https://placeholder.supabase.co';
-const validKey = supabaseAnonKey || 'placeholder';
+// Validation de l'URL pour éviter un crash au démarrage
+const finalUrl = supabaseUrl.startsWith('http') ? supabaseUrl : 'https://placeholder.supabase.co';
+const finalKey = supabaseAnonKey || 'placeholder';
 
-export const supabase = createClient(validUrl, validKey, {
+export const supabase = createClient(finalUrl, finalKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
