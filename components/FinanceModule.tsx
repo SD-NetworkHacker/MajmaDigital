@@ -8,6 +8,7 @@ import { Contribution } from '../types';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../context/AuthContext'; // Import Auth
 import MemberFinancePortal from '../commissions/finance/MemberFinancePortal'; // Import Portal
+import { formatDate } from '../utils/date';
 
 const FinanceModule: React.FC = () => {
   const { contributions, members, addContribution, updateContribution, deleteContribution, totalTreasury } = useData();
@@ -241,7 +242,7 @@ const FinanceModule: React.FC = () => {
                     </td>
                     <td className="px-10 py-8">
                        <div className="flex items-center gap-2 text-slate-300 font-black text-[10px] uppercase">
-                         <Calendar size={12} /> {tx.date}
+                         <Calendar size={12} /> {formatDate(tx.date)}
                        </div>
                     </td>
                     <td className="px-10 py-8 text-right">

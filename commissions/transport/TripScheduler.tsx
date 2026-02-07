@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { TransportSchedule } from '../../types';
 import { useData } from '../../contexts/DataContext';
+import { formatDate } from '../../utils/date';
 
 const TripScheduler: React.FC = () => {
   const { schedules } = useData(); // Utilisation des données réelles du contexte
@@ -152,7 +153,7 @@ const TripScheduler: React.FC = () => {
                          }`}>
                            {trip.status.replace('_', ' ')}
                          </span>
-                         <span className="text-[10px] opacity-60 font-bold uppercase flex items-center gap-1"><Calendar size={12}/> {trip.departureDate}</span>
+                         <span className="text-[10px] opacity-60 font-bold uppercase flex items-center gap-1"><Calendar size={12}/> {formatDate(trip.departureDate)}</span>
                       </div>
                       <h4 className="text-2xl font-black mb-2">{trip.eventTitle}</h4>
                       <div className="flex items-center gap-3 text-orange-400 mt-4">

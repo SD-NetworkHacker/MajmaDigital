@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CommissionType, ExpenseItem } from '../../types';
 import { Plus, Trash2, Save, FileText, Upload, DollarSign, Calendar } from 'lucide-react';
-import { createReport } from '../../services/financialService';
+import { useData } from '../../contexts/DataContext';
 
 interface Props {
   commission: CommissionType;
@@ -10,6 +10,7 @@ interface Props {
 }
 
 const FinancialReportBuilder: React.FC<Props> = ({ commission, onClose }) => {
+  const { addFinancialReport } = useData();
   const [reportData, setReportData] = useState({
     period: '',
     startDate: '',
@@ -38,11 +39,13 @@ const FinancialReportBuilder: React.FC<Props> = ({ commission, onClose }) => {
   const balance = reportData.totalBudgetAllocated - totalExpenses;
 
   const handleSubmit = () => {
-    createReport({
+    addFinancialReport({
       commission,
       ...reportData,
       expenses: expenses as ExpenseItem[],
-      submittedBy: 'Utilisateur Courant' // Mock
+      totalExpenses, // computed
+      balance, // computed by DB but helpful to pass or recompute
+      submittedBy: 'Utilisateur Courant' // Mock - backend will use auth user
     });
     onClose();
   };

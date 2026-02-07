@@ -1,4 +1,5 @@
 
+// ... (Enums existants restent inchangés)
 export enum CommissionType {
   ADMINISTRATION = 'Administration',
   FINANCE = 'Finance',
@@ -26,13 +27,28 @@ export enum MemberCategory {
   ELEVE = 'Élève'
 }
 
+// NOUVEAUX TYPES AJOUTÉS
+
+export interface AcademicInfo {
+  establishment?: string;
+  level?: string;
+  field?: string;
+}
+
+export interface ProfessionalInfo {
+  company?: string;
+  position?: string;
+  sector?: string;
+}
+
 export interface MemberDocument {
   id: string;
   name: string;
-  type: 'PDF' | 'IMAGE' | 'AUTRE';
+  type: string;
   date: string;
   url?: string;
   verified: boolean;
+  size?: number;
 }
 
 export interface MemberPreferences {
@@ -55,6 +71,8 @@ export interface Commission {
   dieuwrine: string;
 }
 
+// ... (Interfaces existantes inchangées)
+
 export interface Member {
   id: string;
   firstName: string;
@@ -68,15 +86,60 @@ export interface Member {
   address: string;
   joinDate: string;
   coordinates: { lat: number; lng: number };
-  commissions: { type: CommissionType; role_commission: string; permissions: string[] }[];
+  commissions: { id?: string; type: CommissionType; role_commission: string; permissions: string[] }[];
   bio?: string;
-  level?: string;
   birthDate?: string;
   gender?: 'Homme' | 'Femme';
+  academicInfo?: AcademicInfo;
+  professionalInfo?: ProfessionalInfo;
+  level?: string; 
   documents?: MemberDocument[];
   preferences?: MemberPreferences;
 }
 
+// NOUVEAUX TYPES FINANCIERS
+
+export interface Contribution {
+  id: string;
+  memberId: string;
+  type: 'Adiyas' | 'Sass' | 'Diayanté' | 'Adiya Élite' | 'Gott';
+  amount: number;
+  date: string;
+  eventLabel?: string;
+  paymentMethod?: 'Espèces' | 'Wave' | 'Orange Money' | 'Virement';
+  status: 'paid' | 'pending' | 'failed';
+  transactionId?: string;
+}
+
+export interface AdiyaCampaign {
+  id: string;
+  title: string;
+  description?: string;
+  unitAmount: number;
+  targetAmount?: number;
+  deadline: string;
+  status: 'open' | 'closed' | 'draft';
+  participants: { memberId: string; amountPaid: number; status: 'partial' | 'completed'; date: string }[];
+  createdBy?: string;
+}
+
+export interface FundraisingEvent {
+  id: string;
+  name: string;
+  type: 'Magal' | 'Ziar' | 'Gott' | 'Autre';
+  status: 'active' | 'closed' | 'planned';
+  deadline: string;
+  groups: FundraisingGroup[];
+  createdAt: string;
+}
+
+export interface FundraisingGroup {
+  id: string;
+  name: string;
+  amount: number;
+}
+
+// ... (Le reste des types existants: Event, Task, etc.)
 export interface UserProfile extends Member {
   avatarUrl?: string;
   originalRole?: string;
@@ -92,16 +155,6 @@ export interface Event {
   organizingCommission: CommissionType;
   description: string;
   status: 'planifie' | 'en_cours' | 'termine' | 'annule';
-}
-
-export interface Contribution {
-  id: string;
-  memberId: string;
-  type: 'Adiyas' | 'Sass' | 'Diayanté' | 'Adiya Élite' | 'Gott';
-  amount: number;
-  date: string;
-  eventLabel?: string;
-  status: 'paid' | 'pending' | 'failed';
 }
 
 export interface InternalMeetingReport {
@@ -125,9 +178,7 @@ export interface InternalMeetingReport {
   adminFeedback?: string;
   bureauFeedback?: string;
 }
-
 export type MeetingType = 'ordinaire' | 'extraordinaire' | 'urgence' | 'planification';
-
 export interface MeetingAttendee {
   memberId: string;
   name: string;
@@ -135,9 +186,7 @@ export interface MeetingAttendee {
   status: AttendanceStatus;
   arrivalTime?: string;
 }
-
 export type AttendanceStatus = 'present' | 'absent_excuse' | 'absent';
-
 export interface AgendaItem {
   id: string;
   title: string;
@@ -145,14 +194,12 @@ export interface AgendaItem {
   presenter: string;
   notes?: string;
 }
-
 export interface MeetingDecision {
   id: string;
   description: string;
   votes: { for: number; against: number; abstain: number };
   status: 'adopted' | 'rejected' | 'pending';
 }
-
 export interface MeetingActionItem {
   id: string;
   description: string;
@@ -160,7 +207,6 @@ export interface MeetingActionItem {
   dueDate: string;
   status: 'a_faire' | 'en_cours' | 'termine' | 'retard';
 }
-
 export type MeetingReportStatus = 'brouillon' | 'soumis_admin' | 'valide_admin' | 'soumis_bureau' | 'approuve_bureau' | 'archive';
 
 export interface CommissionFinancialReport {
@@ -178,7 +224,6 @@ export interface CommissionFinancialReport {
   submittedAt: string;
   rejectionReason?: string;
 }
-
 export interface ExpenseItem {
   id: string;
   category: string;
@@ -204,10 +249,8 @@ export interface BudgetRequest {
   submittedAt: string;
   rejectionReason?: string;
 }
-
 export type BudgetCategory = 'evenement' | 'projet' | 'equipement' | 'urgence';
 export type BudgetPriority = 'bas' | 'moyen' | 'eleve' | 'urgence';
-
 export interface BudgetBreakdownItem {
   id: string;
   item: string;
@@ -215,34 +258,6 @@ export interface BudgetBreakdownItem {
   unitCost: number;
   total: number;
   justification?: string;
-}
-
-export interface AdiyaCampaign {
-  id: string;
-  title: string;
-  description?: string;
-  unitAmount: number;
-  targetAmount?: number;
-  deadline: string;
-  status: 'open' | 'closed' | 'draft';
-  participants: any[];
-  createdBy: string;
-}
-
-export interface FundraisingEvent {
-  id: string;
-  name: string;
-  type: 'Magal' | 'Ziar' | 'Gott' | 'Autre';
-  status: 'active' | 'closed' | 'planned';
-  deadline: string;
-  groups: FundraisingGroup[];
-  createdAt: string;
-}
-
-export interface FundraisingGroup {
-  id: string;
-  name: string;
-  amount: number;
 }
 
 export interface Task {
@@ -258,10 +273,8 @@ export interface Task {
   createdAt: string;
   comments: TaskComment[];
 }
-
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done' | 'blocked' | 'waiting';
 export type TaskPriority = 'low' | 'medium' | 'high';
-
 export interface TaskComment {
   id: string;
   authorId: string;
@@ -289,7 +302,6 @@ export interface Vehicle {
     dailyCost: number;
   };
 }
-
 export type VehicleType = 'bus_grand' | 'bus_moyen' | 'minibus' | 'voiture';
 export type VehicleStatus = 'disponible' | 'en_mission' | 'maintenance' | 'hors_service';
 
@@ -338,7 +350,6 @@ export interface LibraryResource {
   views: number;
   rating: number;
 }
-
 export type LibraryResourceType = 'livre' | 'audio' | 'video' | 'document';
 
 export interface KhassaideModule {
@@ -349,7 +360,6 @@ export interface KhassaideModule {
   progress: number;
   lessons: KhassaideLesson[];
 }
-
 export interface KhassaideLesson {
   id: string;
   title: string;

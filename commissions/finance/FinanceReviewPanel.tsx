@@ -1,10 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  processRequestDecision, 
-  processReportDecision 
-} from '../../services/financialService';
-import { 
   CheckCircle, XCircle, AlertCircle, FileText, Banknote, 
   Filter, Search, Clock, ChevronRight, X, DollarSign, MessageSquare 
 } from 'lucide-react';
@@ -30,7 +26,7 @@ const FinanceReviewPanel: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('');
 
   // Data Loading from Context
-  const { budgetRequests, financialReports } = useData();
+  const { budgetRequests, financialReports, updateBudgetRequest, updateFinancialReport } = useData();
   const [requests, setRequests] = useState<BudgetRequest[]>([]);
   const [reports, setReports] = useState<CommissionFinancialReport[]>([]);
 
@@ -40,10 +36,8 @@ const FinanceReviewPanel: React.FC = () => {
   }, [budgetRequests, financialReports]);
 
   // Filtering Logic Update: 
-  // 'soumis_bureau' is considered processed for the Finance Commission view (it moved up the chain)
   const filteredRequests = requests.filter(req => {
     const isPending = ['soumis_finance', 'revu_finance'].includes(req.status);
-    // Si viewMode est 'pending', on veut ceux en attente. Sinon (processed), on veut tout le reste (approuve, rejete, soumis_bureau)
     const matchesView = viewMode === 'pending' ? isPending : !isPending;
     const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) || req.commission.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesView && matchesSearch;
@@ -67,7 +61,6 @@ const FinanceReviewPanel: React.FC = () => {
     });
     
     if (activeTab === 'requests') {
-      // Default to requested amount
       setApprovalAmount(selectedItem.amountRequested);
     }
     setRejectionReason('');
@@ -77,25 +70,32 @@ const FinanceReviewPanel: React.FC = () => {
     if (!modal.item) return;
 
     if (modal.itemType === 'request') {
-      processRequestDecision(
-        modal.item.id, 
-        modal.type, 
-        'finance', 
-        modal.type === 'approve' ? approvalAmount : undefined, 
-        modal.type === 'reject' ? rejectionReason : undefined
-      );
+       const req = modal.item as BudgetRequest;
+       const isHighValue = req.amountRequested > 50000;
+       
+       if (modal.type === 'approve') {
+           // Si montant élevé -> escalade au bureau, sinon approuvé direct
+           const newStatus = isHighValue ? 'soumis_bureau' : 'approuve';
+           updateBudgetRequest(req.id, { 
+               status: newStatus, 
+               amountApproved: approvalAmount 
+           });
+       } else {
+           updateBudgetRequest(req.id, { 
+               status: 'rejete', 
+               rejectionReason 
+           });
+       }
     } else {
-      processReportDecision(
-        modal.item.id,
-        modal.type === 'approve' ? 'validate' : 'reject',
-        rejectionReason
-      );
+       // Report Decision
+       if (modal.type === 'approve') {
+           updateFinancialReport(modal.item.id, { status: 'cloture' });
+       } else {
+           updateFinancialReport(modal.item.id, { status: 'rejete', rejectionReason });
+       }
     }
 
-    // Close Modal
     setModal({ ...modal, isOpen: false });
-    
-    // Clear selection to return to list view (mobile friendly) and show update
     setSelectedItem(null);
   };
 
@@ -370,7 +370,7 @@ const FinanceReviewPanel: React.FC = () => {
                                      </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-50 text-sm">
-                                     {selectedItem.breakdown.map((item: any, i: number) => (
+                                     {selectedItem.breakdown && selectedItem.breakdown.map((item: any, i: number) => (
                                        <tr key={i}>
                                           <td className="p-4 font-medium text-slate-700">{item.item}</td>
                                           <td className="p-4 text-center text-slate-500">{item.quantity}</td>
@@ -399,7 +399,7 @@ const FinanceReviewPanel: React.FC = () => {
                           <div>
                              <h5 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4">Lignes de Dépenses</h5>
                              <div className="space-y-2">
-                               {selectedItem.expenses.map((exp: any, i: number) => (
+                               {selectedItem.expenses && selectedItem.expenses.map((exp: any, i: number) => (
                                  <div key={i} className="p-4 border border-slate-100 rounded-xl flex justify-between items-center text-sm hover:bg-slate-50 transition-colors">
                                     <div>
                                        <p className="font-bold text-slate-700">{exp.description}</p>

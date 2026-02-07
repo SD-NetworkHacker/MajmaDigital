@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Calendar, Clock, Facebook, Instagram, MessageCircle, MoreHorizontal, Plus, ChevronLeft, ChevronRight, Zap, Target, CheckCircle, X, Save, Share2 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { SocialPost } from '../../types';
+import { formatDate } from '../../utils/date';
 
 const ContentScheduler: React.FC = () => {
   const { socialPosts, addSocialPost } = useData(); // Utilisation contexte
@@ -113,100 +113,113 @@ const ContentScheduler: React.FC = () => {
         </div>
       )}
 
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-6">
         <div>
-          <h3 className="text-2xl font-black text-slate-900 tracking-tight">Calendrier Éditorial</h3>
-          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-            <Calendar size={14} className="text-amber-500" /> Planification des prises de parole institutionnelles
-          </p>
+           <h3 className="text-2xl font-black text-slate-900 tracking-tight">Calendrier Éditorial</h3>
+           <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+              <Calendar size={14} className="text-amber-500" /> Planification des contenus
+           </p>
         </div>
-        <div className="flex gap-4">
-           <button 
-             onClick={() => setShowModal(true)}
-             className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center gap-3 active:scale-95 transition-all"
-           >
-              <Plus size={18} /> Programmer
-           </button>
-        </div>
+        <button 
+           onClick={() => setShowModal(true)}
+           className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center gap-3 active:scale-95 transition-all"
+        >
+           <Plus size={18} /> Nouveau Post
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4">
-           {socialPosts.length > 0 ? socialPosts.map(post => (
-             <div key={post.id} className="glass-card p-8 flex flex-col md:flex-row items-center gap-8 group hover:border-amber-100 transition-all bg-white">
-                <div className="flex flex-col items-center text-center">
-                   <p className="text-xl font-black text-slate-900 leading-none">{new Date(post.date).getDate()}</p>
-                   <p className="text-[10px] font-black text-amber-600 uppercase mt-1">{new Date(post.date).toLocaleString('default', { month: 'short' })}</p>
-                </div>
-                <div className="w-px h-12 bg-slate-100 hidden md:block"></div>
-                <div className="flex-1 min-w-0">
-                   <div className="flex items-center gap-4 mb-2">
-                      <span className="text-[10px] font-black text-slate-300 flex items-center gap-2 uppercase tracking-widest"><Clock size={12} /> {post.time}</span>
-                      <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${
-                        post.status === 'Planifié' ? 'bg-emerald-50 text-emerald-600' : post.status === 'Urgent' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-400'
-                      }`}>{post.status}</span>
-                   </div>
-                   <h4 className="text-base font-black text-slate-800 leading-none mb-4">{post.title}</h4>
-                   <div className="flex gap-2">
-                      {post.platforms.map((p: string, idx: number) => (
-                        <span key={idx} className="px-3 py-1 bg-slate-50 text-slate-400 rounded-lg text-[8px] font-black uppercase tracking-widest group-hover:bg-white group-hover:border-amber-100 border border-transparent transition-all">
-                           {p}
-                        </span>
-                      ))}
-                   </div>
-                </div>
-                <div className="flex gap-2">
-                   <button className="p-3 bg-slate-50 text-slate-400 hover:text-amber-600 rounded-xl transition-all shadow-sm"><MoreHorizontal size={18} /></button>
-                </div>
-             </div>
-           )) : (
-             <div className="flex flex-col items-center justify-center h-64 bg-slate-50/50 rounded-[2rem] text-slate-400 border-2 border-dashed border-slate-200">
-                <Calendar size={48} className="opacity-20 mb-4"/>
-                <p className="text-xs font-bold uppercase">Aucune publication programmée</p>
-                <button onClick={() => setShowModal(true)} className="mt-4 text-amber-500 text-[10px] font-black uppercase hover:underline">Créer un post</button>
-             </div>
-           )}
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+         <div className="lg:col-span-8 space-y-6">
+            <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 w-fit">
+               <button className="px-6 py-3 bg-white text-amber-700 shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest">Vue Liste</button>
+               <button className="px-6 py-3 text-slate-500 hover:text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Vue Calendrier</button>
+            </div>
 
-        <div className="space-y-8">
-           <div className="glass-card p-10 bg-gradient-to-br from-amber-500 to-orange-600 text-white relative overflow-hidden group">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-10 opacity-70">Heure de Pointe IA</h4>
-              <div className="relative z-10 flex flex-col gap-6">
-                 <div className="flex items-center gap-6">
-                    <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/10"><Zap size={32} /></div>
-                    <div>
-                       <p className="text-2xl font-black">20:45</p>
-                       <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">Pic d'audience estimé</p>
-                    </div>
-                 </div>
-                 <p className="text-[11px] leading-relaxed italic opacity-80">
-                    "Publiez régulièrement pour permettre à l'IA d'analyser les meilleurs créneaux d'engagement."
-                 </p>
-              </div>
-              <div className="absolute -right-10 -bottom-10 text-white/5 font-arabic text-[12rem] rotate-12">و</div>
-           </div>
+            <div className="glass-card p-0 overflow-hidden bg-white border-slate-100">
+               {socialPosts.length > 0 ? (
+                  <div className="divide-y divide-slate-50">
+                     {socialPosts.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(post => (
+                        <div key={post.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-all group cursor-pointer">
+                           <div className="flex items-center gap-4">
+                              <div className="flex flex-col items-center justify-center w-12 h-12 bg-slate-100 rounded-xl border border-slate-200 text-slate-500">
+                                 <span className="text-[10px] font-black uppercase">{new Date(post.date).toLocaleDateString(undefined, {month: 'short'})}</span>
+                                 <span className="text-lg font-black leading-none">{new Date(post.date).getDate()}</span>
+                              </div>
+                              <div>
+                                 <h4 className="text-sm font-black text-slate-800">{post.title}</h4>
+                                 <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                                       <Clock size={10}/> {post.time}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                                       post.status === 'Publié' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                    }`}>
+                                       {post.status}
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                           <div className="flex items-center gap-4">
+                              <div className="flex -space-x-2">
+                                 {post.platforms.map((p, i) => (
+                                    <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-slate-500 text-[10px]" title={p}>
+                                       {p[0]}
+                                    </div>
+                                 ))}
+                              </div>
+                              <ChevronRight size={16} className="text-slate-300 group-hover:text-amber-500 transition-colors"/>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               ) : (
+                  <div className="p-12 text-center text-slate-400 flex flex-col items-center">
+                     <Calendar size={32} className="mb-3 opacity-20"/>
+                     <p className="text-xs font-bold uppercase">Aucun post planifié</p>
+                  </div>
+               )}
+            </div>
+         </div>
 
-           <div className="glass-card p-10 bg-white">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 flex items-center gap-3">
-                <Target size={18} className="text-amber-500" /> Objectifs de Publication
-              </h4>
-              <div className="space-y-6">
-                 {[
-                   { l: 'Posts Hebdo', c: socialPosts.filter(p => new Date(p.date) > new Date(Date.now() - 7*24*60*60*1000)).length, t: 5 },
-                 ].map((obj, i) => (
-                   <div key={i} className="space-y-2">
-                      <div className="flex justify-between items-center text-[10px] font-black uppercase">
-                        <span>{obj.l}</span>
-                        <span className="text-amber-600">{Math.round((obj.c/obj.t)*100)}%</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 shadow-inner">
-                         <div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (obj.c/obj.t)*100)}%` }}></div>
-                      </div>
-                   </div>
-                 ))}
-              </div>
-           </div>
-        </div>
+         <div className="lg:col-span-4 space-y-6">
+            <div className="glass-card p-8 bg-slate-900 text-white relative overflow-hidden">
+               <div className="relative z-10">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 opacity-60">Prochaine Publication</h4>
+                  {socialPosts.length > 0 ? (
+                     <div>
+                        <h3 className="text-xl font-black mb-2">{socialPosts[0].title}</h3>
+                        <p className="text-xs opacity-70 mb-6">{formatDate(socialPosts[0].date)} à {socialPosts[0].time}</p>
+                        <button className="w-full py-3 bg-amber-500 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-400 transition-all">
+                           Voir Aperçu
+                        </button>
+                     </div>
+                  ) : (
+                     <p className="text-xs italic opacity-50">Rien à venir</p>
+                  )}
+               </div>
+               <div className="absolute -bottom-6 -right-6 opacity-10"><Zap size={100}/></div>
+            </div>
+
+            <div className="glass-card p-8 bg-white border-slate-100">
+               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Canaux Actifs</h4>
+               <div className="space-y-4">
+                  {[
+                     { l: 'Facebook', s: 'Connecté', c: 'text-blue-600' },
+                     { l: 'Instagram', s: 'Connecté', c: 'text-pink-600' },
+                     { l: 'WhatsApp', s: 'Connecté', c: 'text-emerald-600' },
+                  ].map((ch, i) => (
+                     <div key={i} className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-700">{ch.l}</span>
+                        <div className="flex items-center gap-2">
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                           <span className={`text-[9px] font-black uppercase ${ch.c}`}>{ch.s}</span>
+                        </div>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         </div>
       </div>
     </div>
   );

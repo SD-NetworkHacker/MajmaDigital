@@ -1,5 +1,5 @@
 
-import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase, TicketItem, InventoryItem, KhassaideModule, Partner, SocialPost, StudyGroup } from '../types';
+import { Member, Contribution, Event, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent, Task, LibraryResource, Vehicle, Driver, TransportSchedule, SocialProject, SocialCase, TicketItem, InventoryItem, KhassaideModule, Partner, SocialPost, StudyGroup, CommissionType, MemberDocument } from '../types';
 import { supabase } from '../lib/supabase';
 
 const handleSupabaseError = (error: any) => {
@@ -10,12 +10,28 @@ const handleSupabaseError = (error: any) => {
   }
 };
 
-// --- MEMBERS (MAPPED TO PROFILES TABLE) ---
+// --- MEMBERS (MAPPED TO PROFILES TABLE & COMMISSION_MEMBERSHIPS) ---
+// ... (code membre existant inchangé)
 export const dbFetchMembers = async (): Promise<Member[]> => {
-  // On cible la table 'profiles' qui est synchronisée avec l'Auth
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(`
+        *,
+        commission_memberships (
+            id,
+            commission_type,
+            role_commission,
+            permissions
+        ),
+        member_documents (
+            id,
+            name,
+            type,
+            file_path,
+            verified,
+            created_at
+        )
+    `)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -23,15 +39,29 @@ export const dbFetchMembers = async (): Promise<Member[]> => {
       return [];
   }
 
-  // Transformation des données DB (snake_case) vers le format de l'app (camelCase)
   return (data || []).map((p: any) => {
-    // Gestion robuste des coordonnées
-    let coords = { lat: 14.7167, lng: -17.4677 }; // Dakar défaut
+    let coords = { lat: 14.7167, lng: -17.4677 }; 
     if (p.location_data && typeof p.location_data === 'object') {
         if(p.location_data.lat && p.location_data.lng) {
             coords = { lat: Number(p.location_data.lat), lng: Number(p.location_data.lng) };
         }
     }
+
+    const mappedCommissions = (p.commission_memberships || []).map((cm: any) => ({
+        id: cm.id,
+        type: cm.commission_type as CommissionType,
+        role_commission: cm.role_commission || 'Membre',
+        permissions: cm.permissions || []
+    }));
+
+    const mappedDocuments = (p.member_documents || []).map((doc: any) => ({
+        id: doc.id,
+        name: doc.name,
+        type: doc.type,
+        date: doc.created_at,
+        url: doc.file_path,
+        verified: doc.verified
+    }));
 
     return {
       id: p.id,
@@ -42,15 +72,18 @@ export const dbFetchMembers = async (): Promise<Member[]> => {
       role: p.role || 'MEMBRE',
       category: p.category || 'Sympathisant',
       matricule: p.matricule || 'N/A',
-      status: 'active', 
+      status: p.status || 'active', 
       address: p.address || 'Non renseignée',
       birthDate: p.birth_date, 
       gender: p.gender, 
       joinDate: p.created_at,
       coordinates: coords, 
-      commissions: [], // TODO: Gérer via table de liaison si besoin
+      commissions: mappedCommissions,
       bio: p.bio,
-      documents: p.documents || [],
+      academicInfo: p.academic_info,
+      professionalInfo: p.professional_info,
+      level: p.academic_info?.level || p.professional_info?.position || '',
+      documents: mappedDocuments,
       preferences: p.preferences || {
           notifications: { email: true, push: true, sms: false },
           privacy: { showPhone: false, showAddress: false }
@@ -59,9 +92,9 @@ export const dbFetchMembers = async (): Promise<Member[]> => {
   });
 };
 
-export const dbCreateMember = async (member: Partial<Member>) => {
-  // Conversion inverse camelCase -> snake_case pour l'insertion
+export const dbCreateMember = async (member: Member) => {
   const profileData = {
+    id: member.id || undefined, 
     first_name: member.firstName,
     last_name: member.lastName,
     email: member.email,
@@ -72,17 +105,37 @@ export const dbCreateMember = async (member: Partial<Member>) => {
     address: member.address,
     birth_date: member.birthDate,
     gender: member.gender,
-    location_data: member.coordinates, // Stockage JSON pour lat/lng
-    documents: member.documents || [],
-    preferences: member.preferences || {}
+    location_data: member.coordinates,
+    academic_info: member.academicInfo || {},
+    professional_info: member.professionalInfo || {},
+    preferences: member.preferences || {},
+    status: member.status
   };
 
-  const { error } = await supabase.from('profiles').insert([profileData]);
-  handleSupabaseError(error);
+  const { data: newProfile, error: profileError } = await supabase
+    .from('profiles')
+    .insert([profileData])
+    .select()
+    .single();
+  
+  if (profileError) {
+      handleSupabaseError(profileError);
+      return;
+  }
+
+  if (member.commissions && member.commissions.length > 0 && newProfile) {
+      const memberships = member.commissions.map(c => ({
+          member_id: newProfile.id,
+          commission_type: c.type,
+          role_commission: c.role_commission,
+          permissions: c.permissions || []
+      }));
+      const { error: commError } = await supabase.from('commission_memberships').insert(memberships);
+      handleSupabaseError(commError);
+  }
 };
 
 export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
-  // Mapping partiel pour la mise à jour
   const dbUpdates: any = {};
   if (updates.firstName) dbUpdates.first_name = updates.firstName;
   if (updates.lastName) dbUpdates.last_name = updates.lastName;
@@ -95,30 +148,291 @@ export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
   if (updates.birthDate) dbUpdates.birth_date = updates.birthDate;
   if (updates.gender) dbUpdates.gender = updates.gender;
   if (updates.coordinates) dbUpdates.location_data = updates.coordinates;
-  if (updates.documents) dbUpdates.documents = updates.documents;
   if (updates.preferences) dbUpdates.preferences = updates.preferences;
+  if (updates.status) dbUpdates.status = updates.status;
+  if (updates.academicInfo) dbUpdates.academic_info = updates.academicInfo;
+  if (updates.professionalInfo) dbUpdates.professional_info = updates.professionalInfo;
 
-  const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', id);
-  handleSupabaseError(error);
+  if (Object.keys(dbUpdates).length > 0) {
+      const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', id);
+      handleSupabaseError(error);
+  }
+
+  if (updates.commissions) {
+      await supabase.from('commission_memberships').delete().eq('member_id', id);
+      if (updates.commissions.length > 0) {
+          const memberships = updates.commissions.map(c => ({
+              member_id: id,
+              commission_type: c.type,
+              role_commission: c.role_commission,
+              permissions: c.permissions || []
+          }));
+          const { error: commError } = await supabase.from('commission_memberships').insert(memberships);
+          handleSupabaseError(commError);
+      }
+  }
 };
 
 export const dbDeleteMember = async (id: string) => {
-  // Note: Supprimer un profil ne supprime pas forcément l'utilisateur Auth (sauf si configuré en cascade)
   const { error } = await supabase.from('profiles').delete().eq('id', id);
   handleSupabaseError(error);
 };
 
-// --- CONTRIBUTIONS ---
+// --- MEMBER DOCUMENTS ---
+export const dbUploadMemberDocument = async (memberId: string, file: File, docType: 'PDF' | 'IMAGE' | 'AUTRE' = 'AUTRE') => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${memberId}/${Date.now()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from('member-docs').upload(fileName, file);
+
+    if (uploadError) {
+        console.error("Upload Error:", uploadError);
+        throw uploadError;
+    }
+
+    const { data, error: dbError } = await supabase.from('member_documents').insert([{
+            member_id: memberId,
+            name: file.name,
+            type: docType,
+            file_path: fileName,
+            size: file.size,
+            verified: false
+        }]).select().single();
+    
+    if (dbError) handleSupabaseError(dbError);
+    return data;
+};
+
+export const dbDeleteMemberDocument = async (docId: string, filePath: string) => {
+    const { error: storageError } = await supabase.storage.from('member-docs').remove([filePath]);
+    if (storageError) console.warn("Storage remove error (might already be gone):", storageError);
+
+    const { error } = await supabase.from('member_documents').delete().eq('id', docId);
+    handleSupabaseError(error);
+};
+
+
+// --- CONTRIBUTIONS (FINANCE) ---
 export const dbFetchContributions = async (): Promise<Contribution[]> => {
-  const { data, error } = await supabase.from('contributions').select('*');
+  const { data, error } = await supabase.from('contributions').select('*').order('date', { ascending: false });
   if (error) return [];
-  // Assurez-vous que le format retourné correspond à l'interface Contribution
-  return data || [];
+  
+  return (data || []).map((c: any) => ({
+      id: c.id,
+      memberId: c.member_id,
+      type: c.type,
+      amount: Number(c.amount),
+      date: c.date,
+      eventLabel: c.event_label,
+      paymentMethod: c.payment_method,
+      status: c.status,
+      transactionId: c.transaction_id
+  }));
 };
 
 export const dbCreateContribution = async (contribution: Partial<Contribution>) => {
-  const { error } = await supabase.from('contributions').insert([contribution]);
+  const { error } = await supabase.from('contributions').insert([{
+      member_id: contribution.memberId,
+      type: contribution.type,
+      amount: contribution.amount,
+      date: contribution.date,
+      event_label: contribution.eventLabel,
+      payment_method: contribution.paymentMethod || 'Espèces',
+      status: contribution.status,
+      transaction_id: contribution.transactionId || `TX-${Date.now()}`
+  }]);
   handleSupabaseError(error);
+};
+
+export const dbUpdateContribution = async (id: string, updates: Partial<Contribution>) => {
+    const dbUpdates: any = {};
+    if(updates.amount) dbUpdates.amount = updates.amount;
+    if(updates.status) dbUpdates.status = updates.status;
+    if(updates.eventLabel) dbUpdates.event_label = updates.eventLabel;
+    
+    const { error } = await supabase.from('contributions').update(dbUpdates).eq('id', id);
+    handleSupabaseError(error);
+};
+
+export const dbDeleteContribution = async (id: string) => {
+    const { error } = await supabase.from('contributions').delete().eq('id', id);
+    handleSupabaseError(error);
+};
+
+// --- ADIYA CAMPAIGNS ---
+export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
+  const { data, error } = await supabase.from('adiya_campaigns').select('*').order('created_at', { ascending: false });
+  if (error) return [];
+  
+  return data.map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      unitAmount: c.unit_amount,
+      targetAmount: c.target_amount,
+      deadline: c.deadline,
+      status: c.status,
+      participants: c.participants || [], // JSONB
+      createdBy: c.created_by
+  }));
+};
+
+export const dbCreateAdiyaCampaign = async (campaign: Partial<AdiyaCampaign>) => {
+  const { error } = await supabase.from('adiya_campaigns').insert([{
+      title: campaign.title,
+      description: campaign.description,
+      unit_amount: campaign.unitAmount,
+      target_amount: campaign.targetAmount,
+      deadline: campaign.deadline,
+      status: campaign.status,
+      participants: campaign.participants || [],
+      created_by: campaign.createdBy
+  }]);
+  handleSupabaseError(error);
+};
+
+export const dbUpdateAdiyaCampaign = async (id: string, updates: Partial<AdiyaCampaign>) => {
+  const dbUpdates: any = {};
+  if (updates.participants) dbUpdates.participants = updates.participants;
+  if (updates.status) dbUpdates.status = updates.status;
+  
+  const { error } = await supabase.from('adiya_campaigns').update(dbUpdates).eq('id', id);
+  handleSupabaseError(error);
+};
+
+// --- FUNDRAISING EVENTS ---
+export const dbFetchFundraisingEvents = async (): Promise<FundraisingEvent[]> => {
+    const { data, error } = await supabase.from('fundraising_events').select('*').order('created_at', { ascending: false });
+    if (error) return [];
+    
+    return data.map((e: any) => ({
+        id: e.id,
+        name: e.name,
+        type: e.type,
+        status: e.status,
+        deadline: e.deadline,
+        groups: e.groups || [], // JSONB
+        createdAt: e.created_at
+    }));
+};
+
+export const dbCreateFundraisingEvent = async (event: Partial<FundraisingEvent>) => {
+    const { error } = await supabase.from('fundraising_events').insert([{
+        name: event.name,
+        type: event.type,
+        status: event.status,
+        deadline: event.deadline,
+        groups: event.groups || []
+    }]);
+    handleSupabaseError(error);
+};
+
+export const dbUpdateFundraisingEvent = async (id: string, updates: Partial<FundraisingEvent>) => {
+    const dbUpdates: any = {};
+    if(updates.groups) dbUpdates.groups = updates.groups;
+    if(updates.status) dbUpdates.status = updates.status;
+    
+    const { error } = await supabase.from('fundraising_events').update(dbUpdates).eq('id', id);
+    handleSupabaseError(error);
+};
+
+// ... (Rest of modules unchanged)
+// --- BUDGET REQUESTS ---
+export const dbFetchBudgetRequests = async (): Promise<BudgetRequest[]> => {
+  const { data, error } = await supabase.from('budget_requests').select('*');
+  if (error) return [];
+  
+  return data.map((b: any) => ({
+    id: b.id,
+    commission: b.commission,
+    title: b.title,
+    description: b.description,
+    amountRequested: b.amount_requested,
+    amountApproved: b.amount_approved,
+    category: b.category,
+    priority: b.priority,
+    timeline: b.timeline,
+    breakdown: b.breakdown,
+    expectedOutcomes: b.expected_outcomes,
+    status: b.status,
+    submittedBy: b.submitted_by,
+    submittedAt: b.submitted_at,
+    rejectionReason: b.rejection_reason
+  }));
+};
+
+export const dbCreateBudgetRequest = async (request: Partial<BudgetRequest>) => {
+  const { error } = await supabase.from('budget_requests').insert([{
+    commission: request.commission,
+    title: request.title,
+    description: request.description,
+    amount_requested: request.amountRequested,
+    category: request.category,
+    priority: request.priority,
+    timeline: request.timeline,
+    breakdown: request.breakdown,
+    expected_outcomes: request.expectedOutcomes,
+    status: request.status,
+    submitted_by: request.submittedBy,
+    submitted_at: request.submittedAt
+  }]);
+  handleSupabaseError(error);
+};
+
+export const dbUpdateBudgetRequest = async (id: string, updates: Partial<BudgetRequest>) => {
+  const dbUpdates: any = {};
+  if (updates.status) dbUpdates.status = updates.status;
+  if (updates.amountApproved !== undefined) dbUpdates.amount_approved = updates.amountApproved;
+  if (updates.rejectionReason) dbUpdates.rejection_reason = updates.rejectionReason;
+
+  const { error } = await supabase.from('budget_requests').update(dbUpdates).eq('id', id);
+  handleSupabaseError(error);
+};
+
+// --- FINANCIAL REPORTS ---
+export const dbFetchFinancialReports = async (): Promise<CommissionFinancialReport[]> => {
+  const { data, error } = await supabase.from('financial_reports').select('*');
+  if (error) return [];
+
+  return data.map((r: any) => ({
+    id: r.id,
+    commission: r.commission,
+    period: r.period,
+    startDate: r.start_date,
+    endDate: r.end_date,
+    totalBudgetAllocated: r.total_budget_allocated,
+    totalExpenses: r.total_expenses,
+    balance: r.balance,
+    expenses: r.expenses,
+    status: r.status,
+    submittedBy: r.submitted_by,
+    submittedAt: r.submitted_at,
+    rejectionReason: r.rejection_reason
+  }));
+};
+
+export const dbCreateFinancialReport = async (report: Partial<CommissionFinancialReport>) => {
+  const { error } = await supabase.from('financial_reports').insert([{
+    commission: report.commission,
+    period: report.period,
+    start_date: report.startDate,
+    end_date: report.endDate,
+    total_budget_allocated: report.totalBudgetAllocated,
+    total_expenses: report.totalExpenses,
+    expenses: report.expenses,
+    status: report.status,
+    submitted_by: report.submittedBy,
+    submitted_at: report.submittedAt
+  }]);
+  handleSupabaseError(error);
+};
+
+export const dbUpdateFinancialReport = async (id: string, updates: Partial<CommissionFinancialReport>) => {
+    const dbUpdates: any = {};
+    if (updates.status) dbUpdates.status = updates.status;
+    if (updates.rejectionReason) dbUpdates.rejection_reason = updates.rejectionReason;
+    
+    const { error } = await supabase.from('financial_reports').update(dbUpdates).eq('id', id);
+    handleSupabaseError(error);
 };
 
 // --- EVENTS ---
@@ -169,23 +483,6 @@ export const dbUpdateTask = async (id: string, updates: Partial<Task>) => {
 
 export const dbDeleteTask = async (id: string) => {
   const { error } = await supabase.from('tasks').delete().eq('id', id);
-  handleSupabaseError(error);
-};
-
-// --- CAMPAIGNS ---
-export const dbFetchAdiyaCampaigns = async (): Promise<AdiyaCampaign[]> => {
-  const { data, error } = await supabase.from('adiya_campaigns').select('*');
-  if (error) return [];
-  return data || [];
-};
-
-export const dbCreateAdiyaCampaign = async (campaign: Partial<AdiyaCampaign>) => {
-  const { error } = await supabase.from('adiya_campaigns').insert([campaign]);
-  handleSupabaseError(error);
-};
-
-export const dbUpdateAdiyaCampaign = async (id: string, updates: Partial<AdiyaCampaign>) => {
-  const { error } = await supabase.from('adiya_campaigns').update(updates).eq('id', id);
   handleSupabaseError(error);
 };
 

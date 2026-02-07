@@ -4,6 +4,7 @@ import { History, Download, ShieldCheck, Calendar, ChevronRight, User, Wallet, C
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { MemberCategory, Contribution } from '../../types';
+import { formatDate } from '../../utils/date';
 
 const MemberFinancePortal: React.FC = () => {
   const { user } = useAuth();
@@ -119,6 +120,7 @@ const MemberFinancePortal: React.FC = () => {
                <div className="p-8">
                   {paymentStep === 1 && (
                      <div className="space-y-6">
+                         {/* ... Payment Form Steps (Unchanged) ... */}
                         <div className="space-y-2">
                            <label className="text-[10px] font-black uppercase text-slate-400">Type de versement</label>
                            <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -155,6 +157,7 @@ const MemberFinancePortal: React.FC = () => {
 
                   {paymentStep === 2 && (
                      <div className="space-y-6">
+                         {/* ... Payment Details Step ... */}
                          <div className="grid grid-cols-2 gap-4">
                             <button 
                                onClick={() => setPaymentMethod('wave')}
@@ -241,7 +244,7 @@ const MemberFinancePortal: React.FC = () => {
                  </div>
                  <div className="flex justify-between border-b border-slate-100 pb-4">
                     <span className="text-xs font-bold text-slate-500 uppercase">Date</span>
-                    <span className="text-sm font-black text-slate-800">{new Date(selectedTx.date).toLocaleDateString()}</span>
+                    <span className="text-sm font-black text-slate-800">{formatDate(selectedTx.date)}</span>
                  </div>
                  <div className="flex justify-between border-b border-slate-100 pb-4">
                     <span className="text-xs font-bold text-slate-500 uppercase">Libellé</span>
@@ -353,7 +356,7 @@ const MemberFinancePortal: React.FC = () => {
                         <tbody className="divide-y divide-slate-50">
                             {myContributions.length > 0 ? myContributions.map((c, i) => (
                                 <tr key={i} className="hover:bg-indigo-50/20 transition-all group cursor-pointer" onClick={() => handleViewReceipt(c)}>
-                                <td className="px-8 py-6 text-xs font-bold text-slate-500">{new Date(c.date).toLocaleDateString()}</td>
+                                <td className="px-8 py-6 text-xs font-bold text-slate-500">{formatDate(c.date)}</td>
                                 <td className="px-8 py-6">
                                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${c.type === 'Sass' ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-50 text-amber-700'}`}>
                                         {c.type}

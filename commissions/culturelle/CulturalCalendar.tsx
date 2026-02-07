@@ -4,6 +4,7 @@ import { Calendar, MapPin, Clock, Users, ArrowRight, Music, Mic, PenTool, X, Bel
 import { Event } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { CommissionType } from '../../types';
+import { formatDate, formatTime } from '../../utils/date';
 
 const CulturalCalendar: React.FC = () => {
   const { events } = useData();
@@ -71,7 +72,7 @@ const CulturalCalendar: React.FC = () => {
                             <div className="p-3 bg-white text-indigo-600 rounded-xl shadow-sm"><Calendar size={20}/></div>
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
-                                <p className="text-sm font-bold text-slate-800">{new Date(selectedEvent.date).toLocaleDateString()}</p>
+                                <p className="text-sm font-bold text-slate-800">{formatDate(selectedEvent.date)}</p>
                             </div>
                         </div>
                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
@@ -151,7 +152,7 @@ const CulturalCalendar: React.FC = () => {
                 <div className="space-y-3 pt-6 border-t border-indigo-50">
                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600">
                       <Clock size={14} className="text-indigo-400" />
-                      <span>{new Date(activity.date).toLocaleDateString()}</span>
+                      <span>{formatDate(activity.date)}</span>
                    </div>
                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600">
                       <MapPin size={14} className="text-indigo-400" />

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Package, Search, Filter, Plus, PenTool, ShieldAlert, ChevronRight, Activity, X, Save, Box, Trash2 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { InventoryItem } from '../../types';
+import { formatDate } from '../../utils/date';
 
 const InventoryManagement: React.FC = () => {
   const { inventory, addInventoryItem, deleteInventoryItem } = useData();
@@ -167,7 +168,7 @@ const InventoryManagement: React.FC = () => {
                    
                    <div className="pt-6 border-t border-slate-50 flex justify-between items-center">
                       <div className="flex items-center gap-2 text-slate-300 text-[10px] font-black uppercase">
-                        <Activity size={12} /> Maintenance: {item.nextCheck}
+                        <Activity size={12} /> Maintenance: {formatDate(item.nextCheck)}
                       </div>
                       <button className="p-2 text-slate-200 hover:text-purple-600 transition-colors"><PenTool size={18}/></button>
                    </div>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Vehicle, VehicleType, VehicleStatus } from '../../types';
 import { useData } from '../../contexts/DataContext';
+import { formatDate } from '../../utils/date';
 
 const FleetManager: React.FC = () => {
   const { fleet, addVehicle, updateVehicleStatus, deleteVehicle } = useData();
@@ -112,7 +113,7 @@ const FleetManager: React.FC = () => {
                   <div className="flex gap-4">
                      <div className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
                         <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Prochaine Visite</p>
-                        <p className="text-lg font-black text-slate-800">{new Date(showMaintenanceModal.maintenance.nextDate).toLocaleDateString()}</p>
+                        <p className="text-lg font-black text-slate-800">{formatDate(showMaintenanceModal.maintenance.nextDate)}</p>
                      </div>
                      <div className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
                         <p className="text-[10px] font-black uppercase text-slate-400 mb-1">État Général</p>

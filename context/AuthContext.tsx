@@ -4,6 +4,7 @@ import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
 import { Member } from '../types';
 import { supabase } from '../lib/supabase';
+import { APP_VERSION, SUPABASE_PROJECT_ID } from '../constants';
 
 export interface UserProfile {
   id: string;
@@ -49,7 +50,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  // Helper pour récupérer le profil avec tentatives multiples si nécessaire
+  // Helper pour récupérer le profil avec tentatives multiples
   const fetchProfile = async (userId: string, email: string, retries = 3): Promise<UserProfile | null> => {
     try {
       const { data, error } = await supabase
@@ -64,8 +65,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await new Promise(resolve => setTimeout(resolve, 1000));
           return fetchProfile(userId, email, retries - 1);
         }
-        
-        console.warn('Profil introuvable après tentatives. Création objet minimal.');
         return null;
       }
 
@@ -86,54 +85,82 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Initialisation au démarrage
+  // --- INITIALISATION & SANTÉ SYSTÈME ---
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        // On récupère la session courante
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-
-        if (error) throw error;
-
-        if (currentSession?.user) {
-          setSession(currentSession);
-          // On cherche le profil
-          const profile = await fetchProfile(currentSession.user.id, currentSession.user.email!);
-          
-          if (mounted) {
-            if (profile) {
-              setUser(profile);
-            } else {
-              // Cas rare : Auth existe mais pas de profil -> On déconnecte pour éviter l'état instable
-              await supabase.auth.signOut();
-              setUser(null);
-            }
-          }
-        } else {
-          if (mounted) setUser(null);
+    const performSystemHealthCheck = async () => {
+        // 1. VÉRIFICATION DE VERSION & MIGRATION SESSION
+        const storedVersion = localStorage.getItem('MAJMA_VERSION');
+        
+        if (storedVersion !== APP_VERSION) {
+            console.warn(`🔄 Migration détectée : v${storedVersion} -> v${APP_VERSION}. Nettoyage du cache...`);
+            
+            // Nettoyage agressif du LocalStorage pour éviter les conflits
+            // On ne garde que les clés Supabase du projet actuel si on voulait être fin, 
+            // mais ici on suit la directive "Nuclear Flush" pour garantir la propreté.
+            localStorage.clear();
+            
+            // On définit la nouvelle version
+            localStorage.setItem('MAJMA_VERSION', APP_VERSION);
+            
+            // Déconnexion forcée par sécurité
+            await supabase.auth.signOut();
+            if (mounted) setUser(null);
+            setLoading(false);
+            return; // Stop init here, let the user login again cleanly
         }
-      } catch (error) {
-        console.warn("Erreur init auth:", error);
-        if (mounted) setUser(null);
-      } finally {
-        // C'est le SEUL endroit où on coupe le chargement initial
-        if (mounted) setLoading(false);
-      }
+
+        // 2. VÉRIFICATION DES GHOSTS (Clefs Supabase d'autres projets ou localhost)
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('sb-') && !key.includes(SUPABASE_PROJECT_ID)) {
+                console.warn(`👻 Suppression ghost session: ${key}`);
+                localStorage.removeItem(key);
+            }
+        });
+
+        // 3. RÉCUPÉRATION SESSION
+        try {
+            const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
+            if (error) throw error;
+
+            if (currentSession?.user) {
+                setSession(currentSession);
+                const profile = await fetchProfile(currentSession.user.id, currentSession.user.email!);
+                
+                if (mounted) {
+                    if (profile) {
+                        setUser(profile);
+                    } else {
+                        // Profil introuvable mais Auth OK -> État incohérent -> Logout
+                        console.warn("⚠️ Auth OK mais Profil manquant. Auto-logout.");
+                        await supabase.auth.signOut();
+                        setUser(null);
+                    }
+                }
+            } else {
+                if (mounted) setUser(null);
+            }
+        } catch (error) {
+            console.error("💥 Erreur Critique Auth:", error);
+            // Gestion d'erreur robuste : Logout forcé en cas d'erreur de session
+            await supabase.auth.signOut();
+            if (mounted) setUser(null);
+        } finally {
+            if (mounted) setLoading(false);
+        }
     };
 
-    initializeAuth();
+    performSystemHealthCheck();
 
     // Écouteur de changements (Login, Logout, Auto-refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
       
-      console.log(`Auth Event: ${event}`);
       setSession(newSession);
 
       if (newSession?.user) {
-        // Si on vient de s'inscrire ou de se connecter, on veut s'assurer d'avoir le profil
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
            const profile = await fetchProfile(newSession.user.id, newSession.user.email!);
            setUser(profile);
@@ -160,8 +187,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error) throw error;
       
-      // La mise à jour de l'état se fera via le listener onAuthStateChange
-      // Mais on peut forcer un fetch ici pour l'UX immédiate
       if (data.user) {
          const profile = await fetchProfile(data.user.id, data.user.email!);
          setUser(profile);
@@ -182,7 +207,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       showLoading();
       addNotification("Création de votre espace en cours...", "info");
       
-      // 1. Inscription Auth avec Métadonnées (Important pour le Trigger SQL)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -192,7 +216,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             last_name: formData.lastName,
             phone: formData.phone,
             category: formData.category,
-            // On peut passer d'autres champs ici pour que le trigger les utilise
           }
         }
       });
@@ -200,22 +223,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (authError) throw authError;
       if (!authData.user) throw new Error("Erreur création utilisateur");
 
-      // 2. Pause stratégique pour laisser le temps au Trigger SQL ou à l'insert manuel
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // 3. Fallback Manuel : Si le trigger SQL n'est pas en place, on insère manuellement
-      // On vérifie d'abord si le profil existe déjà (créé par trigger)
       const { data: existingProfile } = await supabase.from('profiles').select('id').eq('id', authData.user.id).single();
 
       if (!existingProfile) {
-        console.log("Trigger lent ou absent, insertion manuelle du profil...");
         const year = new Date().getFullYear();
         const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
         const matricule = `MAJ-${year}-${randomSuffix}`;
 
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
+        await supabase.from('profiles').insert([{
             id: authData.user.id,
             first_name: formData.firstName,
             last_name: formData.lastName,
@@ -226,20 +243,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             matricule: matricule,
             created_at: new Date().toISOString()
           }]);
-
-        if (profileError) {
-           console.error("Erreur insertion profil manuelle:", profileError);
-           // On ne throw pas ici car l'user Auth est créé, on essaie de le connecter quand même
-        }
       }
 
-      // 4. Connexion explicite et récupération du profil final
-      // Si l'inscription ne connecte pas automatiquement (dépend de la config Supabase "Confirm Email")
       if (!authData.session) {
-         // Si confirmation email requise
          addNotification("Veuillez vérifier vos emails pour confirmer l'inscription.", "warning");
       } else {
-         // Session active, on récupère le profil complet pour l'app
          const fullProfile = await fetchProfile(authData.user.id, authData.user.email!);
          setUser(fullProfile);
          addNotification("Compte créé avec succès !", "success");
@@ -256,10 +264,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = useCallback(async (reason?: string) => {
     try {
         await supabase.auth.signOut();
+        // Clear local storage on explicit logout to ensure clean state for next user
+        localStorage.removeItem(`sb-${SUPABASE_PROJECT_ID}-auth-token`);
     } catch (e) {
         console.warn("Erreur signout", e);
     }
-    // Le listener se chargera de mettre user à null
     if (reason) addNotification(reason, 'info');
   }, [addNotification]);
 
@@ -329,7 +338,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   const loginAsGuest = () => {
       addNotification("Mode invité activé.", "info");
-      // Logique locale si besoin, mais généralement géré par l'absence de user
   };
 
   return (

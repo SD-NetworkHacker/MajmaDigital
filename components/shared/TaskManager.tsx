@@ -8,6 +8,7 @@ import {
 import { CommissionType, Task, TaskStatus, TaskPriority, TaskComment } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { formatDate } from '../../utils/date';
 
 interface TaskManagerProps {
   commission: CommissionType;
@@ -205,9 +206,13 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
                <div className="w-6 h-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center"><User size={12} className="text-slate-300"/></div>
              )}
              
+             <div className="text-[9px] text-slate-400">
+               {formatDate(task.dueDate)}
+             </div>
+
              {/* Comments Indicator */}
              {(task.comments?.length || 0) > 0 && (
-                <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400">
+                <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 ml-1">
                     <MessageSquare size={12} /> {task.comments?.length}
                 </div>
              )}
@@ -363,7 +368,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
                                     <div key={comment.id} className="flex flex-col gap-1">
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-bold text-slate-700">{comment.authorName}</span>
-                                            <span className="text-[9px] text-slate-400">{new Date(comment.date).toLocaleDateString()}</span>
+                                            <span className="text-[9px] text-slate-400">{formatDate(comment.date)}</span>
                                         </div>
                                         <div className="bg-white p-3 rounded-xl rounded-tl-none border border-slate-100 text-xs text-slate-600 shadow-sm">
                                             {comment.text}

@@ -13,6 +13,7 @@ import {
 } from '../../types';
 import TransactionForm from '../../components/TransactionForm';
 import { exportToCSV } from '../../services/analyticsEngine';
+import { formatDate } from '../../utils/date';
 
 const ContributionManager: React.FC = () => {
   const { 
@@ -136,7 +137,7 @@ const ContributionManager: React.FC = () => {
        const m = members.find(mem => mem.id === c.memberId);
        return {
           ID: c.id,
-          Date: new Date(c.date).toLocaleDateString(),
+          Date: formatDate(c.date),
           Membre: m ? `${m.firstName} ${m.lastName}` : 'Inconnu',
           Matricule: m?.matricule || 'N/A',
           Type: c.type,
@@ -436,7 +437,7 @@ const ContributionManager: React.FC = () => {
                                       </div>
                                    </div>
                                 </td>
-                                <td className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">{c.date}</td>
+                                <td className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">{formatDate(c.date)}</td>
                                 <td className="px-6 py-4">
                                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${
                                       c.type === 'Sass' ? 'bg-blue-50 text-blue-600' : 

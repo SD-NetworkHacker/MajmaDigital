@@ -4,6 +4,7 @@ import { validateReportByAdmin } from '../../services/reportService';
 import { InternalMeetingReport } from '../../types';
 import { FileText, Eye, CheckCircle, MessageSquare, Search, Filter, XCircle, MinusCircle } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
+import { formatDate } from '../../utils/date';
 
 const AdministrationReviewInterface: React.FC = () => {
   const { reports } = useData();
@@ -48,7 +49,7 @@ const AdministrationReviewInterface: React.FC = () => {
                >
                   <div className="flex justify-between mb-2">
                      <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-100 px-2 py-0.5 rounded">{report.commission}</span>
-                     <span className="text-[9px] text-slate-400">{report.date}</span>
+                     <span className="text-[9px] text-slate-400">{formatDate(report.date)}</span>
                   </div>
                   <h4 className="text-xs font-bold text-slate-800 leading-tight mb-1">{report.title}</h4>
                   <p className="text-[10px] text-slate-500 truncate">Par {report.createdBy}</p>
@@ -65,7 +66,7 @@ const AdministrationReviewInterface: React.FC = () => {
                  <div>
                     <h2 className="text-xl font-black text-slate-900">{selectedReport.title}</h2>
                     <p className="text-xs text-slate-500 font-medium mt-1">
-                       Commission {selectedReport.commission} • {selectedReport.date} • {selectedReport.location}
+                       Commission {selectedReport.commission} • {formatDate(selectedReport.date)} • {selectedReport.location}
                     </p>
                  </div>
                  <div className="p-3 bg-white rounded-xl shadow-sm text-slate-400">

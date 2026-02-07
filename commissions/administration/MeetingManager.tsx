@@ -11,6 +11,7 @@ import { deleteReport, validateReportByAdmin, rejectReport } from '../../service
 import { InternalMeetingReport, CommissionType } from '../../types';
 import MeetingReportEditor from '../shared/MeetingReportEditor';
 import { useData } from '../../contexts/DataContext';
+import { formatDate } from '../../utils/date';
 
 const MeetingManager: React.FC = () => {
   // --- STATE MANAGEMENT ---
@@ -314,7 +315,7 @@ const MeetingManager: React.FC = () => {
                      <Calendar size={32} className="mx-auto mb-2 opacity-20"/>
                      <p className="text-xs font-bold uppercase">Aucune réunion trouvée</p>
                   </div>
-                )}
+               )}
              </div>
           </div>
         </div>
@@ -505,7 +506,7 @@ const MeetingManager: React.FC = () => {
                                <p className="text-xs font-bold text-slate-800 line-through-if-done">{action.description}</p>
                                <div className="flex items-center gap-2 mt-1">
                                   <span className="text-[9px] font-black text-slate-400 uppercase bg-slate-50 px-1.5 py-0.5 rounded">Resp: {action.assignedTo}</span>
-                                  <span className="text-[9px] font-bold text-rose-400">Échéance: {action.dueDate}</span>
+                                  <span className="text-[9px] font-bold text-rose-400">Échéance: {formatDate(action.dueDate)}</span>
                                </div>
                             </div>
                          </div>

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { X, Save, Phone, User, Mail, Plus, MapPin, Crosshair, Loader2, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Save, Phone, User, Mail, Plus, MapPin, Crosshair, Loader2, Trash2, Briefcase, GraduationCap } from 'lucide-react';
 import { MemberCategory, GlobalRole, CommissionType } from '../types';
 
 interface MemberFormProps {
@@ -23,7 +23,6 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
     email: initialData?.email || '',
     phone: initialData?.phone || '',
     category: initialData?.category || MemberCategory.ETUDIANT,
-    level: initialData?.level || '',
     role: initialData?.role || GlobalRole.MEMBRE,
     address: initialData?.address || '',
     coordinates: {
@@ -32,6 +31,11 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
     },
     birthDate: initialData?.birthDate || '',
     gender: initialData?.gender || 'Homme',
+    
+    // Champs spécifiques
+    academicInfo: initialData?.academicInfo || { establishment: '', level: '', field: '' },
+    professionalInfo: initialData?.professionalInfo || { company: '', position: '', sector: '' },
+    
     commissionAssignments: initialData?.commissions || [] as { type: CommissionType, role_commission: string }[]
   });
 
@@ -39,7 +43,6 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
   const [tempRole, setTempRole] = useState('');
 
   const addCommission = () => {
-    // Check if role is selected and commission not already assigned
     if (tempRole && !formData.commissionAssignments.some((c: any) => c.type === tempComm)) {
       setFormData({
         ...formData,
@@ -85,12 +88,21 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Map assignments to expected format if needed, though structure matches what we set
+    
+    // Nettoyage des données selon la catégorie
+    const dataToSubmit = { ...formData };
+    
+    if (formData.category === MemberCategory.TRAVAILLEUR) {
+        delete (dataToSubmit as any).academicInfo;
+    } else {
+        delete (dataToSubmit as any).professionalInfo;
+    }
+
     const finalData = {
-        ...formData,
+        ...dataToSubmit,
         commissionAssignments: formData.commissionAssignments.map((ca: any) => ({
             type: ca.type,
-            role: ca.role_commission // Adapter key to match what MemberModule expects or ensure types align
+            role_commission: ca.role_commission
         }))
     };
     onSubmit(finalData);
@@ -102,45 +114,29 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-emerald-50">
           <div>
             <h3 className="text-xl font-bold text-[#2E8B57]">Inscription au Dahira</h3>
-            <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest">Nouveau Membre</p>
+            <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest">
+               {initialData ? 'Modification Membre' : 'Nouveau Membre'}
+            </p>
           </div>
-          <button 
-            onClick={onClose} 
-            className="p-2 hover:bg-white rounded-full transition-colors text-emerald-700"
-            aria-label="Fermer le formulaire"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors text-emerald-700">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto scrollbar-hide">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Prénom</label>
               <div className="relative">
                 <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
-                <input 
-                  required 
-                  type="text" 
-                  value={formData.firstName} 
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} 
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#2E8B57]"
-                  aria-label="Prénom" 
-                />
+                <input required type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#2E8B57]" />
               </div>
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Nom</label>
               <div className="relative">
                 <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
-                <input 
-                  required 
-                  type="text" 
-                  value={formData.lastName} 
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} 
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#2E8B57]"
-                  aria-label="Nom" 
-                />
+                <input required type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#2E8B57]" />
               </div>
             </div>
           </div>
@@ -148,20 +144,11 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Date de Naissance</label>
-              <input 
-                type="date" 
-                value={formData.birthDate} 
-                onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} 
-                className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-medium focus:ring-2 focus:ring-[#2E8B57]"
-              />
+              <input type="date" value={formData.birthDate} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-medium focus:ring-2 focus:ring-[#2E8B57]" />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Genre</label>
-              <select 
-                value={formData.gender} 
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'Homme' | 'Femme' })} 
-                className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#2E8B57]"
-              >
+              <select value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'Homme' | 'Femme' })} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#2E8B57]">
                 <option value="Homme">Goor Yalla (Homme)</option>
                 <option value="Femme">Soxna (Femme)</option>
               </select>
@@ -171,110 +158,71 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Email</label>
-              <input 
-                required 
-                type="email" 
-                value={formData.email} 
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
-                className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-[#2E8B57]"
-                aria-label="Adresse Email" 
-              />
+              <input required type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-[#2E8B57]" />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Téléphone</label>
-              <input 
-                required 
-                type="tel" 
-                value={formData.phone} 
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
-                className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-[#2E8B57]"
-                aria-label="Numéro de téléphone" 
-              />
+              <input required type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-[#2E8B57]" />
             </div>
           </div>
 
+          {/* SÉLECTEUR CATÉGORIE */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Rôle Global</label>
-              <select 
-                value={formData.role} 
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as GlobalRole })} 
-                className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#2E8B57]"
-                aria-label="Sélectionner le rôle global"
-              >
+              <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as GlobalRole })} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#2E8B57]">
                 {Object.values(GlobalRole).map(role => <option key={role} value={role}>{role}</option>)}
               </select>
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Secteur</label>
-              <select 
-                value={formData.category} 
-                onChange={(e) => setFormData({ ...formData, category: e.target.value as MemberCategory })} 
-                className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#2E8B57]"
-                aria-label="Sélectionner le secteur d'activité"
-              >
+              <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value as MemberCategory })} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#2E8B57]">
                 {Object.values(MemberCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-gray-100">
+          {/* CHAMPS DYNAMIQUES SELON CATEGORIE */}
+          {formData.category === MemberCategory.TRAVAILLEUR ? (
+             <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3">
+                 <h4 className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-2"><Briefcase size={12}/> Informations Professionnelles</h4>
+                 <div className="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="Entreprise" className="w-full px-3 py-2 bg-white rounded-lg text-xs" value={formData.professionalInfo.company} onChange={(e) => setFormData({...formData, professionalInfo: {...formData.professionalInfo, company: e.target.value}})} />
+                    <input type="text" placeholder="Poste" className="w-full px-3 py-2 bg-white rounded-lg text-xs" value={formData.professionalInfo.position} onChange={(e) => setFormData({...formData, professionalInfo: {...formData.professionalInfo, position: e.target.value}})} />
+                 </div>
+                 <input type="text" placeholder="Secteur d'activité" className="w-full px-3 py-2 bg-white rounded-lg text-xs" value={formData.professionalInfo.sector} onChange={(e) => setFormData({...formData, professionalInfo: {...formData.professionalInfo, sector: e.target.value}})} />
+             </div>
+          ) : (
+             <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100 space-y-3">
+                 <h4 className="text-[10px] font-black text-amber-600 uppercase flex items-center gap-2"><GraduationCap size={12}/> Informations Académiques</h4>
+                 <div className="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="Établissement" className="w-full px-3 py-2 bg-white rounded-lg text-xs" value={formData.academicInfo.establishment} onChange={(e) => setFormData({...formData, academicInfo: {...formData.academicInfo, establishment: e.target.value}})} />
+                    <input type="text" placeholder="Niveau (Ex: Licence 2)" className="w-full px-3 py-2 bg-white rounded-lg text-xs" value={formData.academicInfo.level} onChange={(e) => setFormData({...formData, academicInfo: {...formData.academicInfo, level: e.target.value}})} />
+                 </div>
+                 <input type="text" placeholder="Filière / Série" className="w-full px-3 py-2 bg-white rounded-lg text-xs" value={formData.academicInfo.field} onChange={(e) => setFormData({...formData, academicInfo: {...formData.academicInfo, field: e.target.value}})} />
+             </div>
+          )}
+
+          {/* LOCALISATION */}
+          <div className="pt-2 border-t border-gray-100">
             <div className="flex justify-between items-center mb-3">
-              <label className="text-[10px] font-black text-[#2E8B57] uppercase ml-1 tracking-widest">Localisation & Adresse</label>
-              <button 
-                type="button" 
-                onClick={handleLocateMe}
-                disabled={isLocating}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-[#2E8B57] rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-200 transition-all disabled:opacity-50"
-                aria-label="Géolocaliser ma position actuelle"
-              >
+              <label className="text-[10px] font-black text-[#2E8B57] uppercase ml-1 tracking-widest">Localisation</label>
+              <button type="button" onClick={handleLocateMe} disabled={isLocating} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-[#2E8B57] rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-200 transition-all disabled:opacity-50">
                 {isLocating ? <Loader2 size={12} className="animate-spin" /> : <Crosshair size={12} />}
-                {isLocating ? 'Position...' : 'Ma position'}
+                {isLocating ? '...' : 'GPS'}
               </button>
             </div>
             <div className="space-y-3">
               <div className="relative">
                 <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
-                <input 
-                  type="text" 
-                  placeholder="Adresse complète (ex: Plateau, Dakar)..." 
-                  value={formData.address} 
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })} 
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-[#2E8B57]"
-                  aria-label="Adresse complète" 
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase ml-1 tracking-tight">Latitude</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    placeholder="14.7167"
-                    value={formData.coordinates.lat} 
-                    onChange={(e) => setFormData({ ...formData, coordinates: { ...formData.coordinates, lat: parseFloat(e.target.value) } })} 
-                    className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-[#2E8B57]"
-                    aria-label="Latitude" 
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase ml-1 tracking-tight">Longitude</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    placeholder="-17.4677"
-                    value={formData.coordinates.lng} 
-                    onChange={(e) => setFormData({ ...formData, coordinates: { ...formData.coordinates, lng: parseFloat(e.target.value) } })} 
-                    className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-[#2E8B57]"
-                    aria-label="Longitude" 
-                  />
-                </div>
+                <input type="text" placeholder="Adresse complète..." value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-[#2E8B57]" />
               </div>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-gray-100">
-            <label className="text-[10px] font-black text-[#2E8B57] uppercase ml-1 tracking-widest mb-2 block">Affectation aux Commissions</label>
+          {/* COMMISSIONS */}
+          <div className="pt-2 border-t border-gray-100">
+            <label className="text-[10px] font-black text-[#2E8B57] uppercase ml-1 tracking-widest mb-2 block">Commissions</label>
             
             <div className="space-y-2 mb-4">
               {formData.commissionAssignments.map((ca: any, i: number) => (
@@ -283,74 +231,33 @@ const MemberForm: React.FC<MemberFormProps> = ({ onClose, onSubmit, initialData 
                     <span className="text-[9px] font-black text-emerald-800 uppercase">{ca.type}</span>
                     <span className="text-xs font-bold text-emerald-600">{ca.role_commission}</span>
                   </div>
-                  <button 
-                    type="button" 
-                    onClick={() => removeCommission(ca.type)} 
-                    className="p-1 hover:text-red-500 transition-colors"
-                    aria-label={`Retirer la commission ${ca.type}`}
-                  >
-                    <Trash2 size={14}/>
-                  </button>
+                  <button type="button" onClick={() => removeCommission(ca.type)} className="p-1 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
                 </div>
               ))}
-              {formData.commissionAssignments.length === 0 && (
-                <p className="text-[10px] text-gray-400 italic text-center py-2">Aucune commission assignée</p>
-              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Commission</label>
-                <select 
-                  value={tempComm} 
-                  onChange={(e) => setTempComm(e.target.value as CommissionType)} 
-                  className="w-full px-3 py-2.5 bg-gray-100 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                  aria-label="Sélectionner une commission"
-                >
+                <select value={tempComm} onChange={(e) => setTempComm(e.target.value as CommissionType)} className="w-full px-3 py-2.5 bg-gray-100 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500">
                   {Object.values(CommissionType).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Rôle</label>
-                <div className="flex gap-2">
-                  <select 
-                    value={tempRole} 
-                    onChange={(e) => setTempRole(e.target.value)} 
-                    className="flex-1 px-3 py-2.5 bg-gray-100 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                    aria-label="Sélectionner un rôle dans la commission"
-                  >
-                    <option value="">Sélectionner...</option>
+              <div className="flex gap-2">
+                  <select value={tempRole} onChange={(e) => setTempRole(e.target.value)} className="flex-1 px-3 py-2.5 bg-gray-100 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="">Rôle...</option>
                     {COMMISSION_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
-                  <button 
-                    type="button" 
-                    onClick={addCommission} 
-                    className="p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" 
-                    disabled={!tempRole}
-                    aria-label="Ajouter l'affectation à la commission"
-                  >
+                  <button type="button" onClick={addCommission} className="p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled={!tempRole}>
                     <Plus size={16}/>
                   </button>
-                </div>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 flex gap-3 sticky bottom-0 bg-white pb-2">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-200 transition-colors"
-              aria-label="Annuler l'inscription"
-            >
-              Annuler
-            </button>
-            <button 
-              type="submit" 
-              className="flex-1 px-4 py-3 bg-[#2E8B57] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
-              aria-label="Enregistrer le membre"
-            >
-              <Save size={18} /> Inscrire le membre
+          <div className="pt-4 flex gap-3 sticky bottom-0 bg-white pb-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-200 transition-colors">Annuler</button>
+            <button type="submit" className="flex-1 px-4 py-3 bg-[#2E8B57] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
+              <Save size={18} /> Enregistrer
             </button>
           </div>
         </form>

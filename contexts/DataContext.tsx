@@ -9,18 +9,22 @@ import {
 import { 
   dbFetchMembers, dbFetchContributions, dbFetchEvents, dbFetchReports, 
   dbCreateMember, dbUpdateMember, dbDeleteMember,
-  dbCreateContribution, dbCreateEvent, dbCreateReport, dbFetchTasks, 
-  dbFetchAdiyaCampaigns, dbFetchFleet, dbFetchDrivers, dbFetchSchedules, dbFetchResources,
+  dbCreateContribution, dbUpdateContribution, dbDeleteContribution, dbCreateEvent, dbCreateReport, dbFetchTasks, 
+  dbFetchAdiyaCampaigns, dbFetchFundraisingEvents, dbFetchFleet, dbFetchDrivers, dbFetchSchedules, dbFetchResources,
   dbFetchSocialCases, dbFetchSocialProjects, dbFetchTickets, dbFetchInventory,
   dbCreateVehicle, dbCreateDriver, dbCreateSchedule, dbCreateResource, dbUpdateVehicle, 
   dbDeleteVehicle, dbUpdateDriver, dbDeleteDriver, dbDeleteResource,
-  dbCreateTask, dbUpdateTask, dbDeleteTask, dbCreateAdiyaCampaign, dbUpdateAdiyaCampaign,
+  dbCreateTask, dbUpdateTask, dbDeleteTask, 
+  dbCreateAdiyaCampaign, dbUpdateAdiyaCampaign, dbCreateFundraisingEvent, dbUpdateFundraisingEvent,
   dbCreateSocialCase, dbCreateSocialProject, dbCreateTicket, dbUpdateTicket, dbDeleteTicket,
   dbCreateInventoryItem, dbDeleteInventoryItem, dbDeleteEvent,
   dbFetchKhassaideModules, dbCreateKhassaideModule, dbUpdateKhassaideModule,
   dbFetchPartners, dbCreatePartner,
   dbFetchSocialPosts, dbCreateSocialPost,
-  dbFetchStudyGroups, dbCreateStudyGroup
+  dbFetchStudyGroups, dbCreateStudyGroup,
+  dbFetchBudgetRequests, dbCreateBudgetRequest, dbUpdateBudgetRequest,
+  dbFetchFinancialReports, dbCreateFinancialReport, dbUpdateFinancialReport,
+  dbUploadMemberDocument, dbDeleteMemberDocument
 } from '../services/dbService';
 import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
@@ -104,6 +108,15 @@ interface DataContextType {
   addSocialPost: (post: Partial<SocialPost>) => void;
   addStudyGroup: (group: Partial<StudyGroup>) => void;
   
+  addBudgetRequest: (req: Partial<BudgetRequest>) => void;
+  updateBudgetRequest: (id: string, data: Partial<BudgetRequest>) => void;
+  
+  addFinancialReport: (rep: Partial<CommissionFinancialReport>) => void;
+  updateFinancialReport: (id: string, data: Partial<CommissionFinancialReport>) => void;
+
+  uploadMemberDocument: (memberId: string, file: File, type?: 'PDF'|'IMAGE'|'AUTRE') => Promise<void>;
+  deleteMemberDocument: (docId: string, path: string) => Promise<void>;
+  
   totalTreasury: number;
   activeMembersCount: number;
   resetData: () => void;
@@ -139,8 +152,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [partners, setPartners] = useState<Partner[]>([]);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
   const [studyGroups, setStudyGroups] = useState<StudyGroup[]>([]);
-  const [financialReports] = useState<CommissionFinancialReport[]>([]);
-  const [budgetRequests] = useState<BudgetRequest[]>([]);
+  const [financialReports, setFinancialReports] = useState<CommissionFinancialReport[]>([]);
+  const [budgetRequests, setBudgetRequests] = useState<BudgetRequest[]>([]);
   const [fundraisingEvents, setFundraisingEvents] = useState<FundraisingEvent[]>([]);
 
   const loadData = async () => {
@@ -150,7 +163,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setServerError(false);
     
     try {
-      // Timeout Promise pour éviter le blocage infini (8 secondes)
       const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Data Fetch Timeout')), 8000));
 
       const dataPromise = Promise.all([
@@ -158,12 +170,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         dbFetchTasks(), dbFetchAdiyaCampaigns(), dbFetchFleet(), dbFetchDrivers(),
         dbFetchSchedules(), dbFetchTickets(), dbFetchInventory(), dbFetchResources(),
         dbFetchKhassaideModules(), dbFetchSocialCases(), dbFetchSocialProjects(),
-        dbFetchPartners(), dbFetchSocialPosts(), dbFetchStudyGroups()
+        dbFetchPartners(), dbFetchSocialPosts(), dbFetchStudyGroups(),
+        dbFetchBudgetRequests(), dbFetchFinancialReports(), dbFetchFundraisingEvents()
       ]);
 
       const [
           m, c, e, r, t, a, f, d, s, tick, inv, l, k, sc, sp, 
-          prt, pst, grp
+          prt, pst, grp, br, fr, fe
       ] = await Promise.race([dataPromise, timeoutPromise]) as any;
       
       setMembers(m || []); setContributions(c || []); setEvents(e || []); setReports(r || []);
@@ -171,11 +184,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSchedules(s || []); setTickets(tick || []); setInventory(inv || []); setLibrary(l || []);
       setKhassaideModules(k || []); setSocialCases(sc || []); setSocialProjects(sp || []);
       setPartners(prt || []); setSocialPosts(pst || []); setStudyGroups(grp || []);
+      setBudgetRequests(br || []); setFinancialReports(fr || []); setFundraisingEvents(fe || []);
       
     } catch (error: any) {
       console.error("ERREUR CHARGEMENT DONNÉES:", error);
-      // On ne marque pas serverError à true pour les timeouts mineurs, on laisse l'app charger avec des données vides si besoin
-      // Mais on notifie l'utilisateur
       if (error.message === 'Data Fetch Timeout') {
           addNotification("Le chargement des données prend plus de temps que prévu.", "warning");
       } else {
@@ -199,9 +211,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateMemberStatus = async (id: string, s: 'active'|'inactive') => { await updateMember(id, { status: s }); };
   const addEvent = async (e: Event) => { await dbCreateEvent(e); setEvents(await dbFetchEvents()); addNotification("Événement créé", "success"); };
   const deleteEvent = async (id: string) => { await dbDeleteEvent(id); setEvents(prev => prev.filter(e => e.id !== id)); addNotification("Événement supprimé", "info"); };
+  
+  // --- FINANCE METHODS ---
   const addContribution = async (c: Contribution) => { await dbCreateContribution(c); setContributions(await dbFetchContributions()); addNotification("Paiement enregistré", "success"); };
-  const updateContribution = (id: string, d: Partial<Contribution>) => {}; 
-  const deleteContribution = (id: string) => {}; 
+  const updateContribution = async (id: string, d: Partial<Contribution>) => { await dbUpdateContribution(id, d); setContributions(prev => prev.map(c => c.id === id ? { ...c, ...d } : c)); addNotification("Transaction mise à jour", "success"); };
+  const deleteContribution = async (id: string) => { await dbDeleteContribution(id); setContributions(prev => prev.filter(c => c.id !== id)); addNotification("Transaction supprimée", "info"); };
+  
   const addReport = async (r: InternalMeetingReport) => { await dbCreateReport(r); setReports(await dbFetchReports()); addNotification("Rapport créé", "success"); };
   
   const addVehicle = async (v: Vehicle) => { await dbCreateVehicle(v); setFleet(await dbFetchFleet()); addNotification("Véhicule ajouté", "success"); };
@@ -222,16 +237,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const deleteResource = async (id: string) => { await dbDeleteResource(id); setLibrary(prev => prev.filter(r => r.id !== id)); };
   const addKhassaideModule = async (m: KhassaideModule) => { await dbCreateKhassaideModule(m); setKhassaideModules(await dbFetchKhassaideModules()); };
   const updateKhassaideModule = async (id: string, data: Partial<KhassaideModule>) => { await dbUpdateKhassaideModule(id, data); setKhassaideModules(prev => prev.map(m => m.id === id ? { ...m, ...data } : m)); };
-  const addAdiyaCampaign = async (c: AdiyaCampaign) => { await dbCreateAdiyaCampaign(c); setAdiyaCampaigns(await dbFetchAdiyaCampaigns()); };
+  
+  // --- CAMPAIGNS & FUNDRAISING ---
+  const addAdiyaCampaign = async (c: AdiyaCampaign) => { await dbCreateAdiyaCampaign(c); setAdiyaCampaigns(await dbFetchAdiyaCampaigns()); addNotification("Campagne créée", "success"); };
   const updateAdiyaCampaign = async (id: string, data: Partial<AdiyaCampaign>) => { await dbUpdateAdiyaCampaign(id, data); setAdiyaCampaigns(prev => prev.map(c => c.id === id ? { ...c, ...data } : c)); };
+  
+  const addFundraisingEvent = async (event: FundraisingEvent) => { await dbCreateFundraisingEvent(event); setFundraisingEvents(await dbFetchFundraisingEvents()); addNotification("Collecte créée", "success"); };
+  const updateFundraisingEvent = async (id: string, data: Partial<FundraisingEvent>) => { await dbUpdateFundraisingEvent(id, data); setFundraisingEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e)); };
+
   const addTask = async (t: Task) => { await dbCreateTask(t); setTasks(await dbFetchTasks()); };
   const updateTask = async (id: string, data: Partial<Task>) => { await dbUpdateTask(id, data); setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t)); };
   const deleteTask = async (id: string) => { await dbDeleteTask(id); setTasks(prev => prev.filter(t => t.id !== id)); };
   const addSocialCase = async (sc: Partial<SocialCase>) => { await dbCreateSocialCase(sc); setSocialCases(await dbFetchSocialCases()); };
   const addSocialProject = async (p: Partial<SocialProject>) => { await dbCreateSocialProject(p); setSocialProjects(await dbFetchSocialProjects()); };
   
-  const addFundraisingEvent = (event: FundraisingEvent) => { setFundraisingEvents(prev => [...prev, event]); };
-  const updateFundraisingEvent = (id: string, data: Partial<FundraisingEvent>) => { setFundraisingEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e)); };
 
   const addPartner = async (p: Partial<Partner>) => {
       try {
@@ -255,6 +274,53 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setStudyGroups(await dbFetchStudyGroups());
           addNotification("Groupe créé", "success");
       } catch(e: any) { addNotification(e.message, "error"); }
+  };
+
+  const addBudgetRequest = async (req: Partial<BudgetRequest>) => {
+      await dbCreateBudgetRequest(req);
+      setBudgetRequests(await dbFetchBudgetRequests());
+      addNotification("Demande budget envoyée", "success");
+  };
+
+  const updateBudgetRequest = async (id: string, data: Partial<BudgetRequest>) => {
+      await dbUpdateBudgetRequest(id, data);
+      setBudgetRequests(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
+      addNotification("Demande mise à jour", "success");
+  };
+
+  const addFinancialReport = async (rep: Partial<CommissionFinancialReport>) => {
+      await dbCreateFinancialReport(rep);
+      setFinancialReports(await dbFetchFinancialReports());
+      addNotification("Bilan soumis", "success");
+  };
+
+  const updateFinancialReport = async (id: string, data: Partial<CommissionFinancialReport>) => {
+      await dbUpdateFinancialReport(id, data);
+      setFinancialReports(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
+      addNotification("Bilan mis à jour", "success");
+  };
+
+  const uploadMemberDocument = async (memberId: string, file: File, type: 'PDF'|'IMAGE'|'AUTRE' = 'AUTRE') => {
+      try {
+          await dbUploadMemberDocument(memberId, file, type);
+          setMembers(await dbFetchMembers());
+          addNotification("Document ajouté", "success");
+      } catch (e: any) {
+          addNotification("Erreur upload: " + e.message, "error");
+      }
+  };
+
+  const deleteMemberDocument = async (docId: string, path: string) => {
+      try {
+          await dbDeleteMemberDocument(docId, path);
+          setMembers(prev => prev.map(m => ({
+              ...m,
+              documents: m.documents?.filter(d => d.id !== docId) || []
+          })));
+          addNotification("Document supprimé", "success");
+      } catch (e: any) {
+          addNotification("Erreur suppression", "error");
+      }
   };
 
   const totalTreasury = contributions.reduce((acc, c) => acc + c.amount, 0);
@@ -288,6 +354,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addTask, updateTask, deleteTask,
       addSocialCase, addSocialProject,
       addPartner, addSocialPost, addStudyGroup,
+      addBudgetRequest, updateBudgetRequest, addFinancialReport, updateFinancialReport,
+      uploadMemberDocument, deleteMemberDocument,
       totalTreasury, activeMembersCount, resetData, isLoading, serverError
     }}>
       {children}

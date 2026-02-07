@@ -2,6 +2,7 @@
 import React from 'react';
 import { Calendar, MapPin, ArrowRight, Users, Clock } from 'lucide-react';
 import { Event } from '../../types';
+import { getDay, getMonth } from '../../utils/date';
 
 interface EventCardProps {
   event: Event;
@@ -11,8 +12,8 @@ interface EventCardProps {
 
 const EventCard: React.FC<EventCardProps> = ({ event, onRegister, onClick }) => {
   const eventDate = new Date(event.date);
-  const day = eventDate.getDate();
-  const month = eventDate.toLocaleString('fr-FR', { month: 'short' });
+  const day = getDay(event.date);
+  const month = getMonth(event.date);
   const isPast = eventDate < new Date();
 
   const getTypeStyle = (type: string) => {
@@ -57,7 +58,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onRegister, onClick }) => 
               </div>
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
                 <Clock size={14} className="text-slate-400" />
-                <span>09:00 - 18:00</span>
+                <span>{event.time || '09:00'} - 18:00</span>
               </div>
             </div>
           </div>

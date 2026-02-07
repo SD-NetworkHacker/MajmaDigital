@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CommissionType, BudgetCategory, BudgetPriority, BudgetBreakdownItem } from '../../types';
 import { ChevronRight, ChevronLeft, CheckCircle, Target, Calculator, Calendar, Save, X, Plus, Trash2 } from 'lucide-react';
-import { createBudgetRequest } from '../../services/financialService';
+import { useData } from '../../contexts/DataContext';
 
 interface Props {
   commission: CommissionType;
@@ -17,6 +17,7 @@ const STEPS = [
 ];
 
 const BudgetRequestWizard: React.FC<Props> = ({ commission, onClose }) => {
+  const { addBudgetRequest } = useData();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     title: '',
@@ -49,11 +50,12 @@ const BudgetRequestWizard: React.FC<Props> = ({ commission, onClose }) => {
   const totalAmount = breakdown.reduce((acc, curr) => acc + (curr.total || 0), 0);
 
   const handleSubmit = () => {
-    createBudgetRequest({
+    addBudgetRequest({
       commission,
       ...formData,
       breakdown: breakdown as BudgetBreakdownItem[],
-      submittedBy: 'Utilisateur Courant' // Mock
+      amountRequested: totalAmount, // explicitly set total
+      submittedBy: 'Utilisateur Courant' // Mock - backend handles real user
     });
     onClose();
   };

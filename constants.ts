@@ -1,8 +1,12 @@
 
 import { CommissionType, Commission, Member, Event, Contribution, InternalMeetingReport, Vehicle, TransportSchedule, Driver, CulturalActivity, LibraryResource, KhassaideModule, CommissionFinancialReport, BudgetRequest, AdiyaCampaign, FundraisingEvent } from './types';
 
-// API URL removed - Using direct Supabase connection
-export const API_URL = '';
+// --- SYSTEM HEALTH CONSTANTS ---
+export const APP_VERSION = '2.0.0-supabase'; // Incrémenter ceci force le vidage du cache utilisateur
+export const SUPABASE_PROJECT_ID = 'qwsivjyohprhwacjgimc';
+
+// --- CLEANUP : Aucune URL d'API externe n'est utilisée (Direct Supabase) ---
+export const API_URL = ''; 
 
 // La structure des commissions est structurelle (Code métier), on la garde.
 export const INITIAL_COMMISSIONS: Commission[] = [
