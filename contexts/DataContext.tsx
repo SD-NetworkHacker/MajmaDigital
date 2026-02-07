@@ -1,10 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { 
-    Member, Event, Contribution, InternalMeetingReport, CommissionFinancialReport, BudgetRequest, 
-    AdiyaCampaign, FundraisingEvent, Task, Vehicle, Driver, TransportSchedule, 
-    LibraryResource, SocialCase, SocialProject, TicketItem, InventoryItem, KhassaideModule,
-    Partner, SocialPost, StudyGroup 
+    Member, Event, Contribution, AdiyaCampaign, BudgetRequest, CommissionFinancialReport, 
+    Task, Vehicle, Driver, TransportSchedule, LibraryResource, SocialCase, SocialProject, 
+    TicketItem, InventoryItem, KhassaideModule, Partner, SocialPost, StudyGroup 
 } from '../types';
 import { 
   dbFetchMembers, dbFetchContributions, dbFetchAdiyaCampaigns, dbFetchBudgetRequests, 
@@ -39,6 +38,9 @@ interface DataContextType {
   activeMembersCount: number;
   isLoading: boolean;
   serverError: boolean;
+  addContribution: (c: any) => Promise<void>;
+  addMember: (m: any) => Promise<void>;
+  updateMember: (id: string, u: any) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -48,7 +50,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState(false);
   
-  // States
   const [members, setMembers] = useState<Member[]>([]);
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [adiyaCampaigns, setAdiyaCampaigns] = useState<AdiyaCampaign[]>([]);
@@ -75,42 +76,44 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setServerError(false);
 
     try {
-      // Stratégie : On charge les données vitales d'abord
-      const [m, c, e] = await Promise.all([
-        dbFetchMembers().catch(() => []),
-        dbFetchContributions().catch(() => []),
-        dbFetchEvents().catch(() => [])
-      ]);
-      
-      setMembers(m);
-      setContributions(c);
-      setEvents(e);
+      // Stratégie : Chargement parallèle avec gestion d'erreur individuelle
+      const wrap = async (fn: any, setter: any) => {
+        try {
+          const res = await fn();
+          setter(res || []);
+        } catch (e) {
+          console.error(`Table loading failed:`, e);
+          setter([]);
+        }
+      };
 
-      // On charge le reste en arrière-plan sans bloquer
-      Promise.all([
-        dbFetchAdiyaCampaigns().then(setAdiyaCampaigns).catch(() => {}),
-        dbFetchBudgetRequests().then(setBudgetRequests).catch(() => {}),
-        dbFetchFinancialReports().then(setFinancialReports).catch(() => {}),
-        dbFetchTasks().then(setTasks).catch(() => {}),
-        dbFetchFleet().then(setFleet).catch(() => {}),
-        dbFetchDrivers().then(setDrivers).catch(() => {}),
-        dbFetchSchedules().then(setSchedules).catch(() => {}),
-        dbFetchTickets().then(setTickets).catch(() => {}),
-        dbFetchInventory().then(setInventory).catch(() => {}),
-        dbFetchResources().then(setLibrary).catch(() => {}),
-        dbFetchKhassaideModules().then(setKhassaideModules).catch(() => {}),
-        dbFetchSocialCases().then(setSocialCases).catch(() => {}),
-        dbFetchSocialProjects().then(setSocialProjects).catch(() => {}),
-        dbFetchPartners().then(setPartners).catch(() => {}),
-        dbFetchSocialPosts().then(setSocialPosts).catch(() => {}),
-        dbFetchStudyGroups().then(setStudyGroups).catch(() => {})
+      await Promise.all([
+        wrap(dbFetchMembers, setMembers),
+        wrap(dbFetchContributions, setContributions),
+        wrap(dbFetchEvents, setEvents),
+        wrap(dbFetchTasks, setTasks),
+        wrap(dbFetchBudgetRequests, setBudgetRequests),
+        wrap(dbFetchFinancialReports, setFinancialReports),
+        wrap(dbFetchAdiyaCampaigns, setAdiyaCampaigns),
+        wrap(dbFetchFleet, setFleet),
+        wrap(dbFetchDrivers, setDrivers),
+        wrap(dbFetchSchedules, setSchedules),
+        wrap(dbFetchTickets, setTickets),
+        wrap(dbFetchInventory, setInventory),
+        wrap(dbFetchResources, setLibrary),
+        wrap(dbFetchKhassaideModules, setKhassaideModules),
+        wrap(dbFetchSocialCases, setSocialCases),
+        wrap(dbFetchSocialProjects, setSocialProjects),
+        wrap(dbFetchPartners, setPartners),
+        wrap(dbFetchSocialPosts, setSocialPosts),
+        wrap(dbFetchStudyGroups, setStudyGroups)
       ]);
 
     } catch (error) {
-      console.error("Critical Data Fetch Error:", error);
+      console.error("Data loading engine error:", error);
       setServerError(true);
     } finally {
-      setIsLoading(false); // DÉBLOCAGE GARANTI
+      setIsLoading(false);
     }
   };
 
@@ -119,11 +122,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const totalTreasury = contributions.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
   const activeMembersCount = members.filter(m => m.status === 'active').length;
 
+  // Stubs for actions (to be fully implemented in dbService)
+  const addContribution = async (c: any) => { console.log('Add contrib', c); await loadData(); };
+  const addMember = async (m: any) => { console.log('Add member', m); await loadData(); };
+  const updateMember = async (id: string, u: any) => { console.log('Update member', id, u); await loadData(); };
+
   return (
     <DataContext.Provider value={{
       members, events, contributions, adiyaCampaigns, budgetRequests, financialReports, tasks,
       fleet, drivers, schedules, tickets, inventory, library, khassaideModules, socialCases, socialProjects,
-      partners, socialPosts, studyGroups, totalTreasury, activeMembersCount, isLoading, serverError
+      partners, socialPosts, studyGroups, totalTreasury, activeMembersCount, isLoading, serverError,
+      addContribution, addMember, updateMember
     }}>
       {children}
     </DataContext.Provider>
