@@ -1,3 +1,4 @@
+
 export enum CommissionType {
   ADMINISTRATION = 'Administration',
   FINANCE = 'Finance',
@@ -49,6 +50,8 @@ export interface Member {
   commissions: { type: CommissionType; role_commission: string; permissions: string[] }[];
   bio?: string;
   level?: string;
+  birthDate?: string;
+  gender?: 'Homme' | 'Femme';
 }
 
 export interface UserProfile extends Member {
@@ -399,6 +402,7 @@ export interface StudyGroup {
   name: string;
   theme: string;
   membersCount: number;
+  createdAt?: string;
 }
 
 export enum CrisisLevel {

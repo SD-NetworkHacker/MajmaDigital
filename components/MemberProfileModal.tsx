@@ -55,7 +55,9 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
         phone: member.phone,
         address: member.address,
         role: member.role, // Pour la promotion (admin)
-        category: member.category
+        category: member.category,
+        birthDate: member.birthDate,
+        gender: member.gender
     });
     setIsEditing(true);
   };
@@ -72,6 +74,19 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
   const handleEmail = () => window.location.href = `mailto:${member.email}`;
   const handleExport = () => {
     exportToCSV(`profil_${member.matricule}.csv`, [{ ...member, contributions_total: financeStats.total }]);
+  };
+
+  // Helper pour l'âge
+  const getAge = (dateString?: string) => {
+    if (!dateString) return 'Non renseigné';
+    const today = new Date();
+    const birthDate = new Date(dateString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return `${age} ans`;
   };
 
   if (!member) return null;
@@ -145,11 +160,36 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                         ) : <p className="text-sm font-bold text-slate-800">{member.firstName} {member.lastName}</p>}
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Date de Naissance</label>
+                            {isEditing ? (
+                                <input type="date" value={formData.birthDate || ''} onChange={e => setFormData({...formData, birthDate: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" />
+                            ) : <p className="text-sm font-bold text-slate-800">{member.birthDate ? new Date(member.birthDate).toLocaleDateString() : 'N/A'} <span className="text-slate-400 text-xs">({getAge(member.birthDate)})</span></p>}
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Genre</label>
+                            {isEditing ? (
+                                <select value={formData.gender || ''} onChange={e => setFormData({...formData, gender: e.target.value as any})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500">
+                                    <option value="Homme">Homme</option>
+                                    <option value="Femme">Femme</option>
+                                </select>
+                            ) : <p className="text-sm font-bold text-slate-800">{member.gender || 'N/A'}</p>}
+                        </div>
+                    </div>
+
                     <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Email</label>
                         {isEditing ? (
                             <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" />
                         ) : <p className="text-sm font-bold text-slate-800">{member.email}</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                         <label className="text-[10px] text-slate-400 font-bold uppercase">Téléphone</label>
+                         {isEditing ? (
+                            <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" />
+                         ) : <p className="text-sm font-bold text-slate-800">{member.phone}</p>}
                     </div>
 
                     {/* SECTION PROMOTION (ADMIN ONLY) */}
@@ -177,31 +217,58 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                   </div>
                </div>
                
-               {/* Commissions */}
-               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Responsabilités</h4>
-                  {member.commissions.length > 0 ? member.commissions.map((comm, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="flex items-center gap-3">
-                         <Shield size={16} className="text-emerald-600"/>
-                         <div>
-                            <p className="text-xs font-black text-slate-800">{comm.type}</p>
-                            <p className="text-[10px] text-emerald-600 font-bold uppercase">{comm.role_commission}</p>
+               <div className="space-y-6">
+                   <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                       <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Localisation</h4>
+                       <div className="space-y-4">
+                          <div className="space-y-1">
+                             <label className="text-[10px] text-slate-400 font-bold uppercase">Adresse</label>
+                             {isEditing ? (
+                                <input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" />
+                             ) : <p className="text-sm font-bold text-slate-800">{member.address}</p>}
+                          </div>
+                          <div className="h-32 w-full bg-slate-100 rounded-xl overflow-hidden relative group">
+                             {/* Mock Map / Or real if coordinates exist */}
+                             <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-200">
+                                <MapPin size={32} />
+                             </div>
+                             {(member.coordinates.lat !== 0 && member.coordinates.lng !== 0) && (
+                                <div className="absolute inset-0 bg-emerald-100/50 flex items-center justify-center">
+                                    <span className="text-emerald-800 text-xs font-bold bg-white/80 px-2 py-1 rounded">Position Validée</span>
+                                </div>
+                             )}
+                             <div className="absolute bottom-2 left-2 bg-white/90 px-2 py-1 rounded text-[9px] font-mono font-bold">
+                                {member.coordinates.lat.toFixed(5)}, {member.coordinates.lng.toFixed(5)}
+                             </div>
+                          </div>
+                       </div>
+                   </div>
+
+                   <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Commissions & Engagements</h4>
+                      {member.commissions.length > 0 ? member.commissions.map((comm, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <div className="flex items-center gap-3">
+                             <Shield size={16} className="text-emerald-600"/>
+                             <div>
+                                <p className="text-xs font-black text-slate-800">{comm.type}</p>
+                                <p className="text-[10px] text-emerald-600 font-bold uppercase">{comm.role_commission}</p>
+                             </div>
+                          </div>
+                        </div>
+                      )) : <p className="text-xs text-slate-400 italic">Aucune commission assignée.</p>}
+                      
+                      {isAdmin && (
+                         <div className="pt-4 mt-auto">
+                            <button 
+                               onClick={() => { if(confirm('Désactiver ce compte ?')) updateMemberStatus(member.id, 'inactive'); }}
+                               className="w-full py-3 border-2 border-rose-100 text-rose-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
+                            >
+                               <Lock size={14} /> Désactiver le Compte
+                            </button>
                          </div>
-                      </div>
-                    </div>
-                  )) : <p className="text-xs text-slate-400 italic">Aucune commission assignée.</p>}
-                  
-                  {isAdmin && (
-                     <div className="pt-4 mt-auto">
-                        <button 
-                           onClick={() => { if(confirm('Désactiver ce compte ?')) updateMemberStatus(member.id, 'inactive'); }}
-                           className="w-full py-3 border-2 border-rose-100 text-rose-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
-                        >
-                           <Lock size={14} /> Désactiver le Compte
-                        </button>
-                     </div>
-                  )}
+                      )}
+                   </div>
                </div>
             </div>
           )}

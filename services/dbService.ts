@@ -24,24 +24,34 @@ export const dbFetchMembers = async (): Promise<Member[]> => {
   }
 
   // Transformation des données DB (snake_case) vers le format de l'app (camelCase)
-  return (data || []).map((p: any) => ({
-    id: p.id,
-    firstName: p.first_name || '',
-    lastName: p.last_name || '',
-    email: p.email || '',
-    phone: p.phone || '',
-    role: p.role || 'MEMBRE',
-    category: p.category || 'Sympathisant',
-    matricule: p.matricule || 'N/A',
-    status: 'active', // Par défaut actif si présent dans la table
-    address: p.address || 'Non renseignée', // Si vous n'avez pas ce champ en DB, mettez une valeur par défaut
-    joinDate: p.created_at,
-    // Coordonnées par défaut (Dakar) si non présentes
-    coordinates: { lat: 14.7167, lng: -17.4677 }, 
-    // Pour l'instant, tableau vide ou à récupérer via une table de liaison si implémenté
-    commissions: [], 
-    bio: p.bio
-  }));
+  return (data || []).map((p: any) => {
+    // Gestion robuste des coordonnées
+    let coords = { lat: 14.7167, lng: -17.4677 }; // Dakar défaut
+    if (p.location_data && typeof p.location_data === 'object') {
+        if(p.location_data.lat && p.location_data.lng) {
+            coords = { lat: Number(p.location_data.lat), lng: Number(p.location_data.lng) };
+        }
+    }
+
+    return {
+      id: p.id,
+      firstName: p.first_name || '',
+      lastName: p.last_name || '',
+      email: p.email || '',
+      phone: p.phone || '',
+      role: p.role || 'MEMBRE',
+      category: p.category || 'Sympathisant',
+      matricule: p.matricule || 'N/A',
+      status: 'active', 
+      address: p.address || 'Non renseignée',
+      birthDate: p.birth_date, // Mapping date naissance
+      gender: p.gender, // Mapping genre
+      joinDate: p.created_at,
+      coordinates: coords, 
+      commissions: [], // TODO: Gérer via table de liaison si besoin
+      bio: p.bio
+    };
+  });
 };
 
 export const dbCreateMember = async (member: Partial<Member>) => {
@@ -54,8 +64,10 @@ export const dbCreateMember = async (member: Partial<Member>) => {
     role: member.role,
     category: member.category,
     matricule: member.matricule,
-    // address: member.address // Décommentez si vous ajoutez la colonne address à la table profiles
-    // On laisse Supabase générer l'ID si c'est une création manuelle hors Auth
+    address: member.address,
+    birth_date: member.birthDate,
+    gender: member.gender,
+    location_data: member.coordinates // Stockage JSON pour lat/lng
   };
 
   const { error } = await supabase.from('profiles').insert([profileData]);
@@ -72,6 +84,10 @@ export const dbUpdateMember = async (id: string, updates: Partial<Member>) => {
   if (updates.role) dbUpdates.role = updates.role;
   if (updates.category) dbUpdates.category = updates.category;
   if (updates.bio) dbUpdates.bio = updates.bio;
+  if (updates.address) dbUpdates.address = updates.address;
+  if (updates.birthDate) dbUpdates.birth_date = updates.birthDate;
+  if (updates.gender) dbUpdates.gender = updates.gender;
+  if (updates.coordinates) dbUpdates.location_data = updates.coordinates;
 
   const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', id);
   handleSupabaseError(error);
