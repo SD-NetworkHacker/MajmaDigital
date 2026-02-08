@@ -96,9 +96,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      addNotification("Connexion réussie", "success");
+      addNotification("Heureux de vous revoir !", "success");
     } catch (error: any) {
-      addNotification(error.message || "Erreur de connexion", "error");
+      addNotification(error.message || "Échec de la connexion", "error");
       throw error;
     } finally {
       hideLoading();
@@ -119,15 +119,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             category: userData.category,
             gender: userData.gender,
             birth_date: userData.birthDate,
-            join_date: userData.joinDate || new Date().toISOString().split('T')[0]
+            join_date: userData.joinDate
           },
           emailRedirectTo: window.location.origin
         }
       });
       if (error) throw error;
-      addNotification("Compte créé ! Veuillez confirmer votre email.", "success");
+      addNotification("Inscription réussie ! Vérifiez vos emails.", "success");
     } catch (error: any) {
-      addNotification(error.message || "Erreur lors de l'inscription", "error");
+      addNotification(error.message || "Une erreur est survenue", "error");
       throw error;
     } finally {
       hideLoading();

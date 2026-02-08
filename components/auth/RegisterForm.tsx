@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
 import { 
-  User, Mail, Phone, MapPin, Briefcase, GraduationCap, School, 
-  CheckCircle, ArrowRight, ChevronLeft, Calendar, Lock, Loader2, AlertCircle, 
-  RefreshCw, UserRound, UserRoundSearch, History
+  User, Mail, Phone, Calendar, Lock, Loader2, AlertCircle, 
+  RefreshCw, UserRound, UserRoundSearch, History, CheckCircle, ArrowRight, ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AuthLayout from './AuthLayout';
@@ -19,7 +18,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
-  const [rememberJoinDate, setRememberJoinDate] = useState(true);
+  const [knowsJoinDate, setKnowsJoinDate] = useState(true);
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
@@ -31,8 +30,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
     confirmPassword: '',
     category: MemberCategory.ETUDIANT,
     gender: 'M' as 'M' | 'F',
-    joinDate: '',
-    birthDate: ''
+    birthDate: '',
+    joinDate: ''
   });
 
   const handleChange = (field: string, value: any) => {
@@ -51,7 +50,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
   const isStep2Valid = () => {
     return formData.phone.trim().length >= 9 && 
            formData.birthDate !== '' &&
-           (rememberJoinDate ? formData.joinDate !== '' : true);
+           (knowsJoinDate ? formData.joinDate !== '' : true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,15 +60,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
     setError('');
     setIsSubmitting(true);
     try {
-      await register({
-         ...formData,
-         joinDate: rememberJoinDate ? formData.joinDate : new Date().toISOString().split('T')[0]
-      });
+      const finalData = {
+        ...formData,
+        joinDate: knowsJoinDate ? formData.joinDate : new Date().toISOString().split('T')[0]
+      };
+      await register(finalData);
       setIsRegistered(true);
     } catch (err: any) {
-       // Extraction du message pour éviter l'affichage de {}
-       const message = err?.message || err?.error_description || "Une erreur est survenue lors de l'inscription.";
-       setError(message);
+       // FIX: On s'assure que 'error' est toujours une chaîne de caractères
+       const msg = err?.message || err?.error_description || "Une erreur inconnue est survenue.";
+       setError(msg);
        setIsSubmitting(false);
     }
   };
@@ -82,8 +82,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
             <Mail size={48} className="text-emerald-600" />
           </div>
           <p className="text-sm text-slate-600 leading-relaxed">
-            Nous avons envoyé un lien à <strong className="text-slate-900">{formData.email}</strong>.<br/>
-            Veuillez cliquer dessus pour activer votre compte.
+            Nous avons envoyé un lien d'activation à <br/> <strong className="text-slate-900">{formData.email}</strong>.
           </p>
           <div className="pt-6 space-y-4">
             <button 
@@ -96,7 +95,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
             <button 
               type="button"
               onClick={onLoginClick}
-              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl"
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95"
             >
               Retour à la connexion
             </button>
@@ -160,71 +159,55 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
           </div>
         ) : (
           <div className="space-y-5 animate-in slide-in-from-right-8 duration-300">
-            <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sexe</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleChange('gender', 'M')}
-                      className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${formData.gender === 'M' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}
-                    >
-                      <UserRound size={16} /> <span className="text-[10px] font-black uppercase">G (H)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleChange('gender', 'F')}
-                      className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${formData.gender === 'F' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}
-                    >
-                      <UserRoundSearch size={16} /> <span className="text-[10px] font-black uppercase">S (F)</span>
-                    </button>
-                  </div>
-               </div>
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Téléphone</label>
-                  <input required type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="77 000 00 00" />
-               </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sexe</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => handleChange('gender', 'M')}
+                  className={`p-3 rounded-xl border-2 flex items-center justify-center gap-3 transition-all ${formData.gender === 'M' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}
+                >
+                  <UserRound size={18} /> <span className="text-[10px] font-black uppercase">Goor (H)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleChange('gender', 'F')}
+                  className={`p-3 rounded-xl border-2 flex items-center justify-center gap-3 transition-all ${formData.gender === 'F' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}
+                >
+                  <UserRoundSearch size={18} /> <span className="text-[10px] font-black uppercase">Soxna (F)</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-2">
+               <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Téléphone</label>
+                  <input required type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="77 000 00 00" />
+               </div>
+               <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date Naissance</label>
                   <input required type="date" value={formData.birthDate} onChange={e => handleChange('birthDate', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" />
-               </div>
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secteur</label>
-                  <select 
-                    value={formData.category} 
-                    onChange={e => handleChange('category', e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none"
-                  >
-                     {Object.values(MemberCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
                </div>
             </div>
 
             <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                 <History size={14}/> Date d'Adhésion au Dahira
-               </label>
-               <div className="space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${rememberJoinDate ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-300'}`}>
-                      <input type="checkbox" className="hidden" checked={rememberJoinDate} onChange={() => setRememberJoinDate(!rememberJoinDate)} />
-                      {rememberJoinDate && <CheckCircle size={12} className="text-white"/>}
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-600 uppercase">Je connais la date</span>
+               <div className="flex justify-between items-center mb-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <History size={14}/> Date d'Adhésion
                   </label>
-
-                  {rememberJoinDate ? (
-                    <div className="relative animate-in slide-in-from-top-2">
-                      <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
-                      <input required type="date" value={formData.joinDate} onChange={e => handleChange('joinDate', e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" />
-                    </div>
-                  ) : (
-                    <p className="text-[9px] text-slate-400 italic">La date d'aujourd'hui sera utilisée.</p>
-                  )}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="w-3 h-3 accent-emerald-600" checked={!knowsJoinDate} onChange={() => setKnowsJoinDate(!knowsJoinDate)} />
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">Je ne sais plus</span>
+                  </label>
                </div>
+
+               {knowsJoinDate && (
+                 <div className="relative animate-in slide-in-from-top-2">
+                   <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+                   <input required type="date" value={formData.joinDate} onChange={e => handleChange('joinDate', e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" />
+                 </div>
+               )}
+               {!knowsJoinDate && <p className="text-[9px] text-slate-400 italic">La date d'aujourd'hui sera utilisée par défaut.</p>}
             </div>
 
             <div className="flex gap-4">
