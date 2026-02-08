@@ -51,10 +51,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   });
 
   const refreshProfile = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) return;
+    
     if (session?.user) {
-      const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-      setUser(mapProfile(data, session.user));
+      // Forcer le rafraîchissement des données utilisateur de Supabase Auth
+      const { data: { user: updatedAuthUser } } = await supabase.auth.getUser();
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+      
+      if (updatedAuthUser) {
+        setUser(mapProfile(profileData, updatedAuthUser));
+      }
     } else {
       setUser(null);
     }
@@ -71,8 +78,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (mounted) {
         if (session?.user) {
-          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-          setUser(mapProfile(data, session.user));
+          const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+          setUser(mapProfile(profileData, session.user));
         } else {
           setUser(null);
         }
@@ -85,14 +92,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string, rememberMe: boolean) => {
     showLoading();
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      
-      // Si l'utilisateur n'est pas confirmé, on ne l'empêche pas de se connecter ici, 
-      // c'est App.tsx qui gérera l'affichage de l'écran de verrouillage.
       addNotification("Connexion réussie", "success");
     } catch (error: any) {
-      addNotification(error.message, "error");
+      addNotification(error.message || "Erreur de connexion", "error");
       throw error;
     } finally {
       hideLoading();
@@ -111,13 +115,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             last_name: userData.lastName,
             phone: userData.phone,
             category: userData.category
-          }
+          },
+          emailRedirectTo: window.location.origin
         }
       });
       if (error) throw error;
-      addNotification("Compte créé ! Vérifiez votre boîte mail.", "success");
     } catch (error: any) {
-      addNotification(error.message, "error");
+      addNotification(error.message || "Erreur d'inscription", "error");
       throw error;
     } finally {
       hideLoading();
@@ -130,11 +134,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
+        options: { emailRedirectTo: window.location.origin }
       });
       if (error) throw error;
-      addNotification("Email de confirmation renvoyé !", "success");
+      addNotification("Lien de confirmation envoyé !", "success");
     } catch (error: any) {
-      addNotification(error.message, "error");
+      addNotification(error.message || "Erreur d'envoi", "error");
     } finally {
       hideLoading();
     }

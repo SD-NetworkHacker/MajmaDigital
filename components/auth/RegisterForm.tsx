@@ -69,7 +69,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
       });
       setIsRegistered(true);
     } catch (err: any) {
-       setError(err.message || "Échec de l'inscription.");
+       // S'assurer que l'erreur est bien une chaîne de caractères
+       setError(typeof err === 'string' ? err : err.message || "Échec de l'inscription.");
        setIsSubmitting(false);
     }
   };
@@ -103,7 +104,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
               onClick={() => resendConfirmation(formData.email)}
               className="w-full py-4 bg-white border-2 border-slate-100 text-slate-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:border-emerald-200 hover:bg-emerald-50 transition-all flex items-center justify-center gap-3"
             >
-              <RefreshCw size={16} /> Renvoyer l'email de confirmation
+              <RefreshCw size={16} /> Renvoyer le lien
             </button>
             <button 
               type="button"
