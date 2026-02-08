@@ -67,9 +67,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
       });
       onSuccess();
     } catch (error: any) {
-       // Erreur déjà affichée par le contexte
-    } finally {
-      setIsSubmitting(false);
+       setIsSubmitting(false); // Libère le bouton en cas d'erreur
     }
   };
 

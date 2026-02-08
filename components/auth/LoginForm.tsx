@@ -29,10 +29,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
     setIsSubmitting(true);
     try {
       await login(email, password);
+      // Le changement d'état utilisateur dans le contexte déclenchera la redirection
     } catch (err: any) {
       setError(err.message || "Email ou mot de passe incorrect.");
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Crucial: on libère le bouton
     }
   };
 
@@ -59,9 +59,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
                 type="email" 
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-800 focus:border-emerald-500/20 focus:bg-white focus:shadow-xl focus:shadow-emerald-900/5 outline-none transition-all"
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-800 focus:border-emerald-500/20 focus:bg-white outline-none transition-all"
                 placeholder="votre@email.com"
                 autoComplete="email"
+                required
               />
             </div>
           </div>
@@ -83,9 +84,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
                 type={showPassword ? "text" : "password"} 
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                className="w-full pl-12 pr-12 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-800 focus:border-emerald-500/20 focus:bg-white focus:shadow-xl focus:shadow-emerald-900/5 outline-none transition-all"
+                className="w-full pl-12 pr-12 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-800 focus:border-emerald-500/20 focus:bg-white outline-none transition-all"
                 placeholder="••••••••"
                 autoComplete="current-password"
+                required
               />
               <button 
                 type="button"
@@ -101,7 +103,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
         <button 
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-emerald-600 hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 active:scale-95 group disabled:opacity-70 disabled:cursor-not-allowed"
+          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 active:scale-95 group disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
             <Loader2 size={16} className="animate-spin" />

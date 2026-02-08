@@ -21,6 +21,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (data: any) => Promise<void>;
   logout: (reason?: string) => void;
   updateUser: (data: Partial<UserProfile>) => void;
   refreshProfile: () => Promise<void>;
@@ -46,47 +47,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     bio: data.bio
   });
 
-  const refreshProfile = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        setUser(null);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (data) {
-        setUser(mapProfile(data, session.user.email!));
-      }
-    } catch (err) {
-      console.error("Erreur de rafraîchissement profil:", err);
-    }
-  }, []);
+  const fetchProfileData = async (userId: string, email: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    return data ? mapProfile(data, email) : null;
+  };
 
   useEffect(() => {
     let mounted = true;
-
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          if (session?.user) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle();
-            
-            if (data) setUser(mapProfile(data, session.user.email!));
-          }
-          setLoading(false);
+        if (mounted && session?.user) {
+          const profile = await fetchProfileData(session.user.id, session.user.email!);
+          if (profile) setUser(profile);
         }
       } catch (err) {
+        console.error("Auth init error:", err);
+      } finally {
         if (mounted) setLoading(false);
       }
     };
@@ -96,17 +77,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (mounted) {
         if (session?.user) {
-          // On attend un court instant pour laisser le trigger SQL créer le profil si c'est un nouvel user
-          if (event === 'SIGNED_IN') {
-             await new Promise(r => setTimeout(r, 500));
-          }
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          
-          if (data) setUser(mapProfile(data, session.user.email!));
+          const profile = await fetchProfileData(session.user.id, session.user.email!);
+          setUser(profile);
         } else {
           setUser(null);
         }
@@ -123,14 +95,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     try {
       showLoading();
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      
-      if (data.user) {
-        addNotification(`Authentification réussie`, 'success');
-      }
+      addNotification(`Connexion réussie`, 'success');
     } catch (error: any) {
       addNotification(error.message || "Erreur de connexion", 'error');
+      throw error;
+    } finally {
+      hideLoading();
+    }
+  };
+
+  const register = async (userData: any) => {
+    try {
+      showLoading();
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            first_name: userData.firstName,
+            last_name: userData.lastName,
+            phone: userData.phone,
+            category: userData.category
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        addNotification("Inscription réussie ! Bienvenue.", "success");
+      }
+    } catch (error: any) {
+      addNotification(error.message || "Erreur lors de l'inscription", "error");
       throw error;
     } finally {
       hideLoading();
@@ -140,12 +138,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = useCallback(async (reason?: string) => {
     await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('majma-auth-token');
     if (reason) addNotification(reason, "info");
   }, [addNotification]);
 
   const updateUser = (data: Partial<UserProfile>) => {
     setUser(prev => prev ? { ...prev, ...data } : null);
+  };
+
+  const refreshProfile = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const p = await fetchProfileData(session.user.id, session.user.email!);
+      if (p) setUser(p);
+    }
   };
 
   return (
@@ -154,6 +159,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isAuthenticated: !!user, 
       loading, 
       login, 
+      register,
       logout, 
       updateUser, 
       refreshProfile 
