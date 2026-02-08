@@ -35,38 +35,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  const mapProfile = (data: any, email: string): UserProfile => ({
-    id: data.id,
-    email: email,
-    firstName: data.first_name || email.split('@')[0],
-    lastName: data.last_name || '',
-    role: data.role || 'MEMBRE',
-    matricule: data.matricule,
-    category: data.category,
-    avatarUrl: data.avatar_url,
-    bio: data.bio
-  });
+  const mapProfile = (data: any, authUser: any): UserProfile => {
+    // On priorise les données de la table profiles, puis les metadata de Auth, puis des valeurs par défaut
+    const meta = authUser?.user_metadata || {};
+    return {
+      id: data?.id || authUser?.id,
+      email: authUser?.email || data?.email || '',
+      firstName: data?.first_name || meta?.first_name || 'Membre',
+      lastName: data?.last_name || meta?.last_name || '',
+      role: data?.role || 'MEMBRE',
+      matricule: data?.matricule,
+      category: data?.category || meta?.category,
+      avatarUrl: data?.avatar_url || meta?.avatar_url,
+      bio: data?.bio
+    };
+  };
 
-  const fetchProfileData = async (userId: string, email: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    return data ? mapProfile(data, email) : null;
+  const fetchProfileWithRetry = async (userId: string, authUser: any, retries = 3): Promise<UserProfile | null> => {
+    for (let i = 0; i < retries; i++) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (data) return mapProfile(data, authUser);
+      
+      // Si c'est un nouvel utilisateur, le trigger SQL peut mettre 100-200ms
+      if (i < retries - 1) await new Promise(res => setTimeout(res, 300));
+    }
+    // Fallback sur les metadata de Auth si la table profiles est inaccessible
+    return mapProfile(null, authUser);
   };
 
   useEffect(() => {
     let mounted = true;
+
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (mounted && session?.user) {
-          const profile = await fetchProfileData(session.user.id, session.user.email!);
-          if (profile) setUser(profile);
+          const profile = await fetchProfileWithRetry(session.user.id, session.user);
+          setUser(profile);
         }
       } catch (err) {
-        console.error("Auth init error:", err);
+        console.error("Auth Init Error:", err);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -77,7 +90,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (mounted) {
         if (session?.user) {
-          const profile = await fetchProfileData(session.user.id, session.user.email!);
+          const profile = await fetchProfileWithRetry(session.user.id, session.user);
           setUser(profile);
         } else {
           setUser(null);
@@ -93,11 +106,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
+    showLoading();
     try {
-      showLoading();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      addNotification(`Connexion réussie`, 'success');
+      addNotification(`Content de vous revoir !`, 'success');
     } catch (error: any) {
       addNotification(error.message || "Erreur de connexion", 'error');
       throw error;
@@ -107,8 +120,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const register = async (userData: any) => {
+    showLoading();
     try {
-      showLoading();
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -125,7 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) throw error;
 
       if (data.user) {
-        addNotification("Inscription réussie ! Bienvenue.", "success");
+        addNotification("Inscription réussie ! Un email de confirmation a pu vous être envoyé.", "success");
       }
     } catch (error: any) {
       addNotification(error.message || "Erreur lors de l'inscription", "error");
@@ -148,7 +161,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshProfile = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      const p = await fetchProfileData(session.user.id, session.user.email!);
+      const p = await fetchProfileWithRetry(session.user.id, session.user);
       if (p) setUser(p);
     }
   };

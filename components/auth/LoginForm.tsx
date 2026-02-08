@@ -20,6 +20,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     if (!email || !password) {
       setError("Veuillez remplir tous les champs.");
       return;
@@ -28,11 +30,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
     setError('');
     setIsSubmitting(true);
     try {
-      await login(email, password);
-      // Le changement d'état utilisateur dans le contexte déclenchera la redirection
+      await login(email.trim(), password);
+      // La redirection est gérée par le changement d'état utilisateur dans App.tsx
     } catch (err: any) {
-      setError(err.message || "Email ou mot de passe incorrect.");
-      setIsSubmitting(false); // Crucial: on libère le bouton
+      setError(err.message || "Identifiants incorrects. Veuillez réessayer.");
+      setIsSubmitting(false); // Réactivation du bouton en cas d'erreur
     }
   };
 
@@ -44,7 +46,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {error && (
-          <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 animate-in fade-in">
+          <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 animate-in fade-in slide-in-from-top-1">
             <AlertCircle size={18} className="shrink-0" />
             <p className="text-xs font-bold leading-tight">{error}</p>
           </div>
@@ -61,7 +63,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-800 focus:border-emerald-500/20 focus:bg-white outline-none transition-all"
                 placeholder="votre@email.com"
-                autoComplete="email"
                 required
               />
             </div>
@@ -86,7 +87,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 className="w-full pl-12 pr-12 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-800 focus:border-emerald-500/20 focus:bg-white outline-none transition-all"
                 placeholder="••••••••"
-                autoComplete="current-password"
                 required
               />
               <button 

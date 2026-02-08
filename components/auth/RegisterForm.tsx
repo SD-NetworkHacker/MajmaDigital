@@ -2,10 +2,9 @@
 import React, { useState } from 'react';
 import { 
   User, Mail, Phone, MapPin, Briefcase, GraduationCap, School, 
-  CheckCircle, ArrowRight, ChevronLeft, Calendar, Lock, Loader2 
+  CheckCircle, ArrowRight, ChevronLeft, Calendar, Lock, Loader2, AlertCircle 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useNotification } from '../../context/NotificationContext';
 import AuthLayout from './AuthLayout';
 import { MemberCategory } from '../../types';
 
@@ -16,9 +15,9 @@ interface RegisterFormProps {
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) => {
   const { register } = useAuth();
-  const { addNotification } = useNotification();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -34,40 +33,44 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (error) setError('');
   };
 
   const isStep1Valid = () => {
-    return formData.firstName.length > 2 && 
-           formData.lastName.length > 2 && 
+    return formData.firstName.trim().length >= 2 && 
+           formData.lastName.trim().length >= 2 && 
            /\S+@\S+\.\S+/.test(formData.email) && 
            formData.password.length >= 6 &&
            formData.password === formData.confirmPassword;
   };
 
   const isStep2Valid = () => {
-    return formData.phone.length >= 9 && 
-           formData.address.length > 3 && 
+    return formData.phone.trim().length >= 9 && 
+           formData.address.trim().length >= 3 && 
            formData.birthDate !== '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isStep2Valid()) return;
+    if (!isStep2Valid() || isSubmitting) return;
 
+    setError('');
     setIsSubmitting(true);
     try {
       await register({
-         firstName: formData.firstName,
-         lastName: formData.lastName,
-         email: formData.email,
+         firstName: formData.firstName.trim(),
+         lastName: formData.lastName.trim(),
+         email: formData.email.trim(),
          password: formData.password,
-         phone: formData.phone,
+         phone: formData.phone.trim(),
          category: formData.category,
-         address: formData.address
+         address: formData.address.trim()
       });
+      // Inscription réussie
       onSuccess();
-    } catch (error: any) {
-       setIsSubmitting(false); // Libère le bouton en cas d'erreur
+    } catch (err: any) {
+       setError(err.message || "Échec de l'inscription. Veuillez vérifier vos informations.");
+       setIsSubmitting(false);
     }
   };
 
@@ -78,6 +81,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         
+        {error && (
+          <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 animate-in fade-in">
+            <AlertCircle size={18} className="shrink-0" />
+            <p className="text-xs font-bold leading-tight">{error}</p>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mb-8">
           <div className={`h-1.5 rounded-full flex-1 transition-all duration-500 ${step >= 1 ? 'bg-emerald-500' : 'bg-slate-100'}`}></div>
           <div className={`h-1.5 rounded-full flex-1 transition-all duration-500 ${step >= 2 ? 'bg-emerald-500' : 'bg-slate-100'}`}></div>
@@ -125,7 +135,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
               type="button"
               disabled={!isStep1Valid()}
               onClick={() => setStep(2)}
-              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed mt-4 active:scale-95"
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed mt-4 active:scale-95"
             >
               Suivant <ArrowRight size={16} />
             </button>
@@ -135,7 +145,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
         {step === 2 && (
           <div className="space-y-5 animate-in slide-in-from-right-8 duration-300">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Catégorie</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secteur</label>
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { id: MemberCategory.ETUDIANT, icon: GraduationCap, label: 'Étudiant' },
@@ -160,7 +170,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Téléphone</label>
               <div className="relative group">
                 <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors"/>
                 <input required type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="77 000 00 00" />
@@ -176,7 +186,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
                   </div>
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Quartier</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Adresse / Quartier</label>
                   <div className="relative group">
                     <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors"/>
                     <input required type="text" value={formData.address} onChange={e => handleChange('address', e.target.value)} className="w-full pl-10 pr-3 py-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="Zone..." />
@@ -197,7 +207,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
                 disabled={!isStep2Valid() || isSubmitting}
                 className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95"
               >
-                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle size={18} /> Finaliser</>}
+                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle size={18} /> S'inscrire</>}
               </button>
             </div>
           </div>
