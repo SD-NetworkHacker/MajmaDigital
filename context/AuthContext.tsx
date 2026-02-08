@@ -34,86 +34,59 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  // Fonction utilitaire pour ajouter un timeout à une promesse
-  const withTimeout = <T,>(promise: Promise<T>, ms: number, timeoutValue: T): Promise<T> => {
-    return Promise.race([
-      promise,
-      new Promise<T>((resolve) => setTimeout(() => resolve(timeoutValue), ms))
-    ]);
-  };
+  const mapProfile = (data: any, email: string): UserProfile => ({
+    id: data.id,
+    email: email,
+    firstName: data.first_name || email.split('@')[0],
+    lastName: data.last_name || '',
+    role: data.role || 'MEMBRE',
+    matricule: data.matricule,
+    category: data.category,
+    avatarUrl: data.avatar_url,
+    bio: data.bio
+  });
 
-  const fetchProfile = async (userId: string, email: string): Promise<UserProfile | null> => {
+  const refreshProfile = useCallback(async () => {
     try {
-      // Timeout de 3 secondes pour la récupération du profil
-      const { data, error } = await withTimeout(
-        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-        3000,
-        { data: null, error: null } as any
-      );
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setUser(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
 
       if (data) {
-        return {
-          id: data.id,
-          email: email,
-          firstName: data.first_name || 'Membre',
-          lastName: data.last_name || '',
-          role: data.role || 'MEMBRE', 
-          matricule: data.matricule,
-          category: data.category,
-          avatarUrl: data.avatar_url,
-          bio: data.bio
-        };
+        setUser(mapProfile(data, session.user.email!));
       }
-
-      // Auto-création si manquant
-      const newProfile = {
-        id: userId,
-        email: email,
-        first_name: email.split('@')[0],
-        last_name: '',
-        role: 'MEMBRE',
-        status: 'active'
-      };
-
-      const { data: createdData } = await withTimeout(
-        supabase.from('profiles').insert([newProfile]).select().single(),
-        3000,
-        { data: null } as any
-      );
-
-      if (createdData) {
-        return {
-          id: createdData.id,
-          email,
-          firstName: createdData.first_name,
-          lastName: createdData.last_name,
-          role: createdData.role,
-        };
-      }
-
-      return { id: userId, email, firstName: 'Utilisateur', lastName: '', role: 'NEW_USER' };
-    } catch (e) {
-      console.error("Profile fetch fatal error:", e);
-      return { id: userId, email, firstName: 'Utilisateur', lastName: '', role: 'NEW_USER' };
+    } catch (err) {
+      console.error("Erreur de rafraîchissement profil:", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
     const initAuth = async () => {
       try {
-        // Timeout global d'initialisation de 5 secondes
-        const sessionPromise = supabase.auth.getSession();
-        const { data: { session } } = await withTimeout(sessionPromise, 5000, { data: { session: null } } as any);
-        
-        if (mounted && session?.user) {
-          const profile = await fetchProfile(session.user.id, session.user.email!);
-          setUser(profile);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          if (session?.user) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            
+            if (data) setUser(mapProfile(data, session.user.email!));
+          }
+          setLoading(false);
         }
       } catch (err) {
-        console.error("Auth init error:", err);
-      } finally {
         if (mounted) setLoading(false);
       }
     };
@@ -123,8 +96,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (mounted) {
         if (session?.user) {
-          const profile = await fetchProfile(session.user.id, session.user.email!);
-          setUser(profile);
+          // On attend un court instant pour laisser le trigger SQL créer le profil si c'est un nouvel user
+          if (event === 'SIGNED_IN') {
+             await new Promise(r => setTimeout(r, 500));
+          }
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          
+          if (data) setUser(mapProfile(data, session.user.email!));
         } else {
           setUser(null);
         }
@@ -143,11 +125,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       showLoading();
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-
+      
       if (data.user) {
-        const profile = await fetchProfile(data.user.id, data.user.email!);
-        setUser(profile);
-        addNotification(`Bienvenue, ${profile?.firstName}`, 'success');
+        addNotification(`Authentification réussie`, 'success');
       }
     } catch (error: any) {
       addNotification(error.message || "Erreur de connexion", 'error');
@@ -160,6 +140,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = useCallback(async (reason?: string) => {
     await supabase.auth.signOut();
     setUser(null);
+    localStorage.removeItem('majma-auth-token');
     if (reason) addNotification(reason, "info");
   }, [addNotification]);
 
@@ -167,15 +148,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(prev => prev ? { ...prev, ...data } : null);
   };
 
-  const refreshProfile = async () => {
-    if (user) {
-      const p = await fetchProfile(user.id, user.email);
-      if (p) setUser(p);
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, logout, updateUser, refreshProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated: !!user, 
+      loading, 
+      login, 
+      logout, 
+      updateUser, 
+      refreshProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   );
