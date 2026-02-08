@@ -1,4 +1,3 @@
-
 import React, { useState, Suspense, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -27,7 +26,8 @@ const CulturalDashboard = React.lazy(() => import('./commissions/culturelle/Cult
 const ProfileCompletion = React.lazy(() => import('./components/auth/ProfileCompletion'));
 
 import GuestDashboard from './components/GuestDashboard';
-import { Menu, Power, Eye, RefreshCcw, Mail, RefreshCw } from 'lucide-react';
+// Fixed: Added CheckCircle to lucide-react imports
+import { Menu, Power, Eye, RefreshCcw, Mail, RefreshCw, CheckCircle } from 'lucide-react';
 import { DataProvider, useData } from './contexts/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -48,28 +48,38 @@ const PageLoader = () => (
 );
 
 const EmailVerificationView: React.FC = () => {
-    const { user, resendConfirmation, logout } = useAuth();
+    const { user, resendConfirmation, logout, refreshProfile } = useAuth();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleCheckVerification = async () => {
+        setIsRefreshing(true);
+        await refreshProfile();
+        setIsRefreshing(false);
+    };
+
     return (
         <AuthLayout title="Confirmez votre email" subtitle="Vérifiez votre boîte de réception">
             <div className="text-center space-y-8 animate-in zoom-in duration-500">
-                <div className="w-24 h-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center mx-auto border border-indigo-100 shadow-inner">
-                    <Mail size={40} className="text-indigo-600" />
+                <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto border border-emerald-100 shadow-inner">
+                    <Mail size={40} className="text-emerald-600" />
                 </div>
                 <p className="text-sm text-slate-600 leading-relaxed">
                     Bonjour <strong className="text-slate-900">{user?.firstName}</strong>. <br/>
-                    Votre compte a été créé, mais vous devez confirmer votre adresse email <strong>{user?.email}</strong> pour continuer.
+                    Votre compte est créé, mais vous devez confirmer votre adresse email <strong>{user?.email}</strong> pour accéder au Dahira.
                 </p>
                 <div className="space-y-4">
                     <button 
                         onClick={() => user?.email && resendConfirmation(user.email)}
-                        className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all"
+                        className="w-full py-4 bg-white border-2 border-slate-100 text-slate-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:border-emerald-200 hover:bg-emerald-50 transition-all flex items-center justify-center gap-3"
                     >
                         <RefreshCw size={16}/> Renvoyer le lien de confirmation
                     </button>
                     <button 
-                        onClick={() => window.location.reload()}
-                        className="w-full py-4 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all"
+                        onClick={handleCheckVerification}
+                        disabled={isRefreshing}
+                        className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all disabled:opacity-50"
                     >
+                        {isRefreshing ? <RefreshCw size={16} className="animate-spin"/> : <CheckCircle size={16}/>}
                         J'ai confirmé mon email
                     </button>
                     <button 
@@ -95,7 +105,7 @@ const MainContent: React.FC = () => {
   if (isAuthLoading) return <PageLoader />;
   if (!user) return <GuestDashboard />;
 
-  // Force Email Verification
+  // Bloquer l'accès si l'email n'est pas confirmé
   if (!user.emailConfirmed) {
       return <EmailVerificationView />;
   }

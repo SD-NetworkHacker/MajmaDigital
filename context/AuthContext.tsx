@@ -26,6 +26,7 @@ interface AuthContextType {
   resendConfirmation: (email: string) => Promise<void>;
   logout: (reason?: string) => void;
   updateUser: (data: Partial<UserProfile>) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,28 +50,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     emailConfirmed: !!authUser.email_confirmed_at
   });
 
-  const fetchProfile = async (authUser: any) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
-    return mapProfile(data, authUser);
-  };
+  const refreshProfile = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+      setUser(mapProfile(data, session.user));
+    } else {
+      setUser(null);
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
     const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (mounted && session?.user) {
-        const profile = await fetchProfile(session.user);
-        setUser(profile);
-      }
-      setLoading(false);
+      await refreshProfile();
+      if (mounted) setLoading(false);
     };
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (mounted) {
         if (session?.user) {
-          const profile = await fetchProfile(session.user);
-          setUser(profile);
+          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+          setUser(mapProfile(data, session.user));
         } else {
           setUser(null);
         }
@@ -78,21 +80,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     return () => { mounted = false; subscription.unsubscribe(); };
-  }, []);
+  }, [refreshProfile]);
 
   const login = async (email: string, password: string, rememberMe: boolean) => {
     showLoading();
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      // Supabase gère la persistance via localStorage par défaut. 
-      // Si rememberMe est faux, on pourrait techniquement configurer le client différemment, 
-      // mais ici nous utilisons la gestion native de session de Supabase.
-      
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      
+      // Si l'utilisateur n'est pas confirmé, on ne l'empêche pas de se connecter ici, 
+      // c'est App.tsx qui gérera l'affichage de l'écran de verrouillage.
       addNotification("Connexion réussie", "success");
     } catch (error: any) {
       addNotification(error.message, "error");
@@ -118,6 +115,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
       if (error) throw error;
+      addNotification("Compte créé ! Vérifiez votre boîte mail.", "success");
     } catch (error: any) {
       addNotification(error.message, "error");
       throw error;
@@ -152,7 +150,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, register, resendConfirmation, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, register, resendConfirmation, logout, updateUser, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

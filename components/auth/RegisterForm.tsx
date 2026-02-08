@@ -74,6 +74,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
     }
   };
 
+  const handleBackToLogin = () => {
+    setIsRegistered(false);
+    onLoginClick();
+  };
+
   if (isRegistered) {
     return (
       <AuthLayout title="Vérifiez vos emails" subtitle="Une dernière étape pour rejoindre le Dahira">
@@ -94,14 +99,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
 
           <div className="pt-6 space-y-4">
             <button 
+              type="button"
               onClick={() => resendConfirmation(formData.email)}
               className="w-full py-4 bg-white border-2 border-slate-100 text-slate-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:border-emerald-200 hover:bg-emerald-50 transition-all flex items-center justify-center gap-3"
             >
               <RefreshCw size={16} /> Renvoyer l'email de confirmation
             </button>
             <button 
-              onClick={onLoginClick}
-              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3"
+              type="button"
+              onClick={handleBackToLogin}
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95"
             >
               Retour à la connexion
             </button>
@@ -255,7 +262,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
             Déjà membre ?{' '}
             <button 
               type="button" 
-              onClick={onLoginClick}
+              onClick={handleBackToLogin}
               className="text-slate-900 font-black hover:underline"
             >
               Se connecter
