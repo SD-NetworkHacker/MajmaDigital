@@ -15,6 +15,7 @@ export interface UserProfile {
   category?: string;
   gender?: 'M' | 'F';
   joinDate?: string;
+  birthDate?: string;
   emailConfirmed?: boolean;
 }
 
@@ -47,6 +48,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     category: profileData?.category || authUser.user_metadata?.category,
     gender: profileData?.gender,
     joinDate: profileData?.join_date,
+    birthDate: profileData?.birth_date,
     avatarUrl: profileData?.avatar_url,
     emailConfirmed: !!authUser.email_confirmed_at
   });
@@ -116,6 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             phone: userData.phone,
             category: userData.category,
             gender: userData.gender,
+            birth_date: userData.birthDate,
             join_date: userData.joinDate || new Date().toISOString().split('T')[0]
           },
           emailRedirectTo: window.location.origin
