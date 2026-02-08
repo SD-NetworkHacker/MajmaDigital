@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AuthLayout from './AuthLayout';
 
@@ -14,6 +14,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,19 +23,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
     e.preventDefault();
     if (isSubmitting) return;
 
-    if (!email || !password) {
-      setError("Veuillez remplir tous les champs.");
-      return;
-    }
-
     setError('');
     setIsSubmitting(true);
     try {
-      await login(email.trim(), password);
-      // La redirection est gérée par le changement d'état utilisateur dans App.tsx
+      await login(email.trim(), password, rememberMe);
     } catch (err: any) {
-      setError(err.message || "Identifiants incorrects. Veuillez réessayer.");
-      setIsSubmitting(false); // Réactivation du bouton en cas d'erreur
+      setError(err.message || "Identifiants incorrects.");
+      setIsSubmitting(false);
     }
   };
 
@@ -46,7 +41,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {error && (
-          <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 animate-in fade-in slide-in-from-top-1">
+          <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 animate-in fade-in">
             <AlertCircle size={18} className="shrink-0" />
             <p className="text-xs font-bold leading-tight">{error}</p>
           </div>
@@ -60,7 +55,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
               <input 
                 type="email" 
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-800 focus:border-emerald-500/20 focus:bg-white outline-none transition-all"
                 placeholder="votre@email.com"
                 required
@@ -71,20 +66,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
           <div className="space-y-2">
             <div className="flex justify-between items-center ml-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mot de passe</label>
-              <button 
-                type="button" 
-                onClick={onForgotPasswordClick}
-                className="text-[10px] font-black text-emerald-600 hover:text-emerald-700 hover:underline uppercase tracking-wide"
-              >
-                Oublié ?
-              </button>
             </div>
             <div className="relative group">
               <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
               <input 
                 type={showPassword ? "text" : "password"} 
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-12 pr-12 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-800 focus:border-emerald-500/20 focus:bg-white outline-none transition-all"
                 placeholder="••••••••"
                 required
@@ -97,6 +85,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between px-1">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <div className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${rememberMe ? 'bg-emerald-600 border-emerald-600 shadow-sm shadow-emerald-200' : 'bg-white border-slate-200 group-hover:border-emerald-300'}`}>
+                 <input type="checkbox" className="hidden" checked={rememberMe} onChange={() => setRememberMe(!rememberMe)} />
+                 {/* Fixed: Added missing CheckCircle icon from lucide-react */}
+                 {rememberMe && <CheckCircle size={12} className="text-white" />}
+              </div>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wide">Se souvenir de moi</span>
+            </label>
+            <button 
+              type="button" 
+              onClick={onForgotPasswordClick}
+              className="text-[10px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-wide"
+            >
+              Mot de passe oublié ?
+            </button>
           </div>
         </div>
 

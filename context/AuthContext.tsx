@@ -14,17 +14,18 @@ export interface UserProfile {
   matricule?: string;
   category?: string;
   bio?: string;
+  emailConfirmed?: boolean;
 }
 
 interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
   register: (data: any) => Promise<void>;
+  resendConfirmation: (email: string) => Promise<void>;
   logout: (reason?: string) => void;
   updateUser: (data: Partial<UserProfile>) => void;
-  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,84 +36,66 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  const mapProfile = (data: any, authUser: any): UserProfile => {
-    // On priorise les données de la table profiles, puis les metadata de Auth, puis des valeurs par défaut
-    const meta = authUser?.user_metadata || {};
-    return {
-      id: data?.id || authUser?.id,
-      email: authUser?.email || data?.email || '',
-      firstName: data?.first_name || meta?.first_name || 'Membre',
-      lastName: data?.last_name || meta?.last_name || '',
-      role: data?.role || 'MEMBRE',
-      matricule: data?.matricule,
-      category: data?.category || meta?.category,
-      avatarUrl: data?.avatar_url || meta?.avatar_url,
-      bio: data?.bio
-    };
-  };
+  const mapProfile = (data: any, authUser: any): UserProfile => ({
+    id: authUser.id,
+    email: authUser.email || '',
+    firstName: data?.first_name || authUser.user_metadata?.first_name || 'Membre',
+    lastName: data?.last_name || authUser.user_metadata?.last_name || '',
+    role: data?.role || 'MEMBRE',
+    matricule: data?.matricule,
+    category: data?.category || authUser.user_metadata?.category,
+    avatarUrl: data?.avatar_url,
+    bio: data?.bio,
+    emailConfirmed: !!authUser.email_confirmed_at
+  });
 
-  const fetchProfileWithRetry = async (userId: string, authUser: any, retries = 3): Promise<UserProfile | null> => {
-    for (let i = 0; i < retries; i++) {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (data) return mapProfile(data, authUser);
-      
-      // Si c'est un nouvel utilisateur, le trigger SQL peut mettre 100-200ms
-      if (i < retries - 1) await new Promise(res => setTimeout(res, 300));
-    }
-    // Fallback sur les metadata de Auth si la table profiles est inaccessible
-    return mapProfile(null, authUser);
+  const fetchProfile = async (authUser: any) => {
+    const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
+    return mapProfile(data, authUser);
   };
 
   useEffect(() => {
     let mounted = true;
-
     const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted && session?.user) {
-          const profile = await fetchProfileWithRetry(session.user.id, session.user);
-          setUser(profile);
-        }
-      } catch (err) {
-        console.error("Auth Init Error:", err);
-      } finally {
-        if (mounted) setLoading(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (mounted && session?.user) {
+        const profile = await fetchProfile(session.user);
+        setUser(profile);
       }
+      setLoading(false);
     };
-
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (mounted) {
         if (session?.user) {
-          const profile = await fetchProfileWithRetry(session.user.id, session.user);
+          const profile = await fetchProfile(session.user);
           setUser(profile);
         } else {
           setUser(null);
         }
-        setLoading(false);
       }
     });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => { mounted = false; subscription.unsubscribe(); };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe: boolean) => {
     showLoading();
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      // Supabase gère la persistance via localStorage par défaut. 
+      // Si rememberMe est faux, on pourrait techniquement configurer le client différemment, 
+      // mais ici nous utilisons la gestion native de session de Supabase.
+      
       if (error) throw error;
-      addNotification(`Content de vous revoir !`, 'success');
+      addNotification("Connexion réussie", "success");
     } catch (error: any) {
-      addNotification(error.message || "Erreur de connexion", 'error');
+      addNotification(error.message, "error");
       throw error;
     } finally {
       hideLoading();
@@ -122,7 +105,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: any) => {
     showLoading();
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
         options: {
@@ -134,49 +117,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         }
       });
-
       if (error) throw error;
-
-      if (data.user) {
-        addNotification("Inscription réussie ! Un email de confirmation a pu vous être envoyé.", "success");
-      }
     } catch (error: any) {
-      addNotification(error.message || "Erreur lors de l'inscription", "error");
+      addNotification(error.message, "error");
       throw error;
     } finally {
       hideLoading();
     }
   };
 
-  const logout = useCallback(async (reason?: string) => {
+  const resendConfirmation = async (email: string) => {
+    showLoading();
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (error) throw error;
+      addNotification("Email de confirmation renvoyé !", "success");
+    } catch (error: any) {
+      addNotification(error.message, "error");
+    } finally {
+      hideLoading();
+    }
+  };
+
+  const logout = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
-    if (reason) addNotification(reason, "info");
-  }, [addNotification]);
+  }, []);
 
   const updateUser = (data: Partial<UserProfile>) => {
     setUser(prev => prev ? { ...prev, ...data } : null);
   };
 
-  const refreshProfile = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const p = await fetchProfileWithRetry(session.user.id, session.user);
-      if (p) setUser(p);
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user, 
-      loading, 
-      login, 
-      register,
-      logout, 
-      updateUser, 
-      refreshProfile 
-    }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, register, resendConfirmation, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

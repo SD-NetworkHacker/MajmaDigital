@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { 
   User, Mail, Phone, MapPin, Briefcase, GraduationCap, School, 
-  CheckCircle, ArrowRight, ChevronLeft, Calendar, Lock, Loader2, AlertCircle 
+  CheckCircle, ArrowRight, ChevronLeft, Calendar, Lock, Loader2, AlertCircle, RefreshCw 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AuthLayout from './AuthLayout';
@@ -14,9 +14,10 @@ interface RegisterFormProps {
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) => {
-  const { register } = useAuth();
+  const { register, resendConfirmation } = useAuth();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
@@ -66,13 +67,49 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
          category: formData.category,
          address: formData.address.trim()
       });
-      // Inscription réussie
-      onSuccess();
+      setIsRegistered(true);
     } catch (err: any) {
-       setError(err.message || "Échec de l'inscription. Veuillez vérifier vos informations.");
+       setError(err.message || "Échec de l'inscription.");
        setIsSubmitting(false);
     }
   };
+
+  if (isRegistered) {
+    return (
+      <AuthLayout title="Vérifiez vos emails" subtitle="Une dernière étape pour rejoindre le Dahira">
+        <div className="text-center space-y-8 animate-in zoom-in duration-500">
+          <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border border-emerald-100">
+            <Mail size={48} className="text-emerald-600" />
+          </div>
+          
+          <div className="space-y-4">
+             <p className="text-sm text-slate-600 leading-relaxed">
+               Nous avons envoyé un lien de confirmation à l'adresse <br/> 
+               <strong className="text-slate-900 font-black">{formData.email}</strong>.
+             </p>
+             <p className="text-xs text-slate-400 font-medium">
+               Vérifiez votre dossier de courriers indésirables (spams) si vous ne trouvez pas l'email.
+             </p>
+          </div>
+
+          <div className="pt-6 space-y-4">
+            <button 
+              onClick={() => resendConfirmation(formData.email)}
+              className="w-full py-4 bg-white border-2 border-slate-100 text-slate-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:border-emerald-200 hover:bg-emerald-50 transition-all flex items-center justify-center gap-3"
+            >
+              <RefreshCw size={16} /> Renvoyer l'email de confirmation
+            </button>
+            <button 
+              onClick={onLoginClick}
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3"
+            >
+              Retour à la connexion
+            </button>
+          </div>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout 
