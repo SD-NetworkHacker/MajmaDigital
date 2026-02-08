@@ -13,7 +13,8 @@ export interface UserProfile {
   avatarUrl?: string;
   matricule?: string;
   category?: string;
-  bio?: string;
+  gender?: 'M' | 'F';
+  joinDate?: string;
   emailConfirmed?: boolean;
 }
 
@@ -24,8 +25,7 @@ interface AuthContextType {
   login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
   register: (data: any) => Promise<void>;
   resendConfirmation: (email: string) => Promise<void>;
-  logout: (reason?: string) => void;
-  updateUser: (data: Partial<UserProfile>) => void;
+  logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -37,56 +37,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  const mapProfile = (data: any, authUser: any): UserProfile => ({
+  const mapProfile = (profileData: any, authUser: any): UserProfile => ({
     id: authUser.id,
     email: authUser.email || '',
-    firstName: data?.first_name || authUser.user_metadata?.first_name || 'Membre',
-    lastName: data?.last_name || authUser.user_metadata?.last_name || '',
-    role: data?.role || 'MEMBRE',
-    matricule: data?.matricule,
-    category: data?.category || authUser.user_metadata?.category,
-    avatarUrl: data?.avatar_url,
-    bio: data?.bio,
+    firstName: profileData?.first_name || authUser.user_metadata?.first_name || 'Membre',
+    lastName: profileData?.last_name || authUser.user_metadata?.last_name || '',
+    role: profileData?.role || 'MEMBRE',
+    matricule: profileData?.matricule,
+    category: profileData?.category || authUser.user_metadata?.category,
+    gender: profileData?.gender,
+    joinDate: profileData?.join_date,
+    avatarUrl: profileData?.avatar_url,
     emailConfirmed: !!authUser.email_confirmed_at
   });
 
   const refreshProfile = useCallback(async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) return;
-    
+    const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      // Forcer le rafraîchissement des données utilisateur de Supabase Auth
-      const { data: { user: updatedAuthUser } } = await supabase.auth.getUser();
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
       
-      if (updatedAuthUser) {
-        setUser(mapProfile(profileData, updatedAuthUser));
-      }
+      setUser(mapProfile(profile, session.user));
     } else {
       setUser(null);
     }
   }, []);
 
   useEffect(() => {
-    let mounted = true;
     const initAuth = async () => {
       await refreshProfile();
-      if (mounted) setLoading(false);
+      setLoading(false);
     };
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (mounted) {
-        if (session?.user) {
-          const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-          setUser(mapProfile(profileData, session.user));
-        } else {
-          setUser(null);
-        }
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        setUser(mapProfile(profile, session.user));
+      } else {
+        setUser(null);
       }
     });
 
-    return () => { mounted = false; subscription.unsubscribe(); };
+    return () => subscription.unsubscribe();
   }, [refreshProfile]);
 
   const login = async (email: string, password: string, rememberMe: boolean) => {
@@ -114,14 +114,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             first_name: userData.firstName,
             last_name: userData.lastName,
             phone: userData.phone,
-            category: userData.category
+            category: userData.category,
+            gender: userData.gender,
+            join_date: userData.joinDate || new Date().toISOString().split('T')[0]
           },
           emailRedirectTo: window.location.origin
         }
       });
       if (error) throw error;
+      addNotification("Compte créé ! Veuillez confirmer votre email.", "success");
     } catch (error: any) {
-      addNotification(error.message || "Erreur d'inscription", "error");
+      addNotification(error.message || "Erreur lors de l'inscription", "error");
       throw error;
     } finally {
       hideLoading();
@@ -134,28 +137,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
-        options: { emailRedirectTo: window.location.origin }
       });
       if (error) throw error;
-      addNotification("Lien de confirmation envoyé !", "success");
+      addNotification("Email de confirmation renvoyé !", "success");
     } catch (error: any) {
-      addNotification(error.message || "Erreur d'envoi", "error");
+      addNotification(error.message, "error");
     } finally {
       hideLoading();
     }
   };
 
-  const logout = useCallback(async () => {
+  const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-  }, []);
-
-  const updateUser = (data: Partial<UserProfile>) => {
-    setUser(prev => prev ? { ...prev, ...data } : null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, register, resendConfirmation, logout, updateUser, refreshProfile }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, register, resendConfirmation, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
