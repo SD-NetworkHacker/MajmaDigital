@@ -4,8 +4,9 @@ import { useData } from '../contexts/DataContext';
 import { CommissionType, GlobalRole } from '../types';
 import MemberDashboard from './member/MemberDashboard';
 import AdminCockpit from './admin/AdminCockpit';
+import TechnicalDashboard from './admin/TechnicalDashboard';
 import CommissionLoader from '../commissions/CommissionLoader';
-import { User, Briefcase, ShieldAlert } from 'lucide-react';
+import { User, Briefcase, ShieldAlert, Cpu } from 'lucide-react';
 
 interface DashboardProps {
   setActiveTab: (tab: string) => void;
@@ -15,19 +16,20 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
   const { user } = useAuth();
   const { members } = useData();
   
-  // State pour basculer entre vue métier et vue personnelle pour les responsables
   const [viewMode, setViewMode] = useState<'work' | 'personal'>('work');
 
-  // 1. Détection Direction / Administration (SG ou Commission Admin)
+  // 1. Détection ADMIN SYSTÈME
+  const isSystemAdmin = user?.role === 'ADMIN';
+
+  // 2. Détection DIRECTION (SG ou Commission Admin)
   const isDirection = useMemo(() => {
     if (!user) return false;
-    const isSG = user.role === GlobalRole.SG || user.role === 'SG' || user.role === 'ADMIN';
-    // On vérifie aussi si l'utilisateur est dans la commission Administration
+    const isSG = user.role === 'SG' || user.role === 'ADJOINT_SG';
     const isInAdminComm = user.id && members.find(m => m.id === user.id)?.commissions.some(c => c.type === CommissionType.ADMINISTRATION);
     return isSG || isInAdminComm;
   }, [user, members]);
 
-  // 2. Détection Membre de Commission (autre que admin)
+  // 3. Détection Responsable de Commission
   const primaryCommission = useMemo(() => {
     if (!user) return null;
     const memberProfile = members.find(m => m.id === user.id);
@@ -36,12 +38,17 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
 
   // --- RENDU CONDITIONNEL ---
 
-  // A. Vue Direction (Cockpit Stratégique)
+  // A. Vue Admin Système (Infrastructure)
+  if (isSystemAdmin && viewMode === 'work') {
+    return <TechnicalDashboard onSwitchView={() => setViewMode('personal')} />;
+  }
+
+  // B. Vue Direction (Pilotage Dahira)
   if (isDirection && viewMode === 'work') {
     return <AdminCockpit setActiveTab={setActiveTab} onSwitchView={() => setViewMode('personal')} />;
   }
 
-  // B. Vue Responsable Commission (Tableau de bord métier spécifique)
+  // C. Vue Responsable Commission
   if (primaryCommission && viewMode === 'work') {
     return (
       <div className="space-y-6 animate-in fade-in">
@@ -55,10 +62,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
               <h3 className="text-sm font-bold">Commission {primaryCommission.type}</h3>
             </div>
           </div>
-          <button 
-            onClick={() => setViewMode('personal')}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-slate-900 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm"
-          >
+          <button onClick={() => setViewMode('personal')} className="flex items-center gap-2 px-4 py-2 bg-white text-slate-900 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm">
             <User size={14} /> Mon Espace Perso
           </button>
         </div>
@@ -67,10 +71,10 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
     );
   }
 
-  // C. Vue Membre Standard (ou Mode Personnel)
+  // D. Vue Membre Standard
   return (
     <div className="space-y-6">
-      {(isDirection || primaryCommission) && (
+      {(isSystemAdmin || isDirection || primaryCommission) && (
         <div className="flex justify-end animate-in slide-in-from-top-2">
            <button 
              onClick={() => setViewMode('work')}
