@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
@@ -17,7 +18,7 @@ export interface UserProfile {
   birthDate?: string;
   emailConfirmed?: boolean;
   bio?: string;
-  originalRole?: string; // Pour la simulation
+  originalRole?: string;
 }
 
 interface AuthContextType {
@@ -57,6 +58,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     emailConfirmed: !!authUser.email_confirmed_at
   });
 
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setLoading(false);
+    // On ne fait pas de redirect ici pour éviter les boucles si on est déjà sur login
+    if (window.location.pathname !== '/') {
+        window.location.assign('/');
+    }
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -64,65 +75,88 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (sessionError) {
         console.error("Erreur session Supabase:", sessionError);
         setUser(null);
+        setLoading(false);
         return;
       }
 
       console.log("Session Supabase détectée:", session);
 
       if (session?.user) {
-        // Tentative de récupération du profil DB
-        const { data: profile, error: profileError } = await supabase
+        // PRIORITÉ : Set l'utilisateur immédiatement avec les données d'auth
+        setUser(mapProfile(null, session.user));
+        setLoading(false); // Kill the spinner now
+
+        // Tâche de fond : Enrichissement via la table profiles
+        const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
         
-        if (profileError) {
-          console.warn("Erreur profil DB (utilisation fallback metadata):", profileError);
+        if (profile) {
+          setUser(mapProfile(profile, session.user));
+        } else {
+          // Si on a une session mais pas de profil DB (et que ce n'est pas une inscription fraîche)
+          console.warn("Profil introuvable pour l'utilisateur. Retour connexion.");
+          await logout();
         }
-
-        // Si le profil n'est pas encore créé en DB (latence trigger), 
-        // on utilise les metadata pour ne pas bloquer l'interface
-        setUser(mapProfile(profile, session.user));
       } else {
         setUser(null);
+        setLoading(false);
       }
     } catch (err) {
       console.error("Erreur critique Auth:", err);
       setUser(null);
+      setLoading(false);
     }
-  }, []);
+  }, [logout]);
 
   useEffect(() => {
+    // NETTOYAGE DES DONNÉES LEGACY (Ancien projet Mongo/Railway)
+    const clearLegacyData = () => {
+        const legacyKeys = ['token', 'user', 'profile', 'member', 'auth_token', 'user_role'];
+        legacyKeys.forEach(key => localStorage.removeItem(key));
+    };
+    clearLegacyData();
+
     const initAuth = async () => {
-      // Timeout de sécurité : si après 4s rien ne se passe, on force l'entrée
+      // Timeout de sécurité pour débloquer l'UI
       const safetyTimeout = setTimeout(() => {
         if (loading) {
-          console.warn("Initialisation Auth : Timeout de sécurité (4s) atteint. Forçage du rendu.");
+          console.warn("Safety Timeout : Forçage de l'initialisation.");
           setLoading(false);
         }
       }, 4000);
 
       await refreshProfile();
-      setLoading(false);
       clearTimeout(safetyTimeout);
     };
 
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`Auth Event: ${event}`, session?.user?.email);
+      console.log(`Supabase Auth Event: ${event}`, session?.user?.id);
+      
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        setUser(mapProfile(profile, session.user));
+        // Mise à jour immédiate
+        setUser(mapProfile(null, session.user));
+        setLoading(false);
+
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            
+            if (profile) {
+              setUser(mapProfile(profile, session.user));
+            }
+        }
       } else {
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false); // S'assurer que le loading s'arrête sur changement d'état
     });
 
     return () => subscription.unsubscribe();
@@ -218,12 +252,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       hideLoading();
     }
-  };
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    window.location.assign('/');
   };
 
   return (

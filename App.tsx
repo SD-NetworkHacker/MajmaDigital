@@ -1,7 +1,8 @@
+
 import React, { useState, Suspense, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 
-// Added missing imports for dashboards
+// DASHBOARDS
 import AdminDashboard from './components/admin/AdminDashboard';
 import MemberDashboard from './components/member/MemberDashboard';
 
@@ -36,7 +37,7 @@ const PageLoader = ({ message = "Initialisation..." }) => (
     <div className="h-full w-full flex items-center justify-center bg-slate-50 flex-col fixed inset-0 z-50 overflow-hidden">
         <div className="relative z-10 flex flex-col items-center">
             <div className="relative w-28 h-28 bg-slate-900 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-emerald-900/20 mb-8 animate-in zoom-in duration-500">
-                <span className="font-arabic text-7xl text-emerald-500 pb-3 drop-shadow-lg relative z-10 select-none animate-pulse-slow">م</span>
+                <span className="font-arabic text-7xl text-emerald-50 pb-3 drop-shadow-lg relative z-10 select-none animate-pulse-slow">م</span>
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Majma<span className="text-emerald-600">Digital</span></h1>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 animate-pulse mt-2">{message}</p>
@@ -89,17 +90,18 @@ const MainContent: React.FC = () => {
   const { user, loading: isAuthLoading } = useAuth();
   const { isLoading: isDataLoading } = useData();
 
-  // Logging pour debug Railway/Supabase
   useEffect(() => {
-    if (!isAuthLoading) {
-      console.log("App state: Auth Loaded", user ? `User: ${user.email}` : "No user");
-    }
-  }, [isAuthLoading, user]);
+    console.log("App state updated:", { 
+      isAuthLoading, 
+      hasUser: !!user, 
+      userId: user?.id,
+      isDataLoading 
+    });
+  }, [isAuthLoading, user, isDataLoading]);
 
-  if (isAuthLoading) return <PageLoader message="Vérification identité..." />;
+  if (isAuthLoading) return <PageLoader message="Vérification de la session..." />;
   if (!user) return <GuestDashboard />;
 
-  // Force Email Verification (if enabled in Supabase)
   if (!user.emailConfirmed) {
       return <EmailVerificationView />;
   }
@@ -108,7 +110,7 @@ const MainContent: React.FC = () => {
   const isAdminOrManager = ['ADMIN', 'SG', 'ADJOINT_SG', 'DIEUWRINE'].includes(role);
 
   const renderContent = () => {
-    if (activeTab === 'bureau' && isAdminOrManager) return <Suspense fallback={<PageLoader message="Sécurisation WarRoom..." />}><WarRoomLayout /></Suspense>;
+    if (activeTab === 'bureau' && isAdminOrManager) return <Suspense fallback={<PageLoader message="Accès WarRoom..." />}><WarRoomLayout /></Suspense>;
     
     return (
       <Suspense fallback={<PageLoader message="Chargement du module..." />}>
@@ -136,7 +138,7 @@ const MainContent: React.FC = () => {
     );
   };
 
-  if (isDataLoading) return <PageLoader message="Synchronisation des données..." />;
+  if (isDataLoading) return <PageLoader message="Synchro des données..." />;
 
   return (
     <div className="flex h-screen w-full bg-[#f8fafc] overflow-hidden relative">
@@ -146,6 +148,12 @@ const MainContent: React.FC = () => {
       {isMobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsMobileMenuOpen(false)}></div>}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 relative">
+            <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="lg:hidden absolute top-4 left-4 p-2 bg-white rounded-xl shadow-sm z-30"
+            >
+                <RefreshCw size={20}/>
+            </button>
             {renderContent()}
          </div>
       </div>
