@@ -1,5 +1,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
+// Added missing Recharts imports to fix chart related errors
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   Users, Wallet, Activity, TrendingUp, UserCheck, 
   ShieldCheck, ArrowUpRight, Clock, ChevronRight, 
@@ -160,6 +162,7 @@ const AdminCockpit: React.FC<AdminCockpitProps> = ({ setActiveTab, onSwitchView 
          </div>
       </div>
 
+      {/* SECTION 3: DETAILED GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
          
          {/* LEFT COLUMN (CENTER COMMAND) */}
