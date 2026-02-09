@@ -13,10 +13,10 @@ interface RegisterFormProps {
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) => {
-  const { register, resendConfirmation } = useAuth();
+  const { register } = useAuth();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [isVerificationSent, setIsVerificationSent] = useState(false);
   const [knowsJoinDate, setKnowsJoinDate] = useState(true);
   const [error, setError] = useState('');
   
@@ -64,21 +64,21 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
         joinDate: knowsJoinDate ? formData.joinDate : new Date().toISOString().split('T')[0]
       };
       
-      // Appel direct via AuthContext -> SDK Supabase
-      await register(finalData);
+      const result = await register(finalData);
       
-      // Si on arrive ici, la redirection window.location.assign s'occupera du reste
-      // mais on peut marquer comme enregistré pour l'UI locale
-      setIsRegistered(true);
+      if (result.needsVerification) {
+        setIsVerificationSent(true);
+      } else {
+        window.location.assign('/dashboard');
+      }
       
     } catch (err: any) {
-       // On affiche l'erreur textuelle brute récupérée du contexte
-       setError(err.message || "Échec de l'inscription. Veuillez vérifier vos informations.");
-       setIsSubmitting(false);
+      setError(err.message || "Une erreur est survenue lors de l'inscription.");
+      setIsSubmitting(false);
     }
   };
 
-  if (isRegistered) {
+  if (isVerificationSent) {
     return (
       <AuthLayout title="Vérifiez vos emails" subtitle="Un lien de confirmation a été envoyé">
         <div className="text-center space-y-8 animate-in zoom-in duration-500">
@@ -88,11 +88,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
           <p className="text-sm text-slate-600 leading-relaxed">
             Un lien d'activation a été envoyé à <br/> <strong className="text-slate-900">{formData.email}</strong>.
             <br/><br/>
-            Redirection vers le tableau de bord en cours...
+            Veuillez cliquer sur le lien dans l'e-mail pour confirmer votre adhésion et accéder à votre espace.
           </p>
-          <div className="pt-6">
-            <Loader2 className="w-8 h-8 animate-spin text-[#059669] mx-auto" />
-          </div>
+          <button 
+            onClick={onLoginClick}
+            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-[#059669] transition-all"
+          >
+            Retour à la connexion
+          </button>
         </div>
       </AuthLayout>
     );

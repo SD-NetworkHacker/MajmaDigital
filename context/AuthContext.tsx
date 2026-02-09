@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
@@ -16,6 +17,8 @@ export interface UserProfile {
   joinDate?: string;
   birthDate?: string;
   emailConfirmed?: boolean;
+  // Added bio to UserProfile to fix error in SettingsModule
+  bio?: string;
 }
 
 interface AuthContextType {
@@ -23,10 +26,14 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
-  register: (data: any) => Promise<void>;
+  register: (data: any) => Promise<{ success: boolean; needsVerification: boolean }>;
   resendConfirmation: (email: string) => Promise<void>;
-  logout: () => Promise<void>;
+  // Fixed: logout now accepts an optional reason argument to match calls in the app
+  logout: (reason?: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
+  // Added missing updateUser and impersonate methods
+  updateUser: (data: any) => Promise<void>;
+  impersonate: (member: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,7 +56,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     joinDate: profileData?.join_date || authUser.user_metadata?.join_date,
     birthDate: profileData?.birth_date || authUser.user_metadata?.birth_date,
     avatarUrl: profileData?.avatar_url,
-    emailConfirmed: !!authUser.email_confirmed_at
+    emailConfirmed: !!authUser.email_confirmed_at,
+    // Fix: Map bio from profile data
+    bio: profileData?.bio
   });
 
   const refreshProfile = useCallback(async () => {
@@ -71,6 +80,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  // Added updateUser implementation
+  const updateUser = async (data: any) => {
+    showLoading();
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: data.firstName,
+          last_name: data.lastName,
+          bio: data.bio,
+          avatar_url: data.avatarUrl
+        })
+        .eq('id', user?.id);
+      
+      if (error) throw error;
+      await refreshProfile();
+      addNotification("Profil mis à jour avec succès", "success");
+    } catch (error: any) {
+      addNotification(error.message, "error");
+    } finally {
+      hideLoading();
+    }
+  };
+
+  // Added impersonate implementation for simulation console
+  const impersonate = async (member: any) => {
+    addNotification(`Simulation du profil de ${member.firstName}`, "info");
+    // Mock user state change for simulation
+    setUser(prev => prev ? { ...prev, ...member, originalRole: prev.role } : null);
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       await refreshProfile();
@@ -78,7 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     initAuth();
 
-    const { data: { subscription } } = supabase.onAuthStateChange?.(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -89,7 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         setUser(null);
       }
-    }) || { data: { subscription: { unsubscribe: () => {} } } };
+    });
 
     return () => subscription.unsubscribe();
   }, [refreshProfile]);
@@ -111,7 +151,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: any) => {
     showLoading();
     try {
-      // APPEL DIRECT AU SDK SUPABASE - ÉVITE LE 504 GATEWAY TIMEOUT
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -131,18 +170,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (error) throw error;
 
-      addNotification("Inscription réussie ! Redirection...", "success");
+      // Si pas de session immédiate, c'est que l'email de confirmation est requis
+      const needsVerification = !data.session;
       
-      // FORCER LA REDIRECTION VERS LE DASHBOARD COMME DEMANDÉ
-      setTimeout(() => {
-          window.location.assign('/dashboard');
-      }, 1000);
+      if (needsVerification) {
+        addNotification("Compte créé ! Veuillez vérifier vos e-mails.", "success");
+      } else {
+        addNotification("Inscription réussie !", "success");
+      }
+
+      return { success: true, needsVerification };
 
     } catch (error: any) {
-      // Extraction du message d'erreur textuel pour éviter les objets vides {}
-      const errorMessage = error.message || "Une erreur inconnue est survenue lors de l'inscription.";
-      addNotification(errorMessage, "error");
-      throw new Error(errorMessage);
+      const msg = error.message || "Échec de l'inscription";
+      addNotification(msg, "error");
+      throw new Error(msg);
     } finally {
       hideLoading();
     }
@@ -164,13 +206,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = async () => {
+  const logout = async (reason?: string) => {
     await supabase.auth.signOut();
     setUser(null);
+    window.location.assign('/');
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, register, resendConfirmation, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, register, resendConfirmation, logout, refreshProfile, updateUser, impersonate }}>
       {children}
     </AuthContext.Provider>
   );

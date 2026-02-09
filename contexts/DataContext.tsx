@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { 
     Member, Event, Contribution, AdiyaCampaign, BudgetRequest, CommissionFinancialReport, 
     Task, Vehicle, Driver, TransportSchedule, LibraryResource, SocialCase, SocialProject, 
-    TicketItem, InventoryItem, KhassaideModule, Partner, SocialPost, StudyGroup 
+    TicketItem, InventoryItem, KhassaideModule, Partner, SocialPost, StudyGroup, FundraisingEvent,
+    InternalMeetingReport, UserProfile
 } from '../types';
 import * as db from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
@@ -29,91 +30,25 @@ interface DataContextType {
   partners: Partner[];
   socialPosts: SocialPost[];
   studyGroups: StudyGroup[];
+  fundraisingEvents: FundraisingEvent[];
+  reports: InternalMeetingReport[];
   totalTreasury: number;
   activeMembersCount: number;
   isLoading: boolean;
+  userProfile: UserProfile | null;
   addContribution: (c: any) => Promise<void>;
+  updateContribution: (id: string, c: any) => Promise<void>;
+  deleteContribution: (id: string) => Promise<void>;
   addTask: (t: any) => Promise<void>;
-  refresh: () => Promise<void>;
-}
-
-const DataContext = createContext<DataContextType | undefined>(undefined);
-
-export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const [members, setMembers] = useState<Member[]>([]);
-  const [contributions, setContributions] = useState<Contribution[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  // ... autres états initialisés à []
-
-  const loadAllData = useCallback(async () => {
-    if (!isAuthenticated) return;
-    setIsLoading(true);
-    try {
-      const [m, c, e, t] = await Promise.all([
-        db.dbFetchMembers(),
-        db.dbFetchContributions(),
-        db.dbFetchEvents(),
-        db.dbFetchTasks()
-      ]);
-      setMembers(m);
-      setContributions(c);
-      setEvents(e);
-      setTasks(t);
-    } catch (err) {
-      console.error("Data Load Error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    loadAllData();
-
-    // REAL-TIME SUBSCRIPTION
-    if (isAuthenticated) {
-      const channel = supabase.channel('schema-db-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'contributions' }, () => loadAllData())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadAllData())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadAllData())
-        .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
-    }
-  }, [isAuthenticated, loadAllData]);
-
-  const addContribution = async (c: any) => {
-    await db.dbAddContribution(c);
-    // Le refresh sera fait par l'écoute real-time
-  };
-
-  const addTask = async (t: any) => {
-    await db.dbAddTask(t);
-  };
-
-  const totalTreasury = contributions.reduce((acc, c) => acc + c.amount, 0);
-  const activeMembersCount = members.filter(m => m.status === 'active').length;
-
-  return (
-    <DataContext.Provider value={{
-      members, events, contributions, tasks, 
-      adiyaCampaigns: [], budgetRequests: [], financialReports: [],
-      fleet: [], drivers: [], schedules: [], tickets: [], inventory: [], 
-      library: [], khassaideModules: [], socialCases: [], socialProjects: [],
-      partners: [], socialPosts: [], studyGroups: [],
-      totalTreasury, activeMembersCount, isLoading, 
-      addContribution, addTask, refresh: loadAllData
-    }}>
-      {children}
-    </DataContext.Provider>
-  );
-};
-
-export const useData = () => {
-  const context = useContext(DataContext);
-  if (!context) throw new Error('useData must be used within a DataProvider');
-  return context;
-};
+  updateTask: (id: string, t: any) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  addMember: (m: any) => Promise<void>;
+  updateMember: (id: string, m: any) => Promise<void>;
+  deleteMember: (id: string) => Promise<void>;
+  updateMemberStatus: (id: string, status: string) => Promise<void>;
+  batchApproveMembers: (ids: string[]) => Promise<void>;
+  importMembers: (data: any) => Promise<void>;
+  addEvent: (e: any) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
+  addSocialCase: (c: any) => Promise<void>;
+  addSocialProject: (p: any) =>

@@ -11,11 +11,11 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
-      // Suppression totale de tout proxy vers /api
-      // L'application parle directement aux domaines Supabase et Google
+      // Proxy supprimé : communication directe requise
     },
     build: {
       outDir: 'dist',
+      emptyOutDir: true,
       sourcemap: false
     }
   };
