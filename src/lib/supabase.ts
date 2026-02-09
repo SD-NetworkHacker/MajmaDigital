@@ -1,12 +1,8 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-// Access via process.env which is polyfilled in vite.config.ts
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+const env = (import.meta as any).env || {};
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("⚠️ VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY manquant dans le fichier .env");
-}
+const supabaseUrl = env.VITE_SUPABASE_URL || 'https://qwsivjyohprhwacjgimc.supabase.co';
+const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3c2l2anlvaHByaHdhY2pnaW1jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNDA0MTEsImV4cCI6MjA4NTgxNjQxMX0.HFya9ucwIZTymdmPRVVFXvI__GGi0R_3islhLr1y_84';
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

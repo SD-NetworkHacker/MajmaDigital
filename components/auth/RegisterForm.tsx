@@ -64,11 +64,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
         ...formData,
         joinDate: knowsJoinDate ? formData.joinDate : new Date().toISOString().split('T')[0]
       };
+      
+      // Appel direct au contexte (qui utilise Supabase)
       await register(finalData);
       setIsRegistered(true);
     } catch (err: any) {
-       // FIX: On s'assure que 'error' est toujours une chaîne de caractères
-       const msg = err?.message || err?.error_description || "Une erreur inconnue est survenue.";
+       // On s'assure que le message est une string pour éviter {}
+       const msg = err.message || "Une erreur réseau est survenue. Vérifiez votre connexion.";
        setError(msg);
        setIsSubmitting(false);
     }
@@ -83,6 +85,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
           </div>
           <p className="text-sm text-slate-600 leading-relaxed">
             Nous avons envoyé un lien d'activation à <br/> <strong className="text-slate-900">{formData.email}</strong>.
+            Veuillez cliquer dessus pour valider votre compte.
           </p>
           <div className="pt-6 space-y-4">
             <button 

@@ -46,24 +46,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     role: profileData?.role || 'MEMBRE',
     matricule: profileData?.matricule,
     category: profileData?.category || authUser.user_metadata?.category,
-    gender: profileData?.gender,
-    joinDate: profileData?.join_date,
-    birthDate: profileData?.birth_date,
+    gender: profileData?.gender || authUser.user_metadata?.gender,
+    joinDate: profileData?.join_date || authUser.user_metadata?.join_date,
+    birthDate: profileData?.birth_date || authUser.user_metadata?.birth_date,
     avatarUrl: profileData?.avatar_url,
     emailConfirmed: !!authUser.email_confirmed_at
   });
 
   const refreshProfile = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      
-      setUser(mapProfile(profile, session.user));
-    } else {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        setUser(mapProfile(profile, session.user));
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
       setUser(null);
     }
   }, []);
@@ -96,9 +100,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      addNotification("Heureux de vous revoir !", "success");
+      addNotification("Connexion réussie", "success");
     } catch (error: any) {
-      addNotification(error.message || "Échec de la connexion", "error");
+      addNotification(error.message || "Erreur de connexion", "error");
       throw error;
     } finally {
       hideLoading();
@@ -108,6 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: any) => {
     showLoading();
     try {
+      // Appel direct au SDK Supabase - AUCUN FETCH VERS /API/
       const { error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -124,11 +129,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           emailRedirectTo: window.location.origin
         }
       });
+      
       if (error) throw error;
-      addNotification("Inscription réussie ! Vérifiez vos emails.", "success");
+      addNotification("Compte créé ! Confirmez votre email.", "success");
     } catch (error: any) {
-      addNotification(error.message || "Une erreur est survenue", "error");
-      throw error;
+      const msg = error.message || "Erreur lors de l'inscription";
+      addNotification(msg, "error");
+      throw new Error(msg);
     } finally {
       hideLoading();
     }
