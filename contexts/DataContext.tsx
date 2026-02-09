@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { 
     Member, Event, Contribution, AdiyaCampaign, BudgetRequest, CommissionFinancialReport, 
@@ -36,7 +35,6 @@ interface DataContextType {
   isLoading: boolean;
   refreshAll: () => Promise<void>;
   
-  // Mutations
   addContribution: (c: any) => Promise<void>;
   updateContribution: (id: string, updates: any) => Promise<void>;
   deleteContribution: (id: string) => Promise<void>;
@@ -57,10 +55,8 @@ interface DataContextType {
   addBudgetRequest: (r: any) => Promise<void>;
   updateBudgetRequest: (id: string, updates: any) => Promise<void>;
   addAdiyaCampaign: (c: any) => Promise<void>;
-  // Fix: Added missing updateAdiyaCampaign
   updateAdiyaCampaign: (id: string, updates: any) => Promise<void>;
   addFundraisingEvent: (e: any) => Promise<void>;
-  // Fix: Added missing updateFundraisingEvent
   updateFundraisingEvent: (id: string, updates: any) => Promise<void>;
   addVehicle: (v: any) => Promise<void>;
   deleteVehicle: (id: string) => Promise<void>;
@@ -71,7 +67,6 @@ interface DataContextType {
   addSchedule: (s: any) => Promise<void>;
   addTicket: (t: any) => Promise<void>;
   updateTicket: (id: string, updates: any) => Promise<void>;
-  // Fix: Added missing deleteTicket
   deleteTicket: (id: string) => Promise<void>;
   addInventoryItem: (i: any) => Promise<void>;
   deleteInventoryItem: (id: string) => Promise<void>;
@@ -82,7 +77,6 @@ interface DataContextType {
   addPartner: (p: any) => Promise<void>;
   addSocialPost: (p: any) => Promise<void>;
   addStudyGroup: (g: any) => Promise<void>;
-  // Fix: Added missing importMembers
   importMembers: (data: any[]) => Promise<void>;
   uploadMemberDocument: (memberId: string, file: File, type: string) => Promise<void>;
   deleteMemberDocument: (docId: string, filePath: string) => Promise<void>;
@@ -94,7 +88,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   
-  // States
   const [members, setMembers] = useState<Member[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [contributions, setContributions] = useState<Contribution[]>([]);
@@ -118,11 +111,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [reports, setReports] = useState<InternalMeetingReport[]>([]);
 
   const refreshAll = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+        setIsLoading(false);
+        return;
+    }
+    
     setIsLoading(true);
+    console.log("DataContext: Début du chargement des données métier...");
+
     try {
       const [
-        { data: m }, { data: e }, { data: c }, { data: t }, { data: r }
+        { data: m, error: errM }, 
+        { data: e, error: errE }, 
+        { data: c, error: errC }, 
+        { data: t, error: errT }, 
+        { data: r, error: errR }
       ] = await Promise.all([
         supabase.from('profiles').select('*'),
         supabase.from('events').select('*'),
@@ -130,6 +133,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         supabase.from('tasks').select('*'),
         supabase.from('meeting_reports').select('*')
       ]);
+
+      if (errM) console.error("DataContext: Erreur fetch 'profiles'", errM);
+      if (errE) console.error("DataContext: Erreur fetch 'events'", errE);
+      if (errC) console.error("DataContext: Erreur fetch 'contributions'", errC);
+      if (errT) console.error("DataContext: Erreur fetch 'tasks'", errT);
+      if (errR) console.error("DataContext: Erreur fetch 'meeting_reports'", errR);
 
       if (m) setMembers(m.map(x => ({
           id: x.id, firstName: x.first_name, lastName: x.last_name, email: x.email, 
@@ -149,15 +158,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (flt) setFleet(flt);
 
     } catch (err) {
-      console.error("Refresh Error:", err);
+      console.error("DataContext: Erreur globale refreshAll:", err);
     } finally {
       setIsLoading(false);
+      console.log("DataContext: Synchronisation terminée.");
     }
   }, [user]);
 
-  useEffect(() => { refreshAll(); }, [refreshAll]);
+  useEffect(() => { 
+    refreshAll(); 
 
-  // Mutations
+    // Safety Timeout 4s pour isDataLoading
+    const safetyTimer = setTimeout(() => {
+        if (isLoading) {
+            console.warn("DataContext: Timeout sécurité 4s atteint pour les données métier. Forçage UI.");
+            setIsLoading(false);
+        }
+    }, 4000);
+
+    return () => clearTimeout(safetyTimer);
+  }, [refreshAll, isLoading]);
+
+  // Mutations (Supabase Direct)
   const addContribution = async (c: any) => {
     const { error } = await supabase.from('contributions').insert([c]);
     if (!error) refreshAll();
@@ -257,7 +279,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!error) refreshAll();
   };
 
-  // Fix: Implemented updateAdiyaCampaign
   const updateAdiyaCampaign = async (id: string, updates: any) => {
     const { error } = await supabase.from('adiya_campaigns').update(updates).eq('id', id);
     if (!error) refreshAll();
@@ -268,7 +289,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!error) refreshAll();
   };
 
-  // Fix: Implemented updateFundraisingEvent
   const updateFundraisingEvent = async (id: string, updates: any) => {
     const { error } = await supabase.from('fundraising_events').update(updates).eq('id', id);
     if (!error) refreshAll();
@@ -319,7 +339,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!error) refreshAll();
   };
 
-  // Fix: Implemented deleteTicket
   const deleteTicket = async (id: string) => {
     const { error } = await supabase.from('tickets').delete().eq('id', id);
     if (!error) refreshAll();
@@ -370,7 +389,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!error) refreshAll();
   };
 
-  // Fix: Implemented importMembers
   const importMembers = async (data: any[]) => {
     const { error } = await supabase.from('profiles').insert(data);
     if (!error) refreshAll();
