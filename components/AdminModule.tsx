@@ -5,7 +5,8 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { useData } from '../contexts/DataContext';
 
 const AdminModule: React.FC = () => {
-  const { userProfile, members, reports, budgetRequests, contributions, events } = useData();
+  // Fix: Removed missing userProfile from destructuring
+  const { members, reports, budgetRequests, contributions, events } = useData();
   
   // Simulation de données temps réel pour le monitoring
   const [performanceData] = useState([
@@ -82,9 +83,10 @@ const AdminModule: React.FC = () => {
   };
 
   // Génération de logs d'activité basés sur les données réelles du contexte
+  // Fix: Ensure date access is consistent with InternalMeetingReport interface properties
   const recentActivity = [
       ...members.slice(0, 2).map(m => ({ id: m.id, user: 'Système', action: 'Inscription Membre', target: `${m.firstName} ${m.lastName}`, date: new Date(m.joinDate).toLocaleDateString(), type: 'update' })),
-      ...reports.slice(0, 2).map(r => ({ id: r.id, user: r.createdBy, action: 'Création Rapport', target: r.title, date: new Date(r.createdAt).toLocaleDateString(), type: 'system' })),
+      ...reports.slice(0, 2).map(r => ({ id: r.id, user: r.createdBy, action: 'Création Rapport', target: r.title, date: new Date(r.date).toLocaleDateString(), type: 'system' })),
       ...budgetRequests.slice(0, 2).map(r => ({ id: r.id, user: r.submittedBy, action: 'Demande Budget', target: r.title, date: new Date(r.submittedAt).toLocaleDateString(), type: 'system' }))
   ].sort(() => Math.random() - 0.5).slice(0, 5);
 

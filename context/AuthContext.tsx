@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
@@ -17,8 +16,8 @@ export interface UserProfile {
   joinDate?: string;
   birthDate?: string;
   emailConfirmed?: boolean;
-  // Added bio to UserProfile to fix error in SettingsModule
   bio?: string;
+  originalRole?: string; // Pour la simulation
 }
 
 interface AuthContextType {
@@ -28,10 +27,8 @@ interface AuthContextType {
   login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
   register: (data: any) => Promise<{ success: boolean; needsVerification: boolean }>;
   resendConfirmation: (email: string) => Promise<void>;
-  // Fixed: logout now accepts an optional reason argument to match calls in the app
   logout: (reason?: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
-  // Added missing updateUser and impersonate methods
   updateUser: (data: any) => Promise<void>;
   impersonate: (member: any) => Promise<void>;
 }
@@ -56,9 +53,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     joinDate: profileData?.join_date || authUser.user_metadata?.join_date,
     birthDate: profileData?.birth_date || authUser.user_metadata?.birth_date,
     avatarUrl: profileData?.avatar_url,
-    emailConfirmed: !!authUser.email_confirmed_at,
-    // Fix: Map bio from profile data
-    bio: profileData?.bio
+    bio: profileData?.bio,
+    emailConfirmed: !!authUser.email_confirmed_at
   });
 
   const refreshProfile = useCallback(async () => {
@@ -79,37 +75,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(null);
     }
   }, []);
-
-  // Added updateUser implementation
-  const updateUser = async (data: any) => {
-    showLoading();
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: data.firstName,
-          last_name: data.lastName,
-          bio: data.bio,
-          avatar_url: data.avatarUrl
-        })
-        .eq('id', user?.id);
-      
-      if (error) throw error;
-      await refreshProfile();
-      addNotification("Profil mis à jour avec succès", "success");
-    } catch (error: any) {
-      addNotification(error.message, "error");
-    } finally {
-      hideLoading();
-    }
-  };
-
-  // Added impersonate implementation for simulation console
-  const impersonate = async (member: any) => {
-    addNotification(`Simulation du profil de ${member.firstName}`, "info");
-    // Mock user state change for simulation
-    setUser(prev => prev ? { ...prev, ...member, originalRole: prev.role } : null);
-  };
 
   useEffect(() => {
     const initAuth = async () => {
@@ -169,36 +134,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       
       if (error) throw error;
-
-      // Si pas de session immédiate, c'est que l'email de confirmation est requis
       const needsVerification = !data.session;
-      
-      if (needsVerification) {
-        addNotification("Compte créé ! Veuillez vérifier vos e-mails.", "success");
-      } else {
-        addNotification("Inscription réussie !", "success");
-      }
-
       return { success: true, needsVerification };
-
     } catch (error: any) {
-      const msg = error.message || "Échec de l'inscription";
-      addNotification(msg, "error");
-      throw new Error(msg);
+      addNotification(error.message, "error");
+      throw error;
     } finally {
       hideLoading();
     }
   };
 
-  const resendConfirmation = async (email: string) => {
+  const updateUser = async (data: any) => {
+    if (!user) return;
     showLoading();
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: data.firstName,
+          last_name: data.lastName,
+          bio: data.bio,
+          avatar_url: data.avatarUrl
+        })
+        .eq('id', user.id);
+      
       if (error) throw error;
-      addNotification("Email de confirmation renvoyé !", "success");
+      await refreshProfile();
+      addNotification("Profil mis à jour", "success");
     } catch (error: any) {
       addNotification(error.message, "error");
     } finally {
@@ -206,14 +168,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = async (reason?: string) => {
+  const impersonate = async (member: any) => {
+    addNotification(`Incarner ${member.firstName} (Simulation)`, "info");
+    setUser(prev => prev ? { 
+        ...prev, 
+        ...member, 
+        id: member.id, 
+        originalRole: prev.role 
+    } : null);
+  };
+
+  const resendConfirmation = async (email: string) => {
+    showLoading();
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email });
+      if (error) throw error;
+      addNotification("Lien renvoyé !", "success");
+    } catch (error: any) {
+      addNotification(error.message, "error");
+    } finally {
+      hideLoading();
+    }
+  };
+
+  const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     window.location.assign('/');
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, register, resendConfirmation, logout, refreshProfile, updateUser, impersonate }}>
+    <AuthContext.Provider value={{ 
+      user, isAuthenticated: !!user, loading, login, register, 
+      resendConfirmation, logout, refreshProfile, updateUser, impersonate 
+    }}>
       {children}
     </AuthContext.Provider>
   );

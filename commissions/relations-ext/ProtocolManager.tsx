@@ -9,7 +9,8 @@ const ProtocolManager: React.FC = () => {
 
   // Filter for VIPs (Admin, SG, Dieuwrine) as a mock "Guest List" for protocol
   const vipGuests = useMemo(() => {
-     return members.filter(m => [GlobalRole.ADMIN, GlobalRole.SG, GlobalRole.DIEUWRINE].includes(m.role));
+     // Fix: Cast GlobalRole values to string for array check compatibility
+     return members.filter(m => ([GlobalRole.ADMIN as string, GlobalRole.SG as string, GlobalRole.DIEUWRINE as string]).includes(m.role as string));
   }, [members]);
 
   return (

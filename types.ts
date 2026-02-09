@@ -173,6 +173,7 @@ export interface InternalMeetingReport {
   actionItems: MeetingActionItem[];
   status: MeetingReportStatus;
   createdBy: string;
+  createdAt?: string; // Fix: Add createdAt for audit logging in admin views
   confidentiality: 'interne' | 'confidentiel' | 'public';
   meetingQrCode?: string;
   adminFeedback?: string;

@@ -23,7 +23,8 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
-  const { userProfile, reports, members, contributions, events, totalTreasury, activeMembersCount } = useData();
+  // Fix: removed userProfile from destructuring
+  const { reports, members, contributions, events, totalTreasury, activeMembersCount } = useData();
   const { impersonate, user } = useAuth();
   
   const [insight, setInsight] = useState<string>('');
@@ -153,8 +154,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
 
   // --- SIMULATION PROFILES (SUPER ADMIN TOOL) ---
   const simulationProfiles = useMemo(() => {
-    const leader = members.find(m => [GlobalRole.SG, GlobalRole.ADJOINT_SG, GlobalRole.DIEUWRINE].includes(m.role));
-    const commissioned = members.find(m => m.commissions.length > 0 && !([GlobalRole.SG, GlobalRole.ADJOINT_SG, GlobalRole.DIEUWRINE].includes(m.role)));
+    // Fix: cast enum values to string for inclusion check
+    const leader = members.find(m => ([GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string]).includes(m.role as string));
+    const commissioned = members.find(m => m.commissions.length > 0 && !(([GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string]).includes(m.role as string)));
     const simple = members.find(m => m.commissions.length === 0 && m.role === GlobalRole.MEMBRE);
     return { leader, commissioned, simple };
   }, [members]);
@@ -239,7 +241,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
     { id: 'admin', label: 'Admin', icon: ShieldCheck, value: 'RAS', action: 'admin', color: 'text-slate-500', bg: 'bg-slate-100' },
   ];
 
-  const getRoleIcon = (role: GlobalRole) => {
+  const getRoleIcon = (role: GlobalRole | string) => {
     switch(role) {
       case GlobalRole.DIEUWRINE: return <Crown size={12} className="text-amber-400" />;
       case GlobalRole.SG: return <ShieldCheck size={12} className="text-purple-400" />;
@@ -248,7 +250,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
   };
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-12">
+    <div className="space-y-10 h-full flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-12">
       
       {/* MAINTENANCE BANNER */}
       {maintenanceMode && (
@@ -312,8 +314,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         ))}
       </div>
 
-      {/* ... Rest of Dashboard (Chart, Console Simulation, etc) uses chartData and simulationProfiles which are now computed from props/context ... */}
-      
       {/* SECTION 3: DETAILED GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         
@@ -467,7 +467,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
                          {simSearchResults.length > 0 ? simSearchResults.map(m => (
                            <button key={m.id} onClick={() => impersonate(m)} className="w-full flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors group text-left border border-transparent hover:border-white/5">
                               <div className="flex items-center gap-3 overflow-hidden">
-                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>{getRoleIcon(m.role)}</div>
+                                 {/* Fix: use string value of m.role for getRoleIcon check */}
+                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>{getRoleIcon(m.role as string)}</div>
                                  <div className="min-w-0">
                                     <p className="text-xs font-bold text-slate-200 truncate">{m.firstName} {m.lastName}</p>
                                     <p className="text-[9px] text-slate-500 flex items-center gap-1">{m.category} • <span className="opacity-70">{m.matricule}</span></p>
