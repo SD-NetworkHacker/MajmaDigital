@@ -47,10 +47,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     firstName: profileData?.first_name || authUser.user_metadata?.first_name || 'Membre',
     lastName: profileData?.last_name || authUser.user_metadata?.last_name || '',
     role: profileData?.role || 'MEMBRE',
-    matricule: profileData?.matricule,
-    category: profileData?.category || authUser.user_metadata?.category,
+    matricule: profileData?.matricule || 'MAJ-PENDING',
+    category: profileData?.category || authUser.user_metadata?.category || 'Étudiant',
     gender: profileData?.gender || authUser.user_metadata?.gender,
-    joinDate: profileData?.join_date || authUser.user_metadata?.join_date,
+    joinDate: profileData?.join_date || authUser.user_metadata?.join_date || authUser.created_at,
     birthDate: profileData?.birth_date || authUser.user_metadata?.birth_date,
     avatarUrl: profileData?.avatar_url,
     bio: profileData?.bio,
@@ -59,31 +59,59 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const refreshProfile = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("Erreur session Supabase:", sessionError);
+        setUser(null);
+        return;
+      }
+
+      console.log("Session Supabase détectée:", session);
+
       if (session?.user) {
-        const { data: profile } = await supabase
+        // Tentative de récupération du profil DB
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
         
+        if (profileError) {
+          console.warn("Erreur profil DB (utilisation fallback metadata):", profileError);
+        }
+
+        // Si le profil n'est pas encore créé en DB (latence trigger), 
+        // on utilise les metadata pour ne pas bloquer l'interface
         setUser(mapProfile(profile, session.user));
       } else {
         setUser(null);
       }
     } catch (err) {
+      console.error("Erreur critique Auth:", err);
       setUser(null);
     }
   }, []);
 
   useEffect(() => {
     const initAuth = async () => {
+      // Timeout de sécurité : si après 4s rien ne se passe, on force l'entrée
+      const safetyTimeout = setTimeout(() => {
+        if (loading) {
+          console.warn("Initialisation Auth : Timeout de sécurité (4s) atteint. Forçage du rendu.");
+          setLoading(false);
+        }
+      }, 4000);
+
       await refreshProfile();
       setLoading(false);
+      clearTimeout(safetyTimeout);
     };
+
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`Auth Event: ${event}`, session?.user?.email);
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -94,6 +122,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         setUser(null);
       }
+      setLoading(false); // S'assurer que le loading s'arrête sur changement d'état
     });
 
     return () => subscription.unsubscribe();

@@ -1,7 +1,5 @@
-
 import React, { useState, Suspense, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
 
 // Added missing imports for dashboards
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -24,10 +22,9 @@ const WarRoomLayout = React.lazy(() => import('./components/bureau/WarRoomLayout
 const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
 const TransportDashboard = React.lazy(() => import('./commissions/transport/TransportDashboard'));
 const CulturalDashboard = React.lazy(() => import('./commissions/culturelle/CulturalDashboard'));
-const ProfileCompletion = React.lazy(() => import('./components/auth/ProfileCompletion'));
 
 import GuestDashboard from './components/GuestDashboard';
-import { Menu, Power, Eye, RefreshCcw, Mail, RefreshCw } from 'lucide-react';
+import { Mail, RefreshCw } from 'lucide-react';
 import { DataProvider, useData } from './contexts/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -35,14 +32,14 @@ import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
 import AuthLayout from './components/auth/AuthLayout';
 
-const PageLoader = () => (
+const PageLoader = ({ message = "Initialisation..." }) => (
     <div className="h-full w-full flex items-center justify-center bg-slate-50 flex-col fixed inset-0 z-50 overflow-hidden">
         <div className="relative z-10 flex flex-col items-center">
             <div className="relative w-28 h-28 bg-slate-900 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-emerald-900/20 mb-8 animate-in zoom-in duration-500">
                 <span className="font-arabic text-7xl text-emerald-500 pb-3 drop-shadow-lg relative z-10 select-none animate-pulse-slow">م</span>
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Majma<span className="text-emerald-600">Digital</span></h1>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 animate-pulse mt-2">Initialisation...</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 animate-pulse mt-2">{message}</p>
         </div>
     </div>
 );
@@ -92,10 +89,17 @@ const MainContent: React.FC = () => {
   const { user, loading: isAuthLoading } = useAuth();
   const { isLoading: isDataLoading } = useData();
 
-  if (isAuthLoading) return <PageLoader />;
+  // Logging pour debug Railway/Supabase
+  useEffect(() => {
+    if (!isAuthLoading) {
+      console.log("App state: Auth Loaded", user ? `User: ${user.email}` : "No user");
+    }
+  }, [isAuthLoading, user]);
+
+  if (isAuthLoading) return <PageLoader message="Vérification identité..." />;
   if (!user) return <GuestDashboard />;
 
-  // Force Email Verification
+  // Force Email Verification (if enabled in Supabase)
   if (!user.emailConfirmed) {
       return <EmailVerificationView />;
   }
@@ -104,10 +108,10 @@ const MainContent: React.FC = () => {
   const isAdminOrManager = ['ADMIN', 'SG', 'ADJOINT_SG', 'DIEUWRINE'].includes(role);
 
   const renderContent = () => {
-    if (activeTab === 'bureau' && isAdminOrManager) return <Suspense fallback={<PageLoader />}><WarRoomLayout /></Suspense>;
+    if (activeTab === 'bureau' && isAdminOrManager) return <Suspense fallback={<PageLoader message="Sécurisation WarRoom..." />}><WarRoomLayout /></Suspense>;
     
     return (
-      <Suspense fallback={<PageLoader />}>
+      <Suspense fallback={<PageLoader message="Chargement du module..." />}>
         {(() => {
           switch (activeTab) {
             case 'dashboard': return isAdminOrManager ? <AdminDashboard setActiveTab={setActiveTab} members={[]} events={[]} contributions={[]} /> : <MemberDashboard setActiveTab={setActiveTab} />;
@@ -132,7 +136,7 @@ const MainContent: React.FC = () => {
     );
   };
 
-  if (isDataLoading) return <PageLoader />;
+  if (isDataLoading) return <PageLoader message="Synchronisation des données..." />;
 
   return (
     <div className="flex h-screen w-full bg-[#f8fafc] overflow-hidden relative">
