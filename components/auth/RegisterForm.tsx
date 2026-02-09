@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   User, Mail, Phone, Calendar, Lock, Loader2, AlertCircle, 
@@ -65,13 +64,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
         joinDate: knowsJoinDate ? formData.joinDate : new Date().toISOString().split('T')[0]
       };
       
-      // Appel direct au contexte (qui utilise Supabase)
+      // Appel direct via AuthContext -> SDK Supabase
       await register(finalData);
+      
+      // Si on arrive ici, la redirection window.location.assign s'occupera du reste
+      // mais on peut marquer comme enregistré pour l'UI locale
       setIsRegistered(true);
+      
     } catch (err: any) {
-       // On s'assure que le message est une string pour éviter {}
-       const msg = err.message || "Une erreur réseau est survenue. Vérifiez votre connexion.";
-       setError(msg);
+       // On affiche l'erreur textuelle brute récupérée du contexte
+       setError(err.message || "Échec de l'inscription. Veuillez vérifier vos informations.");
        setIsSubmitting(false);
     }
   };
@@ -80,28 +82,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
     return (
       <AuthLayout title="Vérifiez vos emails" subtitle="Un lien de confirmation a été envoyé">
         <div className="text-center space-y-8 animate-in zoom-in duration-500">
-          <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto border border-emerald-100 shadow-inner">
-            <Mail size={48} className="text-emerald-600" />
+          <div className="w-24 h-24 bg-[#059669]/10 rounded-[2.5rem] flex items-center justify-center mx-auto border border-[#059669]/20 shadow-inner">
+            <Mail size={48} className="text-[#059669]" />
           </div>
           <p className="text-sm text-slate-600 leading-relaxed">
-            Nous avons envoyé un lien d'activation à <br/> <strong className="text-slate-900">{formData.email}</strong>.
-            Veuillez cliquer dessus pour valider votre compte.
+            Un lien d'activation a été envoyé à <br/> <strong className="text-slate-900">{formData.email}</strong>.
+            <br/><br/>
+            Redirection vers le tableau de bord en cours...
           </p>
-          <div className="pt-6 space-y-4">
-            <button 
-              type="button"
-              onClick={() => resendConfirmation(formData.email)}
-              className="w-full py-4 bg-white border-2 border-slate-100 text-slate-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-3"
-            >
-              <RefreshCw size={16} /> Renvoyer le mail
-            </button>
-            <button 
-              type="button"
-              onClick={onLoginClick}
-              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95"
-            >
-              Retour à la connexion
-            </button>
+          <div className="pt-6">
+            <Loader2 className="w-8 h-8 animate-spin text-[#059669] mx-auto" />
           </div>
         </div>
       </AuthLayout>
@@ -118,7 +108,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
         {error && (
           <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 animate-in fade-in">
             <AlertCircle size={18} className="shrink-0" />
-            <p className="text-xs font-bold leading-tight">{error}</p>
+            <p className="text-xs font-bold leading-tight uppercase">{error}</p>
           </div>
         )}
 
@@ -127,27 +117,27 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Prénom</label>
-                <input required type="text" value={formData.firstName} onChange={e => handleChange('firstName', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="Prénom" />
+                <input required type="text" value={formData.firstName} onChange={e => handleChange('firstName', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#059669]/20" placeholder="Prénom" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nom</label>
-                <input required type="text" value={formData.lastName} onChange={e => handleChange('lastName', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="Nom" />
+                <input required type="text" value={formData.lastName} onChange={e => handleChange('lastName', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#059669]/20" placeholder="Nom" />
               </div>
             </div>
 
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
-              <input required type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="votre@email.com" />
+              <input required type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#059669]/20" placeholder="votre@email.com" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mot de passe</label>
-                <input required type="password" value={formData.password} onChange={e => handleChange('password', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="••••••" />
+                <input required type="password" value={formData.password} onChange={e => handleChange('password', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#059669]/20" placeholder="••••••" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirmer</label>
-                <input required type="password" value={formData.confirmPassword} onChange={e => handleChange('confirmPassword', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="••••••" />
+                <input required type="password" value={formData.confirmPassword} onChange={e => handleChange('confirmPassword', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#059669]/20" placeholder="••••••" />
               </div>
             </div>
 
@@ -155,7 +145,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
               type="button"
               disabled={!isStep1Valid()}
               onClick={() => setStep(2)}
-              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95"
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-[#059669] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95"
             >
               Suivant <ArrowRight size={16} />
             </button>
@@ -168,14 +158,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
                 <button
                   type="button"
                   onClick={() => handleChange('gender', 'M')}
-                  className={`p-3 rounded-xl border-2 flex items-center justify-center gap-3 transition-all ${formData.gender === 'M' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}
+                  className={`p-3 rounded-xl border-2 flex items-center justify-center gap-3 transition-all ${formData.gender === 'M' ? 'bg-[#059669]/10 border-[#059669] text-[#059669] shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}
                 >
                   <UserRound size={18} /> <span className="text-[10px] font-black uppercase">Goor (H)</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleChange('gender', 'F')}
-                  className={`p-3 rounded-xl border-2 flex items-center justify-center gap-3 transition-all ${formData.gender === 'F' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}
+                  className={`p-3 rounded-xl border-2 flex items-center justify-center gap-3 transition-all ${formData.gender === 'F' ? 'bg-[#059669]/10 border-[#059669] text-[#059669] shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}
                 >
                   <UserRoundSearch size={18} /> <span className="text-[10px] font-black uppercase">Soxna (F)</span>
                 </button>
@@ -185,11 +175,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Téléphone</label>
-                  <input required type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="77 000 00 00" />
+                  <input required type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#059669]/20" placeholder="77 000 00 00" />
                </div>
                <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date Naissance</label>
-                  <input required type="date" value={formData.birthDate} onChange={e => handleChange('birthDate', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" />
+                  <input required type="date" value={formData.birthDate} onChange={e => handleChange('birthDate', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#059669]/20" />
                </div>
             </div>
 
@@ -199,15 +189,15 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
                     <History size={14}/> Date d'Adhésion
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="w-3 h-3 accent-emerald-600" checked={!knowsJoinDate} onChange={() => setKnowsJoinDate(!knowsJoinDate)} />
+                    <input type="checkbox" className="w-3 h-3 accent-[#059669]" checked={!knowsJoinDate} onChange={() => setKnowsJoinDate(!knowsJoinDate)} />
                     <span className="text-[9px] font-bold text-slate-400 uppercase">Je ne sais plus</span>
                   </label>
                </div>
 
                {knowsJoinDate && (
                  <div className="relative animate-in slide-in-from-top-2">
-                   <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
-                   <input required type="date" value={formData.joinDate} onChange={e => handleChange('joinDate', e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" />
+                   <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#059669]" />
+                   <input required type="date" value={formData.joinDate} onChange={e => handleChange('joinDate', e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#059669]/20" />
                  </div>
                )}
                {!knowsJoinDate && <p className="text-[9px] text-slate-400 italic">La date d'aujourd'hui sera utilisée par défaut.</p>}
@@ -218,9 +208,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
               <button 
                 type="submit"
                 disabled={!isStep2Valid() || isSubmitting}
-                className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                className="flex-1 py-4 bg-[#059669] text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-[#047857] transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
               >
-                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle size={18} /> S'inscrire</>}
+                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle size={18} /> Terminer l'inscription</>}
               </button>
             </div>
           </div>

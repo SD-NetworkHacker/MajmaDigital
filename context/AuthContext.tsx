@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
@@ -79,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.onAuthStateChange?.(async (event, session) => {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -90,7 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         setUser(null);
       }
-    });
+    }) || { data: { subscription: { unsubscribe: () => {} } } };
 
     return () => subscription.unsubscribe();
   }, [refreshProfile]);
@@ -112,8 +111,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: any) => {
     showLoading();
     try {
-      // Appel direct au SDK Supabase - AUCUN FETCH VERS /API/
-      const { error } = await supabase.auth.signUp({
+      // APPEL DIRECT AU SDK SUPABASE - ÉVITE LE 504 GATEWAY TIMEOUT
+      const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
         options: {
@@ -131,11 +130,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       
       if (error) throw error;
-      addNotification("Compte créé ! Confirmez votre email.", "success");
+
+      addNotification("Inscription réussie ! Redirection...", "success");
+      
+      // FORCER LA REDIRECTION VERS LE DASHBOARD COMME DEMANDÉ
+      setTimeout(() => {
+          window.location.assign('/dashboard');
+      }, 1000);
+
     } catch (error: any) {
-      const msg = error.message || "Erreur lors de l'inscription";
-      addNotification(msg, "error");
-      throw new Error(msg);
+      // Extraction du message d'erreur textuel pour éviter les objets vides {}
+      const errorMessage = error.message || "Une erreur inconnue est survenue lors de l'inscription.";
+      addNotification(errorMessage, "error");
+      throw new Error(errorMessage);
     } finally {
       hideLoading();
     }
