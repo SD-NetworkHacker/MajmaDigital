@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { 
   User, Bell, Lock, Globe, Moon, ChevronRight, Save, 
@@ -183,7 +182,7 @@ const SettingsModule: React.FC<SettingsModuleProps> = ({ onBack }) => {
              
              <div className="mt-4 pt-4 border-t border-slate-100 px-2">
                 <button 
-                  onClick={() => logout('Déconnexion utilisateur')}
+                  onClick={() => logout()}
                   className="w-full flex items-center justify-center gap-2 p-4 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all text-[10px] font-black uppercase tracking-widest border border-transparent hover:border-rose-100"
                 >
                    <Power size={14} /> Déconnexion

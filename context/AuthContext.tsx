@@ -176,17 +176,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     showLoading();
     try {
+      // 1. Appel Supabase
       await supabase.auth.signOut();
-      setUser(null);
-      saveToCache(null);
+    } catch (err) {
+      console.warn("SignOut Supabase error:", err);
     } finally {
+      // 2. Nettoyage Forcé quoi qu'il arrive
+      setUser(null);
+      localStorage.clear();
+      saveToCache(null);
       hideLoading();
-      window.location.assign('/');
+      
+      // 3. Redirection propre à la racine
+      window.location.href = window.location.origin;
     }
-  };
+  }, [showLoading, hideLoading]);
 
   const updateUser = async (data: any) => {
     if (!user) return;
