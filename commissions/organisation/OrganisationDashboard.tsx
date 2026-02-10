@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   ListTodo, Truck, Users, Package, Coffee, UtensilsCrossed, 
@@ -29,9 +28,9 @@ const OrganisationDashboard: React.FC = () => {
   const { user } = useAuth();
 
   // 1. Identifier le rôle dans l'Organisation
-  const currentUserMember = useMemo(() => members.find(m => m.email === user?.email), [members, user]);
+  const currentUserMember = useMemo(() => (members || []).find(m => m.email === user?.email), [members, user]);
   const myRole = useMemo(() => {
-    return currentUserMember?.commissions.find(c => c.type === CommissionType.ORGANISATION)?.role_commission || 'Bénévole';
+    return currentUserMember?.commissions?.find(c => c.type === CommissionType.ORGANISATION)?.role_commission || 'Bénévole';
   }, [currentUserMember]);
 
   // 2. Permissions
@@ -41,8 +40,8 @@ const OrganisationDashboard: React.FC = () => {
   const isLogisticsStaff = myRole.includes('Logistique') || isLeader;
 
   // Filtrer les membres de la commission Organisation
-  const commissionTeam = useMemo(() => members.filter(m => 
-    m.commissions.some(c => c.type === CommissionType.ORGANISATION)
+  const commissionTeam = useMemo(() => (members || []).filter(m => 
+    m.commissions?.some(c => c.type === CommissionType.ORGANISATION)
   ), [members]);
 
   const navItems = [
@@ -64,7 +63,7 @@ const OrganisationDashboard: React.FC = () => {
   const visibleNavItems = navItems.filter(item => item.access);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-12">
       
       {/* Role Badge */}
       <div className="flex items-center gap-3 bg-purple-50/50 p-3 rounded-2xl border border-purple-100 w-fit">

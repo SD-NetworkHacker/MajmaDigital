@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   LayoutDashboard, Calendar, Library, BookOpen, 
@@ -26,8 +25,8 @@ const CulturalDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState(isAdmin ? 'overview' : 'library');
 
   // Filtrer les membres de la commission Culturelle
-  const commissionTeam = useMemo(() => members.filter(m => 
-    m.commissions.some(c => c.type === CommissionType.CULTURELLE)
+  const commissionTeam = useMemo(() => (members || []).filter(m => 
+    m.commissions?.some(c => c.type === CommissionType.CULTURELLE)
   ), [members]);
 
   const getRolePriority = (role: string) => {
@@ -155,7 +154,6 @@ const CulturalDashboard: React.FC = () => {
              </div>
           </div>
 
-          {/* SECTION: ÉQUIPE DE LA COMMISSION */}
           <div className="glass-card p-8 bg-white border border-slate-100/50 mt-8">
              <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4 border-b border-slate-50 pb-6">
                 <div>
@@ -172,11 +170,11 @@ const CulturalDashboard: React.FC = () => {
              {commissionTeam.length > 0 ? (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {commissionTeam.sort((a, b) => {
-                      const roleA = a.commissions.find(c => c.type === CommissionType.CULTURELLE)?.role_commission || '';
-                      const roleB = b.commissions.find(c => c.type === CommissionType.CULTURELLE)?.role_commission || '';
+                      const roleA = a.commissions?.find(c => c.type === CommissionType.CULTURELLE)?.role_commission || '';
+                      const roleB = b.commissions?.find(c => c.type === CommissionType.CULTURELLE)?.role_commission || '';
                       return getRolePriority(roleA) - getRolePriority(roleB);
                   }).map(member => {
-                      const assignment = member.commissions.find(c => c.type === CommissionType.CULTURELLE);
+                      const assignment = member.commissions?.find(c => c.type === CommissionType.CULTURELLE);
                       const roleName = assignment ? assignment.role_commission : 'Membre';
                       
                       return (
@@ -192,7 +190,7 @@ const CulturalDashboard: React.FC = () => {
                                   </div>
                                   
                                   <h5 className="font-black text-slate-800 text-sm leading-tight mb-1">{member.firstName} {member.lastName}</h5>
-                                  <p className="text-[10px] text-indigo-600 font-black uppercase tracking-widest mb-4 bg-indigo-50 inline-block px-2 py-0.5 rounded">{roleName}</p>
+                                  <p className="text-[10px] text-indigo-600 font-black uppercase tracking-widest mb-4 bg-slate-50 inline-block px-2 py-0.5 rounded">{roleName}</p>
                                   
                                   <div className="pt-4 border-t border-slate-200/50 space-y-2">
                                       <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium">
@@ -220,14 +218,12 @@ const CulturalDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Admin Modules */}
       {isAdmin && activeTab === 'finance' && <CommissionFinancialDashboard commission={CommissionType.CULTURELLE} />}
       {isAdmin && activeTab === 'meetings' && <CommissionMeetingDashboard commission={CommissionType.CULTURELLE} />}
       {isAdmin && activeTab === 'tasks' && <TaskManager commission={CommissionType.CULTURELLE} />}
       
-      {/* Public/Member Modules */}
-      {activeTab === 'calendar' && <CulturalCalendar />}
       {activeTab === 'library' && <DigitalLibrary />}
+      {activeTab === 'calendar' && <CulturalCalendar />}
       {activeTab === 'academy' && <KhassaideAcademy />}
       {activeTab === 'heritage' && <HeritageHub />}
     </div>

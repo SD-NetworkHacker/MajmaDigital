@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useNotification } from './NotificationContext';
 import { useLoading } from './LoadingContext';
 import { supabase } from '../lib/supabase';
+import { CommissionAssignment } from '../types';
 
 export interface UserProfile {
   id: string;
@@ -14,10 +15,9 @@ export interface UserProfile {
   category?: string;
   gender?: 'M' | 'F';
   joinDate?: string;
-  birthDate?: string;
-  emailConfirmed?: boolean;
   bio?: string;
   originalRole?: string;
+  commissions: CommissionAssignment[];
 }
 
 interface AuthContextType {
@@ -26,127 +26,123 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
   register: (data: any) => Promise<{ success: boolean; needsVerification: boolean }>;
-  resendConfirmation: (email: string) => Promise<void>;
-  logout: (reason?: string) => Promise<void>;
+  logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateUser: (data: any) => Promise<void>;
   impersonate: (member: any) => Promise<void>;
 }
 
+const CACHE_KEY = 'majmadigital_auth_cache';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem(CACHE_KEY);
+      return cached ? JSON.parse(cached) : null;
+    }
+    return null;
+  });
+  
+  const [loading, setLoading] = useState(!user);
   const { addNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  const mapProfile = (profileData: any, authUser: any): UserProfile => ({
-    id: authUser.id,
-    email: authUser.email || '',
-    firstName: profileData?.first_name || authUser.user_metadata?.first_name || 'Utilisateur',
-    lastName: profileData?.last_name || authUser.user_metadata?.last_name || 'Temporaire',
-    role: profileData?.role || 'SYMPATHISANT',
-    matricule: profileData?.matricule || 'MAJ-GUEST',
-    category: profileData?.category || authUser.user_metadata?.category || 'Étudiant',
-    gender: profileData?.gender || authUser.user_metadata?.gender,
-    joinDate: profileData?.join_date || authUser.user_metadata?.join_date || authUser.created_at,
-    birthDate: profileData?.birth_date || authUser.user_metadata?.birth_date,
-    avatarUrl: profileData?.avatar_url,
-    bio: profileData?.bio,
-    emailConfirmed: !!authUser.email_confirmed_at
-  });
+  const mapProfile = (authUser: any, dbProfile?: any): UserProfile => {
+    const metadata = authUser.user_metadata || {};
+    return {
+      id: authUser.id,
+      email: authUser.email || '',
+      firstName: dbProfile?.first_name || metadata.first_name || 'Utilisateur',
+      lastName: dbProfile?.last_name || metadata.last_name || '...',
+      role: dbProfile?.role || 'MEMBRE',
+      matricule: dbProfile?.matricule || metadata.matricule || 'MAJ-PENDING',
+      category: dbProfile?.category || metadata.category || 'Étudiant',
+      avatarUrl: dbProfile?.avatar_url || metadata.avatar_url,
+      joinDate: dbProfile?.created_at || authUser.created_at,
+      bio: dbProfile?.bio || '',
+      commissions: dbProfile?.commissions || user?.commissions || []
+    };
+  };
 
-  const logout = useCallback(async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setLoading(false);
-    if (window.location.pathname !== '/') {
-        window.location.assign('/');
+  const saveToCache = (profile: UserProfile | null) => {
+    if (profile) {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(profile));
+    } else {
+      localStorage.removeItem(CACHE_KEY);
     }
-  }, []);
+  };
 
   const refreshProfile = useCallback(async () => {
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (sessionError) {
-        console.error("AuthContext: Erreur session Supabase:", sessionError);
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
       if (session?.user) {
-        console.log("AuthContext: Session active pour", session.user.email);
-        
-        // Tentative de récupération du profil DB
-        const { data: profile, error: profileError } = await supabase
+        const instantUser = mapProfile(session.user);
+        setUser(instantUser);
+        setLoading(false);
+
+        const { data: dbProfile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
         
-        if (profileError) {
-          console.error("AuthContext: Erreur Critique Table 'profiles' :", profileError.message, profileError.details);
-          // On ne bloque pas l'utilisateur, on lui donne un profil par défaut basé sur l'auth
-          setUser(mapProfile(null, session.user));
-        } else if (!profile) {
-          console.warn("AuthContext: Aucun profil trouvé en DB. Utilisation du mode SYMPATHISANT.");
-          setUser(mapProfile(null, session.user));
-        } else {
-          setUser(mapProfile(profile, session.user));
+        if (dbProfile) {
+          const fullUser = mapProfile(session.user, dbProfile);
+          setUser(fullUser);
+          saveToCache(fullUser);
         }
       } else {
         setUser(null);
+        saveToCache(null);
+        setLoading(false);
       }
     } catch (err) {
-      console.error("AuthContext: Erreur système critique:", err);
-      setUser(null);
-    } finally {
+      console.error("Auth Error:", err);
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const initAuth = async () => {
-      // Safety Timeout 4s pour forcer Loading à false
-      const safetyTimer = setTimeout(() => {
-        if (loading) {
-          console.warn("AuthContext: Timeout sécurité 4s atteint. Forçage init.");
-          setLoading(false);
-        }
-      }, 4000);
-
-      await refreshProfile();
-      clearTimeout(safetyTimer);
-    };
-
-    initAuth();
+    refreshProfile();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`AuthContext Event: ${event}`);
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        setUser(mapProfile(profile, session.user));
-      } else {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          const fastUser = mapProfile(session.user);
+          setUser(fastUser);
+          setLoading(false);
+          
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+            
+          if (profile) {
+            const finalUser = mapProfile(session.user, profile);
+            setUser(finalUser);
+            saveToCache(finalUser);
+          }
+        }
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        saveToCache(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, [refreshProfile]);
 
-  const login = async (email: string, password: string, rememberMe: boolean) => {
+  const login = async (email: string, password: string) => {
     showLoading();
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      addNotification("Connexion réussie", "success");
     } catch (error: any) {
       addNotification(error.message || "Erreur de connexion", "error");
       throw error;
@@ -180,9 +176,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const logout = async () => {
+    showLoading();
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      saveToCache(null);
+    } finally {
+      hideLoading();
+      window.location.assign('/');
+    }
+  };
+
   const updateUser = async (data: any) => {
     if (!user) return;
-    showLoading();
     try {
       const { error } = await supabase.from('profiles').update({
           first_name: data.firstName,
@@ -195,30 +202,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addNotification("Profil mis à jour", "success");
     } catch (error: any) {
       addNotification(error.message, "error");
-    } finally {
-      hideLoading();
     }
   };
 
   const impersonate = async (member: any) => {
-    addNotification(`Simulation : Incarner ${member.firstName}`, "info");
+    addNotification(`Mode simulation : ${member.firstName}`, "info");
     setUser(prev => prev ? { ...prev, ...member, id: member.id, originalRole: prev.role } : null);
-  };
-
-  const resendConfirmation = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resend({ type: 'signup', email });
-      if (error) throw error;
-      addNotification("Lien renvoyé", "success");
-    } catch (error: any) {
-      addNotification(error.message, "error");
-    }
   };
 
   return (
     <AuthContext.Provider value={{ 
       user, isAuthenticated: !!user, loading, login, register, 
-      resendConfirmation, logout, refreshProfile, updateUser, impersonate 
+      logout, refreshProfile, updateUser, impersonate 
     }}>
       {children}
     </AuthContext.Provider>

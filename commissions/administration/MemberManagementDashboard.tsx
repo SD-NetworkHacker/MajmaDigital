@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { 
   Search, Filter, UserPlus, Download, CheckSquare, 
@@ -14,8 +13,7 @@ import MemberForm from '../../components/MemberForm';
 import MemberProfileModal from '../../components/MemberProfileModal';
 
 const MemberManagementDashboard: React.FC = () => {
-  // Fix: added importMembers to destructuring
-  const { members, addMember, updateMember, deleteMember, importMembers } = useData();
+  const { members, addMember, updateMember, deleteMember } = useData();
   const { impersonate } = useAuth(); // Hook Auth
   
   // UI States
@@ -38,19 +36,19 @@ const MemberManagementDashboard: React.FC = () => {
 
   // --- STATISTICS COMPUTATION ---
   const stats = useMemo(() => {
-    const total = members.length;
+    const total = (members || []).length;
     // Définition des rôles à responsabilité
-    // Fix: Cast enum values to string for inclusion check compatibility
     const leaderRoles = [GlobalRole.ADMIN as string, GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string];
 
-    const leaders = members.filter(m => leaderRoles.includes(m.role as string)).length;
-    const commissioned = members.filter(m => m.commissions.length > 0).length;
-    // Membres simples = Pas de commission et pas de rôle de leader (souvent role = MEMBRE et commissions = [])
-    const simpleMembers = members.filter(m => m.commissions.length === 0 && !leaderRoles.includes(m.role as string)).length;
+    const leaders = (members || []).filter(m => leaderRoles.includes(String(m.role))).length;
+    const commissioned = (members || []).filter(m => (m.commissions || []).length > 0).length;
+    // Membres simples = Pas de commission et pas de rôle de leader
+    const simpleMembers = (members || []).filter(m => (m.commissions || []).length === 0 && !leaderRoles.includes(String(m.role))).length;
     
     // Distribution par secteur (pour le graph)
-    const sectors = members.reduce((acc, curr) => {
-      acc[curr.category as string] = (acc[curr.category as string] || 0) + 1;
+    const sectors = (members || []).reduce((acc, curr) => {
+      const cat = String(curr.category || 'Inconnu');
+      acc[cat] = (acc[cat] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -65,13 +63,12 @@ const MemberManagementDashboard: React.FC = () => {
 
   // --- FILTERING & SORTING ---
   const filteredMembers = useMemo(() => {
-    return members
+    const term = searchTerm.toLowerCase().trim();
+    return (members || [])
       .filter(m => {
         // 1. Filtre Recherche
-        const matchesSearch = 
-          m.firstName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          m.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          m.matricule.toLowerCase().includes(searchTerm.toLowerCase());
+        const searchStr = `${m.firstName || ''} ${m.lastName || ''} ${m.matricule || ''}`.toLowerCase();
+        const matchesSearch = searchStr.includes(term);
         
         // 2. Filtre Secteur & Statut
         const matchesSector = selectedSector === 'Tous' || m.category === selectedSector;
@@ -81,15 +78,14 @@ const MemberManagementDashboard: React.FC = () => {
 
         // 3. Filtre Profil (Super Admin View)
         let matchesProfile = true;
-        // Fix: Cast enum values to string for inclusion check
         const leaderRoles = [GlobalRole.ADMIN as string, GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string];
 
         if (profileView === 'leaders') {
-          matchesProfile = leaderRoles.includes(m.role as string);
+          matchesProfile = leaderRoles.includes(String(m.role));
         } else if (profileView === 'commissioned') {
-          matchesProfile = m.commissions.length > 0;
+          matchesProfile = (m.commissions || []).length > 0;
         } else if (profileView === 'simple') {
-          matchesProfile = m.commissions.length === 0 && !leaderRoles.includes(m.role as string);
+          matchesProfile = (m.commissions || []).length === 0 && !leaderRoles.includes(String(m.role));
         }
 
         return matchesSearch && matchesSector && matchesStatus && matchesProfile;
@@ -103,9 +99,9 @@ const MemberManagementDashboard: React.FC = () => {
                  if (role === GlobalRole.DIEUWRINE) return 3;
                  return 10;
              };
-             return rolePriority(a.role as string) - rolePriority(b.role as string) || a.lastName.localeCompare(b.lastName);
+             return rolePriority(String(a.role)) - rolePriority(String(b.role)) || (a.lastName || '').localeCompare(b.lastName || '');
           }
-          return a.lastName.localeCompare(b.lastName);
+          return (a.lastName || '').localeCompare(b.lastName || '');
       }); 
   }, [members, searchTerm, selectedSector, selectedStatus, profileView]);
 
@@ -160,7 +156,7 @@ const MemberManagementDashboard: React.FC = () => {
         matricule: `MAJ-2024-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
         joinDate: new Date().toISOString(),
         status: 'active',
-        commissions: data.commissionAssignments.map((ca: any) => ({
+        commissions: (data.commissionAssignments || []).map((ca: any) => ({
             type: ca.type,
             role_commission: ca.role,
             permissions: []
@@ -179,7 +175,6 @@ const MemberManagementDashboard: React.FC = () => {
     // Simulation d'import
     const reader = new FileReader();
     reader.onload = (e) => {
-        // Fix: Call importMembers now that it is available in context
         console.log("Processing CSV for bulk import...");
     };
     reader.readAsText(file);
@@ -419,9 +414,8 @@ const MemberManagementDashboard: React.FC = () => {
                    </thead>
                    <tbody className="divide-y divide-slate-50">
                       {filteredMembers.map((member, index) => {
-                         // Fix: Cast enum to string for check
-                         const isLeader = [GlobalRole.ADMIN as string, GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string].includes(member.role as string);
-                         const hasCommission = member.commissions.length > 0;
+                         const isLeader = [GlobalRole.ADMIN as string, GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string].includes(String(member.role));
+                         const hasCommission = (member.commissions || []).length > 0;
 
                          return (
                            <tr key={member.id} className={`hover:bg-slate-50/80 transition-all group ${selectedIds.has(member.id) ? 'bg-emerald-50/20' : ''}`}>
@@ -438,7 +432,7 @@ const MemberManagementDashboard: React.FC = () => {
                               <td className="px-4 py-6">
                                  <div className="flex items-center gap-4">
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] border ${isLeader ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                                       {member.firstName[0]}{member.lastName[0]}
+                                       {(member.firstName || 'U')[0]}{(member.lastName || '')[0]}
                                     </div>
                                     <div>
                                        <span className="text-xs font-black text-slate-800 block">{member.lastName} {member.firstName}</span>
@@ -453,7 +447,7 @@ const MemberManagementDashboard: React.FC = () => {
                                     <span className="text-[9px] font-bold uppercase text-slate-700">{member.role}</span>
                                     <div className="flex flex-wrap gap-1">
                                        {hasCommission ? (
-                                          member.commissions.slice(0, 2).map((c, i) => (
+                                          (member.commissions || []).slice(0, 2).map((c, i) => (
                                              <span key={i} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-[8px] font-black uppercase">{c.type.substring(0,3)}</span>
                                           ))
                                        ) : (
@@ -481,7 +475,7 @@ const MemberManagementDashboard: React.FC = () => {
                                    </button>
                                    <button 
                                      onClick={() => setViewingMember(member)}
-                                     className="p-2 bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-emerald-600 hover:border-emerald-200 transition-colors shadow-sm"
+                                     className="p-2 bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm"
                                      title="Voir Profil"
                                    >
                                       <Eye size={14}/>

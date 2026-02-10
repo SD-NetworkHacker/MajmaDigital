@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   Heart, Users, Calendar, Sparkles, Smile, Target, 
@@ -26,9 +25,9 @@ const SocialDashboard: React.FC = () => {
   const { user } = useAuth();
 
   // 1. Identifier le rôle dans le Social
-  const currentUserMember = useMemo(() => members.find(m => m.email === user?.email), [members, user]);
+  const currentUserMember = useMemo(() => (members || []).find(m => m.email === user?.email), [members, user]);
   const myRole = useMemo(() => {
-    return currentUserMember?.commissions.find(c => c.type === CommissionType.SOCIAL)?.role_commission || 'Membre';
+    return currentUserMember?.commissions?.find(c => c.type === CommissionType.SOCIAL)?.role_commission || 'Membre';
   }, [currentUserMember]);
 
   // 2. Permissions
@@ -36,12 +35,13 @@ const SocialDashboard: React.FC = () => {
   const isCasSociaux = myRole.includes('Cas Sociaux') || isLeader; // Accès aux dossiers confidentiels
   const isAnimator = myRole.includes('Animation') || isLeader;
 
-  const commissionTeam = useMemo(() => members.filter(m => 
-    m.commissions.some(c => c.type === CommissionType.SOCIAL)
+  const commissionTeam = useMemo(() => (members || []).filter(m => 
+    m.commissions?.some(c => c.type === CommissionType.SOCIAL)
   ), [members]);
 
   const navItems = [
     { id: 'overview', label: 'Console Fraternité', icon: LayoutDashboard, access: true },
+    // Fixed: Corrected double 'id' property definition
     { id: 'finance', label: 'Budget Social', icon: Wallet, access: isLeader },
     { id: 'meetings', label: 'Réunions', icon: FileText, access: isLeader },
     { id: 'tasks', label: 'Tâches', icon: ListTodo, access: true },
@@ -133,7 +133,7 @@ const SocialDashboard: React.FC = () => {
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-16">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-60 mb-4">Index de Cohésion Globale</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-60 mb-4">Indice de Cohésion Globale</p>
                   <h2 className="text-5xl md:text-7xl font-black tracking-tighter">--<span className="text-2xl opacity-30 font-bold ml-2">%</span></h2>
                   <p className="text-rose-100/60 mt-4 text-sm font-medium">L'index sera calculé après les premières activités.</p>
                 </div>

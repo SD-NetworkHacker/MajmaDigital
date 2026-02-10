@@ -44,7 +44,7 @@ const CommissionContent: React.FC<{ initialView: CommissionType | null }> = ({ i
           <div className="flex-1">
              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{activeCommission}</h2>
              <div className="flex items-center gap-2 mt-0.5">
-                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${canEdit ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
+                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${canEdit ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-50'}`}>
                    {canEdit ? 'Accès Édition Total' : 'Consultation Seule'}
                 </span>
                 {!canEdit && <Lock size={10} className="text-slate-400" />}
@@ -95,7 +95,7 @@ const CommissionContent: React.FC<{ initialView: CommissionType | null }> = ({ i
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pb-20">
-        {INITIAL_COMMISSIONS.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).map((comm, i) => (
+        {INITIAL_COMMISSIONS.filter(c => (c.name || '').toLowerCase().includes(searchTerm.toLowerCase())).map((comm, i) => (
           <div 
             key={i} 
             onClick={() => setActiveCommission(comm.name)}

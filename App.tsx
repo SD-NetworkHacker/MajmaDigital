@@ -1,6 +1,12 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect, useTransition } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
+import BottomNav from './components/layout/BottomNav';
+import PullToRefresh from './components/shared/PullToRefresh';
+import ErrorBoundary from './components/ErrorBoundary';
+import { useMediaQuery } from './hooks/useMediaQuery';
+import { usePWA } from './hooks/usePWA';
+import { initViewportHeight } from './utils/viewport';
 
 // Lazy Modules
 const MemberModule = React.lazy(() => import('./components/MemberModule'));
@@ -17,108 +23,135 @@ const AIChatBot = React.lazy(() => import('./components/AIChatBot'));
 const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
 
 import GuestDashboard from './components/GuestDashboard';
-import { Menu, X, Command, Sparkles } from 'lucide-react';
-import { DataProvider } from './contexts/DataContext';
+import { Command, Download, Loader2 } from 'lucide-react';
+import { DataProvider, useData } from './contexts/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
 
-const PageLoader = ({ message = "Initialisation Platinum..." }) => (
-    <div className="h-full w-full flex items-center justify-center bg-[#030712] flex-col fixed inset-0 z-[2000] overflow-hidden">
-        <div className="relative z-10 flex flex-col items-center">
-            <div className="relative w-32 h-32 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.4)] mb-10 transform -rotate-6 animate-pulse">
-                <span className="font-arabic text-8xl text-white pb-4 drop-shadow-2xl">م</span>
-            </div>
-            <h1 className="text-3xl font-black text-white tracking-tighter">Majma<span className="text-emerald-500">Digital</span></h1>
-            <div className="mt-4 flex items-center gap-3">
-              <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce"></div>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce delay-100"></div>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce delay-200"></div>
-              </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">{message}</p>
-            </div>
+const PageLoader = ({ message = "Initialisation du module..." }) => (
+    <div className="h-full w-full flex flex-col items-center justify-center bg-slate-50/50 p-12 min-h-[400px]">
+        <div className="relative w-16 h-16 mb-6">
+            <Loader2 className="w-full h-full text-emerald-600 animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center font-arabic text-xl text-emerald-600 pb-1">م</div>
         </div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">{message}</p>
     </div>
 );
 
-const MainContent: React.FC = () => {
+const MainContent = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const { user, loading: isAuthLoading } = useAuth();
+  const { refreshAll } = useData();
+  const { isMobile } = useMediaQuery();
+  const { isInstallable, installApp } = usePWA();
 
-  if (isAuthLoading) return <PageLoader message="Session sécurisée..." />;
+  useEffect(() => {
+    initViewportHeight();
+  }, []);
+
+  const handleNavigate = (tabId: string) => {
+    // startTransition résout l'erreur 525 en marquant le changement d'onglet comme non-urgent
+    startTransition(() => {
+      setActiveTab(tabId);
+    });
+  };
+
+  if (isAuthLoading) return <PageLoader message="Vérification de session..." />;
   if (!user) return <GuestDashboard />;
 
-  const renderContent = () => {
-    return (
-      <div className="page-transition min-h-full">
-        <Suspense fallback={<PageLoader message="Module en cours..." />}>
-          {(() => {
-            switch (activeTab) {
-              case 'dashboard':
-              case 'admin_dashboard':
-                return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
-              case 'members': return <MemberModule />;
-              case 'map': return <MemberMapModule members={[]} />;
-              case 'commissions': return <CommissionModule />;
-              case 'pedagogy': return <PedagogicalModule />;
-              case 'social': return <SocialModule />;
-              case 'health': return <HealthModule />;
-              case 'finance': return <FinanceModule />;
-              case 'events': return <EventModule />;
-              case 'admin': return <AdminModule />;
-              case 'settings': return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
-              case 'profile': return <UserProfile onBack={() => setActiveTab('dashboard')} />;
-              default: 
-                if (activeTab.startsWith('comm_')) return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
-                return <Dashboard activeTab="dashboard" setActiveTab={setActiveTab} />;
-            }
-          })()}
-        </Suspense>
-      </div>
-    );
+  const renderCurrentModule = () => {
+    switch (activeTab) {
+      case 'dashboard':
+      case 'admin_dashboard':
+        return <Dashboard activeTab={activeTab} setActiveTab={handleNavigate} />;
+      case 'members': return <MemberModule />;
+      case 'map': return <MemberMapModule members={[]} />;
+      case 'commissions': return <CommissionModule />;
+      case 'pedagogy': return <PedagogicalModule />;
+      case 'social': return <SocialModule />;
+      case 'health': return <HealthModule />;
+      case 'finance':
+      case 'finance_perso': return <FinanceModule />;
+      case 'events': return <EventModule />;
+      case 'admin': return <AdminModule />;
+      case 'settings': return <SettingsModule onBack={() => handleNavigate('dashboard')} />;
+      case 'profile': return <UserProfile onBack={() => handleNavigate('dashboard')} />;
+      default: return <Dashboard activeTab="dashboard" setActiveTab={handleNavigate} />;
+    }
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#f8fafc] overflow-hidden relative">
-      {/* Sidebar Desktop/Mobile */}
-      <div className={`fixed inset-y-0 left-0 z-[1000] w-80 transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-         <Sidebar activeTab={activeTab} setActiveTab={(tab) => { setActiveTab(tab); setIsMobileMenuOpen(false); }} />
-      </div>
-
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[900] lg:hidden animate-in fade-in duration-300" onClick={() => setIsMobileMenuOpen(false)}></div>
+    <div className="flex h-screen w-full bg-[#f8fafc] overflow-hidden relative font-sans">
+      {/* SIDEBAR : Uniquement sur Desktop */}
+      {!isMobile && (
+        <div className="w-80 h-full shrink-0">
+           <Sidebar activeTab={activeTab} setActiveTab={handleNavigate} />
+        </div>
       )}
 
-      {/* Main Panel */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-[#f1f5f9]">
-         {/* Top Mobile Bar */}
-         <div className="lg:hidden flex items-center justify-between p-5 bg-white border-b border-slate-200 shrink-0">
-            <div className="flex items-center gap-3">
-               <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-arabic text-lg pb-1 shadow-md">م</div>
-               <span className="font-black text-sm uppercase tracking-tighter">MajmaDigital</span>
+         {/* HEADER */}
+         <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200/60 shrink-0 lg:py-6 z-10">
+            <div className="flex items-center gap-4">
+               <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-arabic text-xl pb-1 shadow-lg shadow-emerald-900/20">م</div>
+               <div className="flex flex-col">
+                  <span className="font-black text-sm uppercase tracking-widest text-slate-900">MajmaDigital</span>
+                  <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest">Platform Edition</span>
+               </div>
             </div>
-            <button 
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2.5 bg-slate-100 rounded-xl text-slate-600 active:scale-90 transition-all"
-            >
-                {isMobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}
-            </button>
-         </div>
+            
+            <div className="flex items-center gap-2">
+               {isInstallable && isMobile && (
+                  <button 
+                    onClick={installApp}
+                    className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-100 shadow-sm active:scale-95 transition-all"
+                  >
+                    <Download size={14} /> Installer
+                  </button>
+               )}
+               
+               {isMobile && (
+                  <button 
+                    onClick={() => handleNavigate('settings')}
+                    className="p-2.5 bg-slate-100 text-slate-500 rounded-xl active:scale-90 transition-all border border-slate-200"
+                  >
+                    <Command size={18}/>
+                  </button>
+               )}
+            </div>
+         </header>
 
-         {/* Content Wrapper */}
-         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
-            <div className="max-w-[1600px] mx-auto">
-               {renderContent()}
-            </div>
+         {/* ZONE DE CONTENU - Protégée par Suspense et ErrorBoundary */}
+         <div className={`flex-1 overflow-hidden relative ${isMobile ? 'pb-20' : ''}`}>
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                {isMobile ? (
+                  <PullToRefresh onRefresh={refreshAll}>
+                    <div className={`max-w-[1600px] mx-auto p-4 md:p-10 transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
+                        {renderCurrentModule()}
+                    </div>
+                  </PullToRefresh>
+                ) : (
+                  <div className={`max-w-[1600px] mx-auto p-4 md:p-10 h-full overflow-y-auto scroll-content transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
+                      {renderCurrentModule()}
+                  </div>
+                )}
+              </Suspense>
+            </ErrorBoundary>
          </div>
       </div>
 
-      {/* Floating UI Elements */}
-      <Suspense fallback={null}><AIChatBot /></Suspense>
+      {/* BOTTOM NAVIGATION : Mobile uniquement */}
+      {isMobile && <BottomNav activeTab={activeTab} setActiveTab={handleNavigate} />}
+      
+      {!isMobile && (
+        <Suspense fallback={null}>
+          <AIChatBot />
+        </Suspense>
+      )}
     </div>
   );
 };

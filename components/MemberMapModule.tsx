@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   MapPin, Search, Navigation, Sparkles, Loader2, Info, Crosshair, 
@@ -104,8 +103,9 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
     markersRef.current = {};
 
     // Filtrage
-    const filtered = members.filter(m => {
-      const matchesSearch = `${m.firstName} ${m.lastName} ${m.address}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const filtered = (members || []).filter(m => {
+      const searchStr = `${m.firstName || ''} ${m.lastName || ''} ${m.address || ''}`.toLowerCase();
+      const matchesSearch = searchStr.includes(searchTerm.toLowerCase());
       const matchesFilter = activeFilter === 'Tous' || m.category === activeFilter;
       return matchesSearch && matchesFilter;
     });
@@ -159,8 +159,9 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
     }
   };
 
-  const filteredMembers = members.filter(m => {
-    const matchesSearch = `${m.firstName} ${m.lastName} ${m.address}`.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredMembers = (members || []).filter(m => {
+    const searchStr = `${m.firstName || ''} ${m.lastName || ''} ${m.address || ''}`.toLowerCase();
+    const matchesSearch = searchStr.includes(searchTerm.toLowerCase());
     const matchesFilter = activeFilter === 'Tous' || m.category === activeFilter;
     return matchesSearch && matchesFilter;
   });
@@ -262,7 +263,7 @@ const MemberMapModule: React.FC<MemberMapModuleProps> = ({ members }) => {
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0 transition-all shadow-sm ${
                     selectedMember?.id === m.id ? 'bg-emerald-600 text-white scale-110 rotate-3' : 'bg-slate-100 text-slate-500'
                   }`}>
-                    {m.firstName[0]}{m.lastName[0]}
+                    {(m.firstName || 'U')[0]}{(m.lastName || '')[0]}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className={`text-xs font-black truncate leading-tight mb-1 ${selectedMember?.id === m.id ? 'text-emerald-900' : 'text-slate-800'}`}>
@@ -323,7 +324,7 @@ const MemberDetailPanel: React.FC<{
         
         <div className="relative z-10 flex justify-between items-start mb-6">
           <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-[1.5rem] border border-white/10 flex items-center justify-center text-white font-black text-2xl shadow-inner">
-            {member.firstName[0]}{member.lastName[0]}
+            {(member.firstName || 'U')[0]}{(member.lastName || '')[0]}
           </div>
           <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white/60 transition-all">
             <X size={20} />

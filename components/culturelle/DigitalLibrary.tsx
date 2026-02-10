@@ -16,7 +16,7 @@ const DigitalLibrary: React.FC = () => {
   });
   
   // Use library from context directly
-  const resources = library;
+  const resources = library || [];
 
   const handleAddResource = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +48,8 @@ const DigitalLibrary: React.FC = () => {
 
   const filteredResources = resources.filter(r => {
     const matchesType = activeType === 'all' || r.type === activeType;
-    const matchesSearch = r.title.toLowerCase().includes(searchTerm.toLowerCase()) || r.author.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (r.author || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesType && matchesSearch;
   });
 

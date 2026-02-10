@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   LayoutDashboard, Users, Landmark, Settings, 
   BookOpen, Heart, Wallet, Layers, 
-  Cpu, ShieldAlert, User, Map, Zap, ChevronRight, LogOut
+  Cpu, ShieldAlert, User, Map, Zap, ChevronRight, LogOut, Briefcase
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CommissionType } from '../types';
@@ -12,7 +12,8 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+// Fixed: Removed React.FC to avoid issues with required children in some TS environments
+const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
   const { user, logout } = useAuth();
   
   const isSystemAdmin = user?.role === 'ADMIN';
@@ -55,7 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#030712] border-r border-white/5 shadow-2xl">
+    <div className="h-full hidden lg:flex flex-col bg-[#030712] border-r border-white/5 shadow-2xl">
       {/* Brand */}
       <div className="p-8 pb-10 flex items-center gap-4">
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-arabic text-2xl pb-1 shadow-[0_0_20px_rgba(16,185,129,0.2)] bg-emerald-600 text-white transform -rotate-3">
@@ -67,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-10 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 px-4 space-y-10 overflow-y-auto custom-scrollbar no-scrollbar">
         
         {/* --- SECTION 1: ESPACE MEMBRE --- */}
         {!isSystemAdmin && (
@@ -84,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             {myCommissions.map((c, i) => 
               renderNavButton({ 
                 id: `comm_${c.type.toLowerCase()}`, 
-                icon: Zap, 
+                icon: Briefcase, 
                 label: `Pôle ${c.type}` 
               }, activeTab === `comm_${c.type.toLowerCase()}`)
             )}
@@ -123,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         </button>
         <button 
           onClick={() => logout()}
-          className="w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/5 transition-all"
+          className="w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl text-rose-500/70 hover:text-rose-500 hover:bg-rose-50 transition-all"
         >
           <LogOut size={18} />
           <span className="text-[11px] font-black uppercase tracking-widest">Déconnexion</span>

@@ -29,10 +29,10 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ setActiveTab }) => {
 
   // --- LOGIQUE DE DONNÉES ---
   const currentMember = useMemo(() => {
-    return members.find(m => m.id === user?.id || m.email === user?.email) || null;
+    return (members || []).find(m => m.id === user?.id || m.email === user?.email) || null;
   }, [members, user]);
 
-  const primaryCommission = useMemo(() => currentMember?.commissions[0] || null, [currentMember]);
+  const primaryCommission = useMemo(() => (currentMember?.commissions && currentMember.commissions.length > 0) ? currentMember.commissions[0] : null, [currentMember]);
   
   const quickActions = useMemo(() => [
       { id: 'pay', label: 'Cotiser', icon: Wallet, color: 'emerald', action: () => { setStep(1); setActiveModal('pay'); } },
@@ -48,9 +48,9 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ setActiveTab }) => {
   ], [primaryCommission, setActiveTab]);
 
   const nextEvent = useMemo(() => {
-    return events
+    return (events || [])
       .filter(e => new Date(e.date) >= new Date())
-      .sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime())[0];
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
   }, [events]);
 
   // --- HANDLERS ---

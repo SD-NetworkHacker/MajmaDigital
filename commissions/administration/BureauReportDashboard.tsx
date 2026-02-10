@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { acknowledgeReportByBureau } from '../../services/reportService';
 import { InternalMeetingReport } from '../../types';
@@ -15,7 +14,7 @@ const BureauReportDashboard: React.FC = () => {
 
   useEffect(() => {
     // Filter pertinent reports from context data
-    const pertinent = allReports.filter(r => ['valide_admin', 'soumis_bureau', 'approuve_bureau'].includes(r.status));
+    const pertinent = (allReports || []).filter(r => ['valide_admin', 'soumis_bureau', 'approuve_bureau'].includes(r.status));
     setReports(pertinent);
   }, [allReports]);
 
@@ -25,7 +24,7 @@ const BureauReportDashboard: React.FC = () => {
   };
 
   const filteredReports = reports.filter(r => {
-    const matchesSearch = r.title.toLowerCase().includes(searchTerm.toLowerCase()) || r.commission.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.commission || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filter === 'Tous' 
       ? true 
       : filter === 'En attente' 

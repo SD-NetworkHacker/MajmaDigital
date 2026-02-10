@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Bus, Truck, Car, Wrench, CheckCircle, X, Save, Trash2, Phone, 
@@ -6,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Vehicle, VehicleType, VehicleStatus } from '../../types';
 import { useData } from '../../contexts/DataContext';
+import { formatDate } from '../../utils/date';
 
 const FleetManager: React.FC = () => {
   const { fleet, addVehicle, updateVehicleStatus, deleteVehicle } = useData();
@@ -82,9 +82,9 @@ const FleetManager: React.FC = () => {
     }
   };
 
-  const filteredFleet = fleet.filter(v => {
+  const filteredFleet = (fleet || []).filter(v => {
     const matchesTab = (v.ownership || 'internal') === activeTab;
-    const matchesSearch = v.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch = (v.registrationNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (v.externalDetails?.companyName || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
     
@@ -105,14 +105,14 @@ const FleetManager: React.FC = () => {
                      </h3>
                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Véhicule {showMaintenanceModal.registrationNumber}</p>
                   </div>
-                  <button onClick={() => setShowMaintenanceModal(null)} className="p-2 hover:bg-white rounded-full"><X size={20}/></button>
+                  <button onClick={() => setShowMaintenanceModal(null)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
                </div>
                
                <div className="p-8 overflow-y-auto custom-scrollbar space-y-8">
                   <div className="flex gap-4">
                      <div className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
                         <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Prochaine Visite</p>
-                        <p className="text-lg font-black text-slate-800">{new Date(showMaintenanceModal.maintenance.nextDate).toLocaleDateString()}</p>
+                        <p className="text-lg font-black text-slate-800">{formatDate(showMaintenanceModal.maintenance.nextDate)}</p>
                      </div>
                      <div className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
                         <p className="text-[10px] font-black uppercase text-slate-400 mb-1">État Général</p>
@@ -237,7 +237,7 @@ const FleetManager: React.FC = () => {
             
             <button 
               onClick={() => setShowModal(true)}
-              className={`px-8 py-4 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center gap-3 transition-all active:scale-95 ${
+              className={`px-8 py-4 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all active:scale-95 ${
                   activeTab === 'internal' ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-900/10' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-900/10'
               }`}
             >

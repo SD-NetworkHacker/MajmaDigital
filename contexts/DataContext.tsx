@@ -15,7 +15,6 @@ interface DataContextType {
   tasks: Task[];
   reports: InternalMeetingReport[];
   inventory: InventoryItem[];
-  // Correction: Suppression de la duplication de 'fleet' ci-dessous
   fleet: Vehicle[];
   totalTreasury: number;
   activeMembersCount: number;
@@ -42,7 +41,6 @@ interface DataContextType {
   tickets: TicketItem[];
   khassaideModules: KhassaideModule[];
   library: LibraryResource[];
-  // Ajout de méthodes manquantes utilisées dans les composants
   addInventoryItem: (item: InventoryItem) => Promise<void>;
   deleteInventoryItem: (id: string) => Promise<void>;
   addVehicle: (v: Vehicle) => Promise<void>;
@@ -92,11 +90,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { data, error } = await supabase.from(tableName).select('*');
       if (error) {
+        // Suppress signal aborted errors as they are non-critical effect interruptions
+        if (error.message?.includes('aborted') || error.message?.includes('signal')) {
+            return [];
+        }
         console.error(`DataContext: Erreur sur la table '${tableName}' :`, error.message);
         return [];
       }
       return data || [];
-    } catch (e) {
+    } catch (e: any) {
+      if (e.name === 'AbortError' || e.message?.includes('aborted')) return [];
       console.warn(`DataContext: Table '${tableName}' introuvable ou inaccessible.`);
       return [];
     }
@@ -109,7 +112,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     setIsLoading(true);
-    console.log("DataContext: Déclenchement de la synchronisation...");
 
     try {
       const [m, e, c, t, r, inv, flt] = await Promise.all([
@@ -137,19 +139,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setFleet(flt);
 
     } catch (err) {
-      console.error("DataContext: Erreur fatale refreshAll:", err);
+      console.error("DataContext: refreshAll failed partially:", err);
     } finally {
       setIsLoading(false);
-      console.log("DataContext: Synchro terminée (mode résilient).");
     }
   }, [user]);
 
   useEffect(() => { 
+    let isMounted = true;
     if (user) {
-        refreshAll();
+        refreshAll().then(() => {
+          if (!isMounted) return;
+        });
     } else {
         setIsLoading(false);
     }
+    return () => { isMounted = false; };
   }, [user, refreshAll]);
 
   // Mutations

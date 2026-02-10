@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Ticket, QrCode, DollarSign, Users, Search, Filter, 
@@ -10,8 +9,6 @@ import { TransportSchedule, TicketItem } from '../../types';
 import { useData } from '../../contexts/DataContext';
 
 const TicketingManager: React.FC = () => {
-  // Fix: Removed deleteTicket from destructuring as it might be used via updateTicket(id, {status: 'annule'}) 
-  // but I have implemented deleteTicket in DataContext now.
   const { tickets, schedules, addTicket, deleteTicket, updateTicket } = useData();
   
   const [activeTab, setActiveTab] = useState<'sales' | 'scanner'>('sales');
@@ -38,17 +35,17 @@ const TicketingManager: React.FC = () => {
   });
 
   useEffect(() => {
-    setAvailableTrips(schedules.filter(t => t.status !== 'termine'));
+    setAvailableTrips((schedules || []).filter(t => t.status !== 'termine'));
   }, [schedules]);
 
   // --- STATS ---
   const stats = useMemo(() => {
-     const total = tickets.reduce((acc, t) => t.status === 'paye' ? acc + Number(t.amount) : acc, 0);
-     const sold = tickets.filter(t => t.status === 'paye').length;
-     const pending = tickets.filter(t => t.status === 'attente').length;
+     const total = (tickets || []).reduce((acc, t) => t.status === 'paye' ? acc + Number(t.amount) : acc, 0);
+     const sold = (tickets || []).filter(t => t.status === 'paye').length;
+     const pending = (tickets || []).filter(t => t.status === 'attente').length;
      
      // Répartition paiements
-     const byMethod = tickets.reduce((acc: any, t) => {
+     const byMethod = (tickets || []).reduce((acc: any, t) => {
          if(t.status === 'paye') acc[t.type] = (acc[t.type] || 0) + Number(t.amount);
          return acc;
      }, {});
@@ -56,9 +53,9 @@ const TicketingManager: React.FC = () => {
      return { total, sold, pending, byMethod };
   }, [tickets]);
 
-  const filteredTickets = tickets.filter(t => 
-    t.passenger.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.id.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTickets = (tickets || []).filter(t => 
+    (t.passenger || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (t.id || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // --- ACTIONS ---
@@ -199,7 +196,7 @@ const TicketingManager: React.FC = () => {
 
       {/* --- MODAL TICKET DETAIL --- */}
       {selectedTicket && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
            <div className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl relative">
               <div className="bg-slate-900 p-6 text-white text-center relative overflow-hidden">
                  <div className="absolute top-0 right-0 p-4 opacity-10"><Bus size={80}/></div>
@@ -458,7 +455,7 @@ const TicketingManager: React.FC = () => {
                       </div>
                    </div>
                    <div className="text-right">
-                      <p className="text-white font-mono text-xl font-black">{tickets.filter(t => t.status === 'paye').length}<span className="text-slate-600">/60</span></p>
+                      <p className="text-white font-mono text-xl font-black">{(tickets || []).filter(t => t.status === 'paye').length}<span className="text-slate-600">/60</span></p>
                    </div>
                </div>
             </div>

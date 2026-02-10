@@ -40,7 +40,10 @@ export const getSmartInsight = async (topic: string) => {
       contents: `En tant qu'assistant spirituel du Dahira, donne un court conseil (max 2 phrases) sur : ${topic}.`,
     });
     return response.text || getRandomFallback();
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        return getRandomFallback();
+    }
     console.error("IA Insight Error:", error);
     return getRandomFallback();
   }
@@ -57,7 +60,8 @@ export const explainXassaid = async (title: string) => {
       contents: `Explique brièvement le Xassaid "${title}" et ses bienfaits.`,
     });
     return response.text || "Explication indisponible.";
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError' || error.message?.includes('aborted')) return "Analyse annulée.";
     return "Service momentanément indisponible.";
   }
 };
@@ -73,7 +77,8 @@ export const translateXassaid = async (text: string) => {
       contents: `Traduis ce texte en français avec un contexte spirituel : "${text}"`,
     });
     return response.text || "Traduction impossible.";
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError' || error.message?.includes('aborted')) return "Traduction annulée.";
     return "La traduction n'a pas pu être générée.";
   }
 };
@@ -112,7 +117,8 @@ export const transcribeAudio = async (base64Audio: string) => {
         }
       });
       return response.text || "Transcription vide.";
-  } catch (e) {
+  } catch (e: any) {
+      if (e.name === 'AbortError' || e.message?.includes('aborted')) return null;
       console.error("Transcription Error:", e);
       return "Erreur lors de la transcription."; 
   }
@@ -140,7 +146,8 @@ export const generateSpeech = async (text: string) => {
     // The result contains the audio bytes in the first part's inlineData
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     return base64Audio || null;
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError' || error.message?.includes('aborted')) return null;
     console.error("TTS Error:", error);
     return null;
   }
@@ -157,7 +164,8 @@ export const getMapsLocationInfo = async (query: string, lat?: number, lng?: num
         contents: `Donne des infos pertinentes sur ce lieu pour un membre du Dahira : ${query}. Coordonnées: ${lat}, ${lng}`,
       });
       return { text: response.text || "Aucune info." };
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError' || error.message?.includes('aborted')) return { text: "Info lieu annulée." };
     return { text: "Info lieu indisponible." };
   }
 };
@@ -173,7 +181,10 @@ export const generateSocialPost = async (topic: string, platform: string, tone: 
         contents: `Rédige un post ${platform} sur "${topic}". Ton: ${tone}. Ajoute des emojis et hashtags pertinents.`,
     });
     return response.text || "";
-  } catch (e) { return "Erreur génération."; }
+  } catch (e: any) { 
+    if (e.name === 'AbortError' || e.message?.includes('aborted')) return "";
+    return "Erreur génération."; 
+  }
 };
 
 // Fixed: Updated model to gemini-3-flash-preview
@@ -187,7 +198,10 @@ export const generateReplyToComment = async (comment: string, context: string) =
             contents: `Suggère une réponse polie et fraternelle à ce commentaire : "${comment}". Contexte: ${context}`,
         });
         return response.text || "";
-    } catch (e) { return "Erreur."; }
+    } catch (e: any) { 
+        if (e.name === 'AbortError' || e.message?.includes('aborted')) return "";
+        return "Erreur."; 
+    }
 };
 
 // Fixed: Updated model to gemini-3-flash-preview
@@ -201,7 +215,10 @@ export const generateHooks = async (topic: string) => {
             contents: `Donne 3 accroches virales pour un post sur : "${topic}"`,
         });
         return response.text || "";
-    } catch (e) { return "Erreur."; }
+    } catch (e: any) { 
+        if (e.name === 'AbortError' || e.message?.includes('aborted')) return "";
+        return "Erreur."; 
+    }
 };
 
 // Utils for Audio

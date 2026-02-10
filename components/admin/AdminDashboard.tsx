@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, TrendingUp, Calendar, Sparkles, 
@@ -23,7 +22,6 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
-  // Fix: removed userProfile from destructuring
   const { reports, members, contributions, events, totalTreasury, activeMembersCount } = useData();
   const { impersonate, user } = useAuth();
   
@@ -32,7 +30,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
   const [greeting, setGreeting] = useState('');
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   
-  // Performance Data Mock (Statique pour l'instant)
   const [performanceData] = useState([
     { time: '10:00', load: 12, ai: 45 },
     { time: '10:05', load: 15, ai: 30 },
@@ -42,11 +39,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
     { time: '10:25', load: 16, ai: 50 },
   ]);
   
-  // States pour la console de simulation avancée
   const [simSearch, setSimSearch] = useState('');
   const [simTab, setSimTab] = useState<'presets' | 'search'>('presets');
 
-  // Admin Actions States
   const [adminActionStatus, setAdminActionStatus] = useState<Record<string, 'idle' | 'loading' | 'success'>>({
     backup: 'idle',
     maintenance: 'idle',
@@ -54,7 +49,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
     reboot: 'idle'
   });
 
-  // Initialisation du message d'accueil
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 5) setGreeting('Bonne nuit');
@@ -63,38 +57,56 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
     else setGreeting('Bonsoir');
   }, []);
 
-  // Gestion de l'IA avec cache de session
   useEffect(() => {
+    let isMounted = true;
     const fetchInsight = async () => {
       const cachedInsight = sessionStorage.getItem('dashboard_insight');
       if (cachedInsight) {
-        setInsight(cachedInsight);
+        if (isMounted) setInsight(cachedInsight);
         return;
       }
 
-      setIsAiLoading(true);
-      if (members.length === 0 && contributions.length === 0) {
-        setInsight("Bienvenue sur MajmaDigital. Commencez par inscrire des membres ou enregistrer des cotisations pour activer l'intelligence artificielle.");
-        setIsAiLoading(false);
+      if ((members?.length || 0) === 0 && (contributions?.length || 0) === 0) {
+        if (isMounted) setInsight("Bienvenue sur MajmaDigital. Commencez par inscrire des membres ou enregistrer des cotisations pour activer l'intelligence artificielle.");
         return;
       }
       
-      const context = `${members.length} membres actifs, ${contributions.length} transactions récentes.`;
-      const msg = await getSmartInsight(`Génère une phrase courte, stratégique et motivante pour le gestionnaire d'un Dahira (association spirituelle) basée sur ces données : ${context}. Ton : Professionnel et fraternel.`);
-      setInsight(msg);
-      sessionStorage.setItem('dashboard_insight', msg);
-      setIsAiLoading(false);
+      if (isAiLoading) return; // Prevent overlapping requests
+
+      if (isMounted) setIsAiLoading(true);
+      try {
+        const context = `${members?.length || 0} membres actifs, ${contributions?.length || 0} transactions récentes.`;
+        const msg = await getSmartInsight(`Génère une phrase courte, stratégique et motivante pour le gestionnaire d'un Dahira (association spirituelle) basée sur ces données : ${context}. Ton : Professionnel et fraternel.`);
+        
+        if (isMounted) {
+          setInsight(msg);
+          sessionStorage.setItem('dashboard_insight', msg);
+        }
+      } catch (error) {
+        console.error("Failed to fetch admin insight:", error);
+      } finally {
+        if (isMounted) setIsAiLoading(false);
+      }
     };
     
     fetchInsight();
-  }, [members.length, contributions.length]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [members?.length, contributions?.length]); // Use lengths to stabilize the effect dependencies
 
   const refreshInsight = async () => {
       setIsAiLoading(true);
-      const msg = await getSmartInsight(`Donne un conseil de gestion rapide ou une citation spirituelle mouride courte en lien avec le travail et la discipline.`);
-      setInsight(msg);
-      sessionStorage.setItem('dashboard_insight', msg);
-      setIsAiLoading(false);
+      try {
+        const msg = await getSmartInsight(`Donne un conseil de gestion rapide ou une citation spirituelle mouride courte en lien avec le travail et la discipline.`);
+        setInsight(msg);
+        sessionStorage.setItem('dashboard_insight', msg);
+      } catch (error) {
+        console.error("Refresh insight error:", error);
+      } finally {
+        setIsAiLoading(false);
+      }
   };
 
   const triggerAdminAction = async (action: string) => {
@@ -130,18 +142,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
     }, 2500);
   };
 
-  // --- CALCULS KPI & DATA VIZ ---
-  
   const nextEvent = useMemo(() => {
     const now = new Date();
-    return events
+    return (events || [])
       .filter(e => new Date(e.date) >= now)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
   }, [events]);
 
   const majorEvent = useMemo(() => {
     const now = new Date();
-    return events
+    return (events || [])
       .filter(e => (e.type === 'Magal' || e.type === 'Ziar' || e.type === 'Gott') && new Date(e.date) >= now)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
   }, [events]);
@@ -152,40 +162,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
     return Math.ceil(diff / (1000 * 3600 * 24));
   }, [majorEvent]);
 
-  // --- SIMULATION PROFILES (SUPER ADMIN TOOL) ---
   const simulationProfiles = useMemo(() => {
-    // Fix: cast enum values to string for inclusion check
-    const leader = members.find(m => ([GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string]).includes(m.role as string));
-    const commissioned = members.find(m => m.commissions.length > 0 && !(([GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string]).includes(m.role as string)));
-    const simple = members.find(m => m.commissions.length === 0 && m.role === GlobalRole.MEMBRE);
+    const mList = members || [];
+    const leader = mList.find(m => ([GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string]).includes(m.role as string));
+    const commissioned = mList.find(m => (m.commissions?.length || 0) > 0 && !(([GlobalRole.SG as string, GlobalRole.ADJOINT_SG as string, GlobalRole.DIEUWRINE as string]).includes(m.role as string)));
+    const simple = mList.find(m => (m.commissions?.length || 0) === 0 && m.role === GlobalRole.MEMBRE);
     return { leader, commissioned, simple };
   }, [members]);
 
   const simSearchResults = useMemo(() => {
     if (!simSearch.trim()) return [];
     const term = simSearch.toLowerCase();
-    return members.filter(m => 
-      m.firstName.toLowerCase().includes(term) || 
-      m.lastName.toLowerCase().includes(term) ||
-      m.matricule.toLowerCase().includes(term) ||
-      m.email.toLowerCase().includes(term)
+    return (members || []).filter(m => 
+      (m.firstName || '').toLowerCase().includes(term) || 
+      (m.lastName || '').toLowerCase().includes(term) ||
+      (m.matricule || '').toLowerCase().includes(term) ||
+      (m.email || '').toLowerCase().includes(term)
     ).slice(0, 5);
   }, [simSearch, members]);
 
-  // Vérification de sécurité plus permissive pour la démo
   const showSimulationConsole = (user?.role === 'admin' || user?.role === 'Super Admin');
 
-  // Données Chart - Dynamique
   const chartData = useMemo(() => {
     const today = new Date();
     const data = [];
+    const contribList = contributions || [];
     for (let i = 5; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthLabel = d.toLocaleString('fr-FR', { month: 'short' });
         const year = d.getFullYear();
         const month = d.getMonth();
         
-        const total = contributions.filter(c => {
+        const total = contribList.filter(c => {
             const cDate = new Date(c.date);
             return cDate.getMonth() === month && cDate.getFullYear() === year;
         }).reduce((acc, curr) => acc + curr.amount, 0);
@@ -197,8 +205,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
 
   const activityFeed = useMemo(() => {
     const feed = [
-      ...contributions.map(c => {
-        const m = members.find(u => u.id === c.memberId);
+      ...(contributions || []).map(c => {
+        const m = (members || []).find(u => u.id === c.memberId);
         return { 
             id: `c-${c.id}`,
             type: 'finance', 
@@ -210,7 +218,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
             bg: 'bg-emerald-50'
         }
       }),
-      ...members.map(m => ({ 
+      ...(members || []).map(m => ({ 
         id: `m-${m.id}`,
         type: 'member', 
         date: new Date(m.joinDate), 
@@ -220,7 +228,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         color: 'text-blue-600', 
         bg: 'bg-blue-50'
       })),
-      ...reports.map(r => ({
+      ...(reports || []).map(r => ({
         id: `r-${r.id}`,
         type: 'report',
         date: new Date(r.date), 
@@ -252,7 +260,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
   return (
     <div className="space-y-10 h-full flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-12">
       
-      {/* MAINTENANCE BANNER */}
       {maintenanceMode && (
          <div className="bg-amber-500 text-white px-6 py-3 rounded-2xl flex items-center justify-between shadow-lg animate-in slide-in-from-top">
             <div className="flex items-center gap-3">
@@ -263,7 +270,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
          </div>
       )}
 
-      {/* SECTION 1: HEADER & GREETING */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">
@@ -284,10 +290,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* SECTION 2: NORTH STAR METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {[
-          { label: 'Effectif Actif', value: activeMembersCount.toLocaleString(), sub: `/ ${members.length} Total`, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', action: () => setActiveTab('members') },
+          { label: 'Effectif Actif', value: activeMembersCount.toLocaleString(), sub: `/ ${members?.length || 0} Total`, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', action: () => setActiveTab('members') },
           { label: 'Trésorerie', value: `${(totalTreasury / 1000000).toFixed(2)}M`, sub: 'FCFA Disponibles', icon: Wallet, color: 'text-emerald-600', bg: 'bg-emerald-50', action: () => setActiveTab('finance') },
           { label: 'Prochain Event', value: nextEvent ? new Date(nextEvent.date).toLocaleDateString('fr-FR', {day: '2-digit', month: 'short'}) : '--', sub: nextEvent ? nextEvent.title : 'Aucun prévu', icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50', action: () => setActiveTab('events') },
           { label: 'Santé Dahira', value: '98%', sub: 'Score Performance', icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', action: () => setActiveTab('admin') },
@@ -314,13 +319,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         ))}
       </div>
 
-      {/* SECTION 3: DETAILED GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-        
-        {/* LEFT COLUMN (8/12) */}
         <div className="xl:col-span-8 space-y-8">
-           
-           {/* Financial Chart */}
            <div className="glass-card p-8 bg-white group border border-slate-100/60">
               <div className="flex justify-between items-center mb-8">
                  <div>
@@ -366,7 +366,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
               </div>
            </div>
 
-           {/* Commission Pulse Row */}
            <div>
               <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">
                  <Activity size={16} className="text-slate-400" /> Pulse des Commissions
@@ -391,13 +390,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
            </div>
         </div>
 
-        {/* RIGHT COLUMN (4/12) */}
         <div className="xl:col-span-4 space-y-8">
-           
-           {/* SUPER ADMIN: INCARNATION WIDGET (UPDATED) */}
            {showSimulationConsole && (
              <div className="glass-card p-6 bg-slate-900 text-white relative overflow-hidden group border border-slate-800 shadow-2xl ring-1 ring-white/10">
-               {/* Animated Background */}
                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-black z-0"></div>
                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 z-0"></div>
                
@@ -413,8 +408,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
                       </div>
                     </div>
                     <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
-                       <button onClick={() => setSimTab('presets')} className={`px-3 py-1.5 rounded-md text-[8px] font-black uppercase transition-all ${simTab === 'presets' ? 'bg-amber-500 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-white'}`}>Rapide</button>
-                       <button onClick={() => setSimTab('search')} className={`px-3 py-1.5 rounded-md text-[8px] font-black uppercase transition-all ${simTab === 'search' ? 'bg-amber-500 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-white'}`}>Chercher</button>
+                       <button onClick={() => setSimTab('presets')} className={`px-3 py-1.5 rounded-md text-[8px] font-black uppercase transition-all ${simTab === 'presets' ? 'bg-amber-50 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-white'}`}>Rapide</button>
+                       <button onClick={() => setSimTab('search')} className={`px-3 py-1.5 rounded-md text-[8px] font-black uppercase transition-all ${simTab === 'search' ? 'bg-amber-50 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-white'}`}>Chercher</button>
                     </div>
                  </div>
 
@@ -467,8 +462,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
                          {simSearchResults.length > 0 ? simSearchResults.map(m => (
                            <button key={m.id} onClick={() => impersonate(m)} className="w-full flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors group text-left border border-transparent hover:border-white/5">
                               <div className="flex items-center gap-3 overflow-hidden">
-                                 {/* Fix: use string value of m.role for getRoleIcon check */}
-                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>{getRoleIcon(m.role as string)}</div>
+                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.status === 'active' ? 'bg-emerald-50/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>{getRoleIcon(m.role as string)}</div>
                                  <div className="min-w-0">
                                     <p className="text-xs font-bold text-slate-200 truncate">{m.firstName} {m.lastName}</p>
                                     <p className="text-[9px] text-slate-500 flex items-center gap-1">{m.category} • <span className="opacity-70">{m.matricule}</span></p>
@@ -487,7 +481,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
              </div>
            )}
 
-           {/* Activity Feed */}
            <div className="glass-card p-8 bg-white h-full flex flex-col min-h-[400px]">
               <div className="flex justify-between items-center mb-8">
                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2"><Clock size={16} className="text-slate-400"/> Flux d'Activité</h4>

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   Users, Calendar, Briefcase, FileCheck, Megaphone, 
@@ -29,18 +28,18 @@ const AdministrationDashboard: React.FC = () => {
   const { user } = useAuth();
 
   // 1. Identifier le rôle dans l'Administration
-  const currentUserMember = useMemo(() => members.find(m => m.email === user?.email), [members, user]);
+  const currentUserMember = useMemo(() => (members || []).find(m => m.email === user?.email), [members, user]);
   const myRole = useMemo(() => {
-    return currentUserMember?.commissions.find(c => c.type === CommissionType.ADMINISTRATION)?.role_commission || 'Membre';
+    return currentUserMember?.commissions?.find(c => c.type === CommissionType.ADMINISTRATION)?.role_commission || 'Membre';
   }, [currentUserMember]);
 
   // 2. Permissions
   const isExec = ['Secrétaire Général', 'Adjoint', 'Dieuwrine', 'Responsable'].some(r => myRole.includes(r));
 
   // --- DATA DERIVATION ---
-  const activeMembers = useMemo(() => members.filter(m => m.status === 'active'), [members]);
-  const pendingMembers = useMemo(() => members.filter(m => m.status === 'pending'), [members]);
-  const validatedReports = useMemo(() => reports.filter(r => ['valide_admin', 'approuve_bureau'].includes(r.status)), [reports]);
+  const activeMembers = useMemo(() => (members || []).filter(m => m.status === 'active'), [members]);
+  const pendingMembers = useMemo(() => (members || []).filter(m => m.status === 'pending'), [members]);
+  const validatedReports = useMemo(() => (reports || []).filter(r => ['valide_admin', 'approuve_bureau'].includes(r.status)), [reports]);
   
   // Mock des candidatures internes
   const applications = [

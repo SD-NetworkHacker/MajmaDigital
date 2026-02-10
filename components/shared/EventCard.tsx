@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Calendar, MapPin, ArrowRight, Users, Clock } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight, Users, Clock, Share2 } from 'lucide-react';
 import { Event } from '../../types';
 import { getDay, getMonth } from '../../utils/date';
 
@@ -22,6 +21,26 @@ const EventCard: React.FC<EventCardProps> = ({ event, onRegister, onClick }) => 
       case 'Ziar': return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'Gott': return 'bg-rose-100 text-rose-700 border-rose-200';
       default: return 'bg-slate-100 text-slate-600 border-slate-200';
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: event.title,
+      text: `Rejoignez-nous pour l'événement "${event.title}" à ${event.location} le ${day} ${month}. Organisé par le Dahira Majmahoun Nourayni.`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback email
+        const mailtoLink = `mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(shareData.text + "\n\nLien: " + shareData.url)}`;
+        window.location.href = mailtoLink;
+      }
+    } catch (err) {
+      console.log('Erreur lors du partage:', err);
     }
   };
 
@@ -71,14 +90,24 @@ const EventCard: React.FC<EventCardProps> = ({ event, onRegister, onClick }) => 
                <div className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[8px] font-bold text-slate-500">+40</div>
             </div>
             
-            {!isPast && (
+            <div className="flex items-center gap-2">
               <button 
-                onClick={(e) => { e.stopPropagation(); onRegister?.(); }}
-                className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all"
+                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                className="p-2 bg-slate-50 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                title="Partager l'événement"
               >
-                S'inscrire <ArrowRight size={12} />
+                <Share2 size={14} />
               </button>
-            )}
+              
+              {!isPast && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onRegister?.(); }}
+                  className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all"
+                >
+                  S'inscrire <ArrowRight size={12} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

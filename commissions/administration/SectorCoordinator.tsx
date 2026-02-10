@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   GraduationCap, Briefcase, School, User, Target, 
@@ -69,18 +68,18 @@ const SectorCoordinator: React.FC = () => {
   const filteredMembers = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return sectorMembers.filter(m => 
-      m.firstName.toLowerCase().includes(term) || 
-      m.lastName.toLowerCase().includes(term) || 
-      m.email.toLowerCase().includes(term) || 
-      m.matricule.toLowerCase().includes(term)
+      (m.firstName || '').toLowerCase().includes(term) || 
+      (m.lastName || '').toLowerCase().includes(term) || 
+      (m.email || '').toLowerCase().includes(term) || 
+      (m.matricule || '').toLowerCase().includes(term)
     );
   }, [sectorMembers, searchTerm]);
 
   const stats = useMemo(() => ({
     count: sectorMembers.length,
     presenceRate: sectorMembers.length > 0 ? Math.round((sectorMembers.filter(m => m.status === 'active').length / sectorMembers.length) * 100) : 0,
-    cotisationRate: 0, // Placeholder pour future intégration finance
-    participation: 0 // Placeholder pour future intégration events
+    cotisationRate: 0, 
+    participation: 0 
   }), [sectorMembers]);
 
   // --- ACTIONS ---
@@ -95,7 +94,7 @@ const SectorCoordinator: React.FC = () => {
   };
 
   const handleOpenIndividual = (e: React.MouseEvent, member: Member, type: 'sms' | 'email') => {
-    e.stopPropagation(); // Empêche l'ouverture du profil membre
+    e.stopPropagation(); 
     setCampaignMode('single');
     setTargetMember(member);
     setCampaignType(type);
@@ -356,7 +355,7 @@ const SectorCoordinator: React.FC = () => {
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-5 mb-4">
                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-emerald-700 text-base shadow-sm border border-slate-100 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                             {member.firstName[0]}{member.lastName[0]}
+                             {(member.firstName || 'U')[0]}{(member.lastName || '')[0]}
                            </div>
                            <div>
                               <p className="text-sm font-black text-slate-800 leading-none mb-1.5">{member.firstName} {member.lastName}</p>

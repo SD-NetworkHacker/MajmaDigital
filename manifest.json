@@ -1,0 +1,24 @@
+{
+  "name": "MajmaDigital Platinum",
+  "short_name": "MajmaDigital",
+  "description": "Plateforme unifiée du Dahira Majmahoun Nourayni",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/StackBlitz/stackblitz-icons/main/icons/react-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/StackBlitz/stackblitz-icons/main/icons/react-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}

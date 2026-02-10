@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, Loader2, CheckCircle, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AuthLayout from './AuthLayout';
 
@@ -33,6 +32,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
     }
   };
 
+  const handleQuickLogin = async () => {
+    if (isSubmitting) return;
+    setError('');
+    setIsSubmitting(true);
+    try {
+      await login('sidysowreck@gmail.com', 'azertyuiop', true);
+    } catch (err: any) {
+      setError(err.message || "Échec de la connexion rapide.");
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <AuthLayout 
       title="Espace Membre" 
@@ -40,6 +51,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         
+        {/* Quick Login Action */}
+        <button
+          type="button"
+          onClick={handleQuickLogin}
+          disabled={isSubmitting}
+          className="w-full py-3 px-4 bg-emerald-50 border-2 border-emerald-500/30 text-emerald-700 rounded-2xl flex items-center justify-center gap-3 hover:bg-emerald-100 hover:border-emerald-500 transition-all duration-300 group shadow-sm active:scale-95 disabled:opacity-50"
+        >
+          <Zap size={18} className="fill-emerald-500 group-hover:scale-110 transition-transform" />
+          <span className="text-[10px] font-black uppercase tracking-[0.1em]">Connexion Rapide (Sidy Sow)</span>
+        </button>
+
         {error && (
           <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 animate-in fade-in">
             <AlertCircle size={18} className="shrink-0" />
@@ -91,7 +113,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
             <label className="flex items-center gap-2 cursor-pointer group">
               <div className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${rememberMe ? 'bg-emerald-600 border-emerald-600 shadow-sm shadow-emerald-200' : 'bg-white border-slate-200 group-hover:border-emerald-300'}`}>
                  <input type="checkbox" className="hidden" checked={rememberMe} onChange={() => setRememberMe(!rememberMe)} />
-                 {/* Fixed: Added missing CheckCircle icon from lucide-react */}
                  {rememberMe && <CheckCircle size={12} className="text-white" />}
               </div>
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-wide">Se souvenir de moi</span>

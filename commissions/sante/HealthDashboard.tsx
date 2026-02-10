@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   HeartPulse, Activity, Stethoscope, ShieldCheck, 
@@ -27,17 +26,17 @@ const HealthDashboard: React.FC = () => {
   const { user } = useAuth();
 
   // 1. Identifier le rôle dans la Santé
-  const currentUserMember = useMemo(() => members.find(m => m.email === user?.email), [members, user]);
+  const currentUserMember = useMemo(() => (members || []).find(m => m.email === user?.email), [members, user]);
   const myRole = useMemo(() => {
-    return currentUserMember?.commissions.find(c => c.type === CommissionType.SANTE)?.role_commission || 'Membre';
+    return currentUserMember?.commissions?.find(c => c.type === CommissionType.SANTE)?.role_commission || 'Membre';
   }, [currentUserMember]);
 
   // 2. Permissions
   const isLeader = ['Dieuwrine', 'Adjoint', 'Secrétaire', 'Responsable'].some(r => myRole.includes(r));
   const isMedicalStaff = myRole.includes('Médecin') || myRole.includes('Infirmier') || myRole.includes('Sage-femme') || isLeader;
 
-  const commissionTeam = useMemo(() => members.filter(m => 
-    m.commissions.some(c => c.type === CommissionType.SANTE)
+  const commissionTeam = useMemo(() => (members || []).filter(m => 
+    m.commissions?.some(c => c.type === CommissionType.SANTE)
   ), [members]);
 
   const navItems = [
@@ -54,7 +53,7 @@ const HealthDashboard: React.FC = () => {
   const visibleNavItems = navItems.filter(item => item.access);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-12">
       
       {/* Role Badge */}
       <div className="flex items-center gap-3 bg-teal-50/50 p-3 rounded-2xl border border-teal-100 w-fit">
@@ -73,6 +72,7 @@ const HealthDashboard: React.FC = () => {
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                // Fixed: Changed 'tab.id' to 'item.id'
                 activeTab === item.id ? 'bg-teal-600 text-white shadow-xl shadow-teal-900/10 border border-teal-500' : 'text-slate-400 hover:text-teal-600'
               }`}
             >

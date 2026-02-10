@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   BookOpen, GraduationCap, School, Briefcase, 
@@ -28,9 +27,9 @@ const PedagogicalDashboard: React.FC = () => {
   const { user } = useAuth();
 
   // 1. Identifier le rôle dans la Pédagogie
-  const currentUserMember = useMemo(() => members.find(m => m.email === user?.email), [members, user]);
+  const currentUserMember = useMemo(() => (members || []).find(m => m.email === user?.email), [members, user]);
   const myRole = useMemo(() => {
-    return currentUserMember?.commissions.find(c => c.type === CommissionType.PEDAGOGIQUE)?.role_commission || 'Membre';
+    return currentUserMember?.commissions?.find(c => c.type === CommissionType.PEDAGOGIQUE)?.role_commission || 'Membre';
   }, [currentUserMember]);
 
   // 2. Permissions
@@ -38,8 +37,8 @@ const PedagogicalDashboard: React.FC = () => {
   const isTeacher = myRole.includes('Oustaz') || myRole.includes('Enseignant') || myRole.includes('Formateur') || isLeader;
 
   // Filtrer les membres de la commission Pédagogique
-  const commissionTeam = useMemo(() => members.filter(m => 
-    m.commissions.some(c => c.type === CommissionType.PEDAGOGIQUE)
+  const commissionTeam = useMemo(() => (members || []).filter(m => 
+    m.commissions?.some(c => c.type === CommissionType.PEDAGOGIQUE)
   ), [members]);
 
   const navItems = [

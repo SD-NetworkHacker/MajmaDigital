@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Wallet, TrendingUp, Target, PieChart, FileText, 
@@ -27,9 +26,9 @@ const FinanceDashboard: React.FC = () => {
   const { user } = useAuth();
 
   // 1. Identifier le rôle précis de l'utilisateur dans CETTE commission
-  const currentUserMember = useMemo(() => members.find(m => m.email === user?.email), [members, user]);
+  const currentUserMember = useMemo(() => (members || []).find(m => m.email === user?.email), [members, user]);
   const myCommissionRole = useMemo(() => {
-    return currentUserMember?.commissions.find(c => c.type === CommissionType.FINANCE)?.role_commission || 'Membre';
+    return currentUserMember?.commissions?.find(c => c.type === CommissionType.FINANCE)?.role_commission || 'Membre';
   }, [currentUserMember]);
 
   // 2. Définir les niveaux d'accès
@@ -46,21 +45,22 @@ const FinanceDashboard: React.FC = () => {
   }, []);
 
   // Filtrer les membres de la commission Finance
-  const commissionTeam = useMemo(() => members.filter(m => 
-    m.commissions.some(c => c.type === CommissionType.FINANCE)
+  const commissionTeam = useMemo(() => (members || []).filter(m => 
+    m.commissions?.some(c => c.type === CommissionType.FINANCE)
   ), [members]);
 
   // Calcul des statistiques réelles
   const stats = useMemo(() => {
-    const adiyasTotal = contributions.filter(c => c.type === 'Adiyas').reduce((acc, c) => acc + c.amount, 0);
-    const sassTotal = contributions.filter(c => c.type === 'Sass').reduce((acc, c) => acc + c.amount, 0);
-    const diayanteTotal = contributions.filter(c => c.type === 'Diayanté').reduce((acc, c) => acc + c.amount, 0);
+    const contribs = contributions || [];
+    const adiyasTotal = contribs.filter(c => c.type === 'Adiyas').reduce((acc, c) => acc + c.amount, 0);
+    const sassTotal = contribs.filter(c => c.type === 'Sass').reduce((acc, c) => acc + c.amount, 0);
+    const diayanteTotal = contribs.filter(c => c.type === 'Diayanté').reduce((acc, c) => acc + c.amount, 0);
     
-    const recentLogs = [...contributions]
+    const recentLogs = [...contribs]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5)
       .map(c => {
-        const m = members.find(mem => mem.id === c.memberId);
+        const m = (members || []).find(mem => mem.id === c.memberId);
         return {
           user: m ? `${m.firstName} ${m.lastName}` : 'Membre inconnu',
           act: `Versement ${c.type}`,
@@ -142,7 +142,7 @@ const FinanceDashboard: React.FC = () => {
                     <p className="text-xs font-medium italic opacity-90">{aiInsight}</p>
                   </div>
                 </div>
-                <div className="p-4 bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/10">
+                <div className="p-4 bg-white/10 backdrop-blur-xl rounded-[2.5rem] border border-white/10">
                   <TrendingUp size={40} className="text-blue-400" />
                 </div>
               </div>
@@ -238,6 +238,7 @@ const FinanceDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Corrected activeTab references to activeFinanceTab */}
       {activeFinanceTab === 'review' && isDecisionMaker && <FinanceReviewPanel />}
       {activeFinanceTab === 'tasks' && <TaskManager commission={CommissionType.FINANCE} />}
       {activeFinanceTab === 'contributions' && <ContributionManager />}
