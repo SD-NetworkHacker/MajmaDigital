@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
 import { CommissionType, GlobalRole } from '../types';
-import { useAuth } from '../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 
 interface CommissionContextType {
@@ -21,13 +22,13 @@ export const CommissionProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user || !activeCommission) return { canEdit: false, isSupervising: false };
 
     // Trouver le profil complet du membre
-    const userProfile = members.find(m => m.id === user.id || m.email === user.email);
+    const userProfile = (members || []).find(m => m.id === user.id || m.email === user.email);
     
     // Le SG est dans la commission Administration
     const isSG = user.role === 'SG' || user.role === 'ADJOINT_SG';
     
     // 1. Vérifier si l'utilisateur appartient officiellement à la commission affichée
-    const isMemberOfThisComm = userProfile?.commissions.some(c => c.type === activeCommission);
+    const isMemberOfThisComm = userProfile?.commissions?.some(c => c.type === activeCommission);
     
     // 2. Logique de Supervision (Droit de regard du SG sur les autres commissions)
     const isSupervising = isSG && activeCommission !== CommissionType.ADMINISTRATION;

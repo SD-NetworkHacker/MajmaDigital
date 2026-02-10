@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { ShieldCheck, Activity, Users, Database, ChevronRight, HardDrive, Cpu, Wifi, Zap, AlertTriangle, RefreshCcw, Power, Loader2, Check, Terminal, FileJson, Lock, ShieldAlert } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useData } from '../contexts/DataContext';
-import { useAuth } from '../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminModule: React.FC = () => {
   const { user } = useAuth();

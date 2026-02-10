@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Heart, HandHelping, Users, TrendingUp, ChevronRight, Plus, Target, PieChart as PieIcon, ArrowUpRight, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { SocialProject } from '../types';
 
@@ -285,13 +285,25 @@ const SocialModule: React.FC = () => {
         </div>
 
         <div className="lg:col-span-3 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Admin Projects View */}
-             <div className="col-span-3 flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-[3rem]">
-                 <Target size={48} className="mb-4 opacity-20"/>
-                 <p className="text-xs font-bold uppercase">Aucune intervention active</p>
-                 <button className="mt-4 text-rose-600 text-[10px] font-black uppercase hover:underline">Créer un dossier</button>
-             </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             {socialProjects.length > 0 ? socialProjects.map(proj => (
+                 <div key={proj.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:border-emerald-200 transition-all">
+                     <div className="flex justify-between items-start mb-3">
+                        <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full bg-${proj.color}-50 text-${proj.color}-600`}>{proj.theme}</span>
+                        <div className={`p-2 rounded-full bg-${proj.color}-50 text-${proj.color}-600`}><Target size={16}/></div>
+                     </div>
+                     <h4 className="text-base font-black text-slate-800 mb-2">{proj.title}</h4>
+                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
+                        <div className={`h-full bg-${proj.color}-500`} style={{ width: `${Math.min(100, (proj.currentAmount/proj.targetAmount)*100)}%` }}></div>
+                     </div>
+                     <p className="text-[10px] font-bold text-slate-400 text-right">{proj.currentAmount.toLocaleString()} / {proj.targetAmount.toLocaleString()} F</p>
+                 </div>
+             )) : (
+                 <div className="col-span-2 flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-[3rem]">
+                     <Target size={48} className="mb-4 opacity-20"/>
+                     <p className="text-xs font-bold uppercase">Aucun projet actif</p>
+                 </div>
+             )}
           </div>
 
           <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">

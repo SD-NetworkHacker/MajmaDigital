@@ -18,7 +18,8 @@ import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
 import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
 
 const PedagogicalDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');

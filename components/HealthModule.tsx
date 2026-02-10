@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { HeartPulse, Activity, Stethoscope, ShieldPlus, Clock, ChevronRight, Apple, Pill, AlertCircle, Plus, Thermometer, UserCheck, Calendar, ArrowLeft, Phone } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../contexts/AuthContext';
 
 const HealthModule: React.FC = () => {
   const { user } = useAuth();

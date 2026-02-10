@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   Camera, Video, Share2, Instagram, Facebook, MessageCircle, 
-  TrendingUp, Calendar, Image as ImageIcon, FileText, 
+  TrendingUp, Calendar, ImageIcon, FileText, 
   Plus, Search, Filter, ChevronRight, LayoutGrid, 
   List, Zap, Sparkles, MoreHorizontal, CheckCircle, Bot, Wallet,
   BadgeCheck, Mail, ShieldCheck, User, ListTodo, Lock
@@ -20,7 +19,8 @@ import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
 import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
 
 const MediaDashboard: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState('overview');
@@ -28,9 +28,9 @@ const MediaDashboard: React.FC = () => {
   const { user } = useAuth();
 
   // 1. Identifier le rôle dans la Com
-  const currentUserMember = useMemo(() => members.find(m => m.email === user?.email), [members, user]);
+  const currentUserMember = useMemo(() => (members || []).find(m => m.email === user?.email), [members, user]);
   const myRole = useMemo(() => {
-    return currentUserMember?.commissions.find(c => c.type === CommissionType.COMMUNICATION)?.role_commission || 'Membre';
+    return currentUserMember?.commissions?.find(c => c.type === CommissionType.COMMUNICATION)?.role_commission || 'Membre';
   }, [currentUserMember]);
 
   // 2. Permissions
@@ -39,8 +39,8 @@ const MediaDashboard: React.FC = () => {
   const isTechTeam = myRole.includes('Photographe') || myRole.includes('Technicien') || myRole.includes('Vidéo') || isLeader;
 
   // Filtrer les membres de la commission Communication
-  const commissionTeam = useMemo(() => members.filter(m => 
-    m.commissions.some(c => c.type === CommissionType.COMMUNICATION)
+  const commissionTeam = useMemo(() => (members || []).filter(m => 
+    m.commissions?.some(c => c.type === CommissionType.COMMUNICATION)
   ), [members]);
 
   const socialStats = [
@@ -72,7 +72,7 @@ const MediaDashboard: React.FC = () => {
          <span className="px-3 py-1 bg-amber-600 text-white text-[10px] font-black uppercase rounded-lg tracking-widest">
             Poste
          </span>
-         <span className="text-xs font-bold text-amber-900">{myRole}</span>
+         <span className="textxs font-bold text-amber-900">{myRole}</span>
          {isLeader && <span className="text-[10px] text-amber-600 flex items-center gap-1 font-black uppercase"><ShieldCheck size={10}/> Admin</span>}
       </div>
 

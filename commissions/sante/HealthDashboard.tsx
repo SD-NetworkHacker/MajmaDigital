@@ -17,7 +17,8 @@ import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
 import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
 
 const HealthDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -35,6 +36,7 @@ const HealthDashboard: React.FC = () => {
   const isLeader = ['Dieuwrine', 'Adjoint', 'Secrétaire', 'Responsable'].some(r => myRole.includes(r));
   const isMedicalStaff = myRole.includes('Médecin') || myRole.includes('Infirmier') || myRole.includes('Sage-femme') || isLeader;
 
+  // Filtrer les membres de la commission Santé
   const commissionTeam = useMemo(() => (members || []).filter(m => 
     m.commissions?.some(c => c.type === CommissionType.SANTE)
   ), [members]);
@@ -72,7 +74,6 @@ const HealthDashboard: React.FC = () => {
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                // Fixed: Changed 'tab.id' to 'item.id'
                 activeTab === item.id ? 'bg-teal-600 text-white shadow-xl shadow-teal-900/10 border border-teal-500' : 'text-slate-400 hover:text-teal-600'
               }`}
             >
@@ -142,92 +143,4 @@ const HealthDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="absolute top-0 right-0 p-20 opacity-5 font-arabic text-[25rem] pointer-events-none rotate-12">ش</div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Actionable Health Alerts */}
-            <div className="lg:col-span-8 space-y-8">
-               <div className="glass-card p-10">
-                  <div className="flex justify-between items-center mb-10">
-                    <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                      <Bell size={22} className="text-teal-500" /> Bulletin de Prévention
-                    </h3>
-                    <div className="px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-[9px] font-black uppercase tracking-widest">En direct</div>
-                  </div>
-                  <div className="space-y-4">
-                    <p className="text-xs text-slate-400 italic text-center py-10">Aucun bulletin de prévention actif.</p>
-                  </div>
-               </div>
-
-               {/* Health Pros Directory Preview - Visible only to Staff or Leader */}
-               {isMedicalStaff && (
-                 <div className="glass-card p-10">
-                    <div className="flex justify-between items-center mb-10">
-                      <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                        <Stethoscope size={22} className="text-teal-500" /> Annuaire des Professionnels Membres
-                      </h3>
-                      <button className="text-[10px] font-black text-teal-600 hover:underline uppercase tracking-widest">Voir l'annuaire</button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       <p className="col-span-2 text-xs text-slate-400 italic text-center py-10">Aucun professionnel de santé enregistré.</p>
-                    </div>
-                 </div>
-               )}
-            </div>
-
-            {/* Sidebar Stats & Security Info */}
-            <div className="lg:col-span-4 space-y-8">
-               {isLeader && (
-                 <div className="glass-card p-10 bg-slate-900 text-white relative overflow-hidden group">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-10 opacity-50">Équipements d'Urgence</h4>
-                    <div className="space-y-6 relative z-10">
-                      {[
-                        { l: 'Trousse Premiers Secours', v: 0, c: 'bg-teal-500' },
-                        { l: 'Défibrillateur (DAE)', v: 0, c: 'bg-emerald-500' },
-                        { l: 'Tensiomètres', v: 0, c: 'bg-blue-500' },
-                      ].map((equip, i) => (
-                        <div key={i} className="space-y-2">
-                          <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
-                             <span className="opacity-50">{equip.l}</span>
-                             <span>{equip.v} U.</span>
-                          </div>
-                          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                             <div className={`h-full ${equip.c}`} style={{ width: '0%' }}></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <button className="w-full mt-10 py-4 bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all active:scale-95">Rapport d'inventaire</button>
-                 </div>
-               )}
-
-               <div className="glass-card p-10 border-emerald-100 bg-emerald-50/20">
-                <div className="flex items-center gap-3 mb-6 text-emerald-700">
-                   <ShieldCheck size={22} />
-                   <h4 className="font-black text-xs uppercase tracking-widest">Note Confidentielle</h4>
-                </div>
-                <p className="text-[12px] font-medium text-slate-700 leading-relaxed italic">
-                  "MajmaDigital garantit le secret médical. Vos informations de santé personnelles ne sont accessibles qu'aux médecins certifiés de la commission après votre consentement."
-                </p>
-                <div className="mt-6 flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase">
-                  <UserCheck size={14}/> Accès RGPD Santé : Certifié
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'finance' && isLeader && <CommissionFinancialDashboard commission={CommissionType.SANTE} />}
-      {activeTab === 'meetings' && isLeader && <CommissionMeetingDashboard commission={CommissionType.SANTE} />}
-      {activeTab === 'tasks' && <TaskManager commission={CommissionType.SANTE} />}
-      {activeTab === 'wellness' && <WellnessProgram />}
-      {activeTab === 'support' && isMedicalStaff && <MedicalSupportHub secureMode={isSecureMode} />}
-      {activeTab === 'mental' && isMedicalStaff && <MentalHealthSupport />}
-      {activeTab === 'emergency' && <EmergencyResponse />}
-    </div>
-  );
-};
-
-export default HealthDashboard;
+            <div className="absolute top-0 right-0 p-20 opacity-5 font

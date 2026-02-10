@@ -20,7 +20,8 @@ import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
 import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
 
 const OrganisationDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -86,7 +87,7 @@ const OrganisationDashboard: React.FC = () => {
               }`}
             >
               <item.icon size={16} />
-              <span className="hidden lg:inline">{item.label}</span>
+              <span className="hidden md:inline">{item.label}</span>
             </button>
           ))}
         </div>

@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { BookOpen, Search, Play, FileText, Brain, Sparkles, X, ChevronRight, Volume2, Languages, Loader2, Award, History, Bookmark, TrendingUp, ArrowLeft } from 'lucide-react';
 import { explainXassaid, translateXassaid } from '../services/geminiService';
-import { useAuth } from '../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../contexts/AuthContext';
 
 const PedagogicalModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');

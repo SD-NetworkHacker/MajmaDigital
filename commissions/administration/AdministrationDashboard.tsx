@@ -15,7 +15,8 @@ import AdministrationReviewInterface from './AdministrationReviewInterface';
 import UnifiedAdminTracking from './UnifiedAdminTracking';
 import TaskManager from '../../components/shared/TaskManager';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
 import { CommissionType } from '../../types';
 
 type QuickViewType = 'none' | 'members_active' | 'pvs_validated' | 'alerts' | 'recruitment';
@@ -56,7 +57,7 @@ const AdministrationDashboard: React.FC = () => {
   const handleBatchApprove = () => {
       const ids = pendingMembers.map(m => m.id);
       if(confirm(`Approuver les ${ids.length} inscriptions en attente ?`)) {
-          batchApproveMembers(ids);
+          if (batchApproveMembers) batchApproveMembers(ids);
       }
   };
 

@@ -1,5 +1,6 @@
 import React from 'react';
-import { useAuth } from '../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../contexts/AuthContext';
 import MemberDashboard from './member/MemberDashboard';
 import AdminCockpit from './admin/AdminCockpit';
 import TechnicalDashboard from './admin/TechnicalDashboard';

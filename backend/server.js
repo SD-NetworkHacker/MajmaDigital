@@ -1,1 +1,1 @@
-// Ce fichier est obsolète. La logique est maintenant gérée par Supabase côté frontend.
+// Fichier obsolète - Migré vers Supabase

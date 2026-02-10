@@ -4,7 +4,8 @@ import {
   Loader2, CheckCircle, ShieldCheck, Camera, Power, 
   Mail, MessageSquare, Smartphone, Palette, ArrowLeft, Book
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../contexts/AuthContext';
 
 interface SettingsModuleProps {
   onBack: () => void;
@@ -48,12 +49,14 @@ const SettingsModule: React.FC<SettingsModuleProps> = ({ onBack }) => {
     setIsSaving(true);
     
     // Appel réel à Supabase via AuthContext
-    await updateUser({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        bio: formData.bio,
-        avatarUrl: formData.avatar
-    });
+    if (updateUser) {
+        await updateUser({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            bio: formData.bio,
+            avatarUrl: formData.avatar
+        });
+    }
 
     setIsSaving(false);
     setShowSuccess(true);

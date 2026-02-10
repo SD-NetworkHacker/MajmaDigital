@@ -17,7 +17,8 @@ import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
 import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
 
 const SocialDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -41,7 +42,6 @@ const SocialDashboard: React.FC = () => {
 
   const navItems = [
     { id: 'overview', label: 'Console Fraternité', icon: LayoutDashboard, access: true },
-    // Fixed: Corrected double 'id' property definition
     { id: 'finance', label: 'Budget Social', icon: Wallet, access: isLeader },
     { id: 'meetings', label: 'Réunions', icon: FileText, access: isLeader },
     { id: 'tasks', label: 'Tâches', icon: ListTodo, access: true },

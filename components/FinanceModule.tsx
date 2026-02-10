@@ -5,7 +5,8 @@ import TransactionForm from './TransactionForm';
 import MemberStatementModal from './MemberStatementModal';
 import { Contribution } from '../types';
 import { useData } from '../contexts/DataContext';
-import { useAuth } from '../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../contexts/AuthContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import MemberFinancePortal from '../commissions/finance/MemberFinancePortal';
 import { formatDate } from '../utils/date';

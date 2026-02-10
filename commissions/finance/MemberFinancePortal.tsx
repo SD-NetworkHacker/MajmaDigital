@@ -1,8 +1,8 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { History, Download, ShieldCheck, Calendar, User, Wallet, CheckCircle, Smartphone, ArrowLeft, Loader2, X, Share2, Eye } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
 import { MemberCategory, Contribution } from '../../types';
 import { formatDate } from '../../utils/date';
 
@@ -17,12 +17,12 @@ const MemberFinancePortal: React.FC = () => {
   const [paymentType, setPaymentType] = useState<'Adiyas' | 'Sass' | 'Diayanté'>('Sass');
 
   const currentUserMember = useMemo(() => {
-     return members.find(m => m.id === user?.id || m.email === user?.email);
+     return (members || []).find(m => m.id === user?.id || m.email === user?.email);
   }, [members, user]);
 
   const myContributions = useMemo(() => {
     if (!currentUserMember) return [];
-    return contributions.filter(c => c.memberId === currentUserMember.id);
+    return (contributions || []).filter(c => c.memberId === currentUserMember.id);
   }, [contributions, currentUserMember]);
 
   const totalContributed = useMemo(() => myContributions.reduce((acc, c) => acc + c.amount, 0), [myContributions]);
@@ -30,18 +30,20 @@ const MemberFinancePortal: React.FC = () => {
   
   const isUpToDate = useMemo(() => {
     const currentMonth = new Date().toISOString().slice(0, 7);
-    return myContributions.some(c => c.type === 'Sass' && c.date.startsWith(currentMonth));
+    return myContributions.some(c => c.type === 'Sass' && (c.date || '').startsWith(currentMonth));
   }, [myContributions]);
 
   const handleProcessPayment = async () => {
     if (!currentUserMember || !paymentAmount) return;
-    await addContribution({
-      memberId: currentUserMember.id,
-      amount: Number(paymentAmount),
-      type: paymentType,
-      date: new Date().toISOString().split('T')[0],
-      eventLabel: paymentType === 'Sass' ? `Mensualité ${new Date().toLocaleString('fr-FR', {month: 'long'})}` : 'Contribution Volontaire'
-    });
+    if (addContribution) {
+        await addContribution({
+          memberId: currentUserMember.id,
+          amount: Number(paymentAmount),
+          type: paymentType,
+          date: new Date().toISOString().split('T')[0],
+          eventLabel: paymentType === 'Sass' ? `Mensualité ${new Date().toLocaleString('fr-FR', {month: 'long'})}` : 'Contribution Volontaire'
+        });
+    }
     setShowPaymentModal(false);
   };
 
@@ -81,7 +83,7 @@ const MemberFinancePortal: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="flex items-center gap-6">
           <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl border-4 border-white">
-            {currentUserMember?.firstName[0]}{currentUserMember?.lastName[0]}
+            {currentUserMember?.firstName ? currentUserMember.firstName[0] : ''}{currentUserMember?.lastName ? currentUserMember.lastName[0] : ''}
           </div>
           <div>
             <h2 className="text-3xl font-black text-slate-900 leading-none">{currentUserMember?.firstName} {currentUserMember?.lastName}</h2>

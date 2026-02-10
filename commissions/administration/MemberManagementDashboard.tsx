@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext'; // Import Auth
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
 import { Member, MemberCategory, GlobalRole } from '../../types';
 import MemberForm from '../../components/MemberForm';
 import MemberProfileModal from '../../components/MemberProfileModal';
@@ -141,7 +142,7 @@ const MemberManagementDashboard: React.FC = () => {
   };
 
   const handleImpersonate = (member: Member) => {
-     if (confirm(`Voulez-vous incarner le profil de ${member.firstName} ? Vous verrez la plateforme exactement comme ce membre.`)) {
+     if (impersonate && confirm(`Voulez-vous incarner le profil de ${member.firstName} ? Vous verrez la plateforme exactement comme ce membre.`)) {
         impersonate(member);
      }
   };

@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Plus, ChevronRight, Bell, X, Users, Sparkles, Check, Trash2, Smartphone, Mail, MessageSquare, Ticket, QrCode, Clock } from 'lucide-react';
 import EventForm from './EventForm';
 import { Event } from '../types';
 import { useData } from '../contexts/DataContext';
-import { useAuth } from '../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../contexts/AuthContext';
 
 const REMINDER_OPTIONS = [
   { label: '15 minutes avant', value: 15 },
@@ -117,7 +117,7 @@ const EventModule: React.FC = () => {
           <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
             <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-emerald-50">
               <h3 className="font-black text-gray-800 text-sm flex items-center gap-2"><Ticket size={18} className="text-emerald-600" /> Mon Billet & Options</h3>
-              <button onClick={() => setShowReminderModal(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <button onClick={() => setShowReminderModal(null)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
             </div>
             
             <div className="p-8 flex flex-col items-center border-b border-gray-50 bg-white">

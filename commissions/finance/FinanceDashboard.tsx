@@ -16,7 +16,8 @@ import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
 import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
 import { getSmartInsight } from '../../services/geminiService';
 
 const FinanceDashboard: React.FC = () => {
@@ -115,7 +116,7 @@ const FinanceDashboard: React.FC = () => {
           ))}
         </div>
 
-        {activeFinanceTab !== 'overview' && (
+        {activeTab !== 'overview' && (
           <button 
             onClick={() => setActiveFinanceTab('overview')}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-all shadow-sm group"
@@ -198,7 +199,7 @@ const FinanceDashboard: React.FC = () => {
                     <p className="text-xs text-slate-500 leading-relaxed mb-6">Valider les demandes budgétaires ou générer les états financiers.</p>
                     <button 
                       onClick={() => setActiveFinanceTab('review')}
-                      className="w-full py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-900/10"
+                      className="w-full py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-900/10"
                     >
                       Console de Validation
                     </button>
@@ -243,8 +244,8 @@ const FinanceDashboard: React.FC = () => {
       {activeFinanceTab === 'tasks' && <TaskManager commission={CommissionType.FINANCE} />}
       {activeFinanceTab === 'contributions' && <ContributionManager />}
       {activeFinanceTab === 'payments' && <PaymentProcessing />}
-      {activeFinanceTab === 'budget' && isDecisionMaker && <BudgetPlanner />}
-      {activeFinanceTab === 'reports' && isTreasurer && <FinancialReporting />}
+      {activeTab === 'budget' && isDecisionMaker && <BudgetPlanner />}
+      {activeTab === 'reports' && isTreasurer && <FinancialReporting />}
     </div>
   );
 };
