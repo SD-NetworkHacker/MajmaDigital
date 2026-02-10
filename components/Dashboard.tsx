@@ -1,92 +1,39 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../contexts/DataContext';
-import { CommissionType, GlobalRole } from '../types';
 import MemberDashboard from './member/MemberDashboard';
 import AdminCockpit from './admin/AdminCockpit';
 import TechnicalDashboard from './admin/TechnicalDashboard';
-import CommissionLoader from '../commissions/CommissionLoader';
-import { User, Briefcase, ShieldAlert, Cpu } from 'lucide-react';
+import CommissionModule from './CommissionModule';
+import { CommissionType } from '../types';
 
 interface DashboardProps {
   setActiveTab: (tab: string) => void;
+  activeTab: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
+const Dashboard: React.FC<DashboardProps> = ({ setActiveTab, activeTab }) => {
   const { user } = useAuth();
-  const { members } = useData();
   
-  const [viewMode, setViewMode] = useState<'work' | 'personal'>('work');
-
-  // 1. Détection ADMIN SYSTÈME
-  const isSystemAdmin = user?.role === 'ADMIN';
-
-  // 2. Détection DIRECTION (SG ou Commission Admin)
-  const isDirection = useMemo(() => {
-    if (!user) return false;
-    const isSG = user.role === 'SG' || user.role === 'ADJOINT_SG';
-    const isInAdminComm = user.id && members.find(m => m.id === user.id)?.commissions.some(c => c.type === CommissionType.ADMINISTRATION);
-    return isSG || isInAdminComm;
-  }, [user, members]);
-
-  // 3. Détection Responsable de Commission
-  const primaryCommission = useMemo(() => {
-    if (!user) return null;
-    const memberProfile = members.find(m => m.id === user.id);
-    return memberProfile?.commissions[0] || null;
-  }, [members, user]);
-
-  // --- RENDU CONDITIONNEL ---
-
-  // A. Vue Admin Système (Infrastructure)
-  if (isSystemAdmin && viewMode === 'work') {
-    return <TechnicalDashboard onSwitchView={() => setViewMode('personal')} />;
+  // 1. DÉTECTION VUE COMMISSION MÉTIER
+  if (activeTab.startsWith('comm_')) {
+    const typeStr = activeTab.replace('comm_', '');
+    // Mapping manuel des types (nécessaire car les keys de l'enum sont différentes des labels)
+    const type = Object.values(CommissionType).find(t => t.toLowerCase() === typeStr) || CommissionType.CULTURELLE;
+    return <CommissionModule defaultView={type} />;
   }
 
-  // B. Vue Direction (Pilotage Dahira)
-  if (isDirection && viewMode === 'work') {
-    return <AdminCockpit setActiveTab={setActiveTab} onSwitchView={() => setViewMode('personal')} />;
+  // 2. VUE PILOTAGE SG
+  if (activeTab === 'admin_dashboard') {
+    return <AdminCockpit setActiveTab={setActiveTab} onSwitchView={() => setActiveTab('dashboard')} />;
   }
 
-  // C. Vue Responsable Commission
-  if (primaryCommission && viewMode === 'work') {
-    return (
-      <div className="space-y-6 animate-in fade-in">
-        <div className="flex flex-col sm:flex-row justify-between items-center bg-[#0F172A] text-white p-4 rounded-[1.5rem] shadow-xl border border-slate-800 gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-black text-emerald-400 border border-white/10">
-              <Briefcase size={18} />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Espace Professionnel</p>
-              <h3 className="text-sm font-bold">Commission {primaryCommission.type}</h3>
-            </div>
-          </div>
-          <button onClick={() => setViewMode('personal')} className="flex items-center gap-2 px-4 py-2 bg-white text-slate-900 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm">
-            <User size={14} /> Mon Espace Perso
-          </button>
-        </div>
-        <CommissionLoader type={primaryCommission.type} />
-      </div>
-    );
+  // 3. VUE CONSOLE SYSTÈME
+  if (activeTab === 'admin_system') {
+    return <TechnicalDashboard onSwitchView={() => setActiveTab('dashboard')} />;
   }
 
-  // D. Vue Membre Standard
-  return (
-    <div className="space-y-6">
-      {(isSystemAdmin || isDirection || primaryCommission) && (
-        <div className="flex justify-end animate-in slide-in-from-top-2">
-           <button 
-             onClick={() => setViewMode('work')}
-             className="flex items-center gap-2 px-6 py-3 bg-[#0F172A] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"
-           >
-             <ShieldAlert size={14} /> Retour au Pilotage
-           </button>
-        </div>
-      )}
-      <MemberDashboard setActiveTab={setActiveTab} />
-    </div>
-  );
+  // 4. PAR DÉFAUT : DASHBOARD MEMBRE (Tout le monde y a accès)
+  return <MemberDashboard setActiveTab={setActiveTab} />;
 };
 
 export default Dashboard;

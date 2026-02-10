@@ -1,12 +1,11 @@
 import React from 'react';
 import { 
-  LayoutDashboard, Users, Landmark, CalendarRange, MessageSquare, 
-  ShieldCheck, Settings, Map, Lock, BookOpen, Heart, Activity, 
-  Wallet, Layers, Globe, CreditCard, Book, Bus, Star, User, Library,
-  Cpu, ShieldAlert, Terminal, Database
+  LayoutDashboard, Users, Landmark, Settings, 
+  BookOpen, Heart, Wallet, Layers, 
+  Cpu, ShieldAlert, User, Map, Zap, ChevronRight, LogOut
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { GlobalRole } from '../types';
+import { CommissionType } from '../types';
 
 interface SidebarProps {
   activeTab: string;
@@ -14,160 +13,121 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   
-  // Fixed: Moved MegaphoneIcon definition above its usage in sgNavigation to avoid Temporal Dead Zone error
-  const MegaphoneIcon = (props: any) => <MessageSquare {...props} />;
-
   const isSystemAdmin = user?.role === 'ADMIN';
   const isSG = user?.role === 'SG' || user?.role === 'ADJOINT_SG';
-  const isAdminComm = user?.commissions?.some(c => c.type === 'Administration');
-
-  // 1. MENU ADMIN SYSTÈME (Technique uniquement)
-  const systemAdminNavigation = [
-    {
-      group: 'Infrastructure',
-      items: [
-        { id: 'dashboard', icon: Cpu, label: 'Santé Serveur' },
-        { id: 'admin', icon: Terminal, label: 'Console Système' },
-        { id: 'database', icon: Database, label: 'Atlas DB' },
-      ]
-    },
-    {
-      group: 'Audit',
-      items: [
-        { id: 'members', icon: Users, label: 'Comptes Users' },
-        { id: 'security', icon: ShieldAlert, label: 'Sécurité Réseau' },
-      ]
-    }
+  
+  const memberNav = [
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
+    { id: 'profile', icon: User, label: 'Identité digitale' },
+    { id: 'pedagogy', icon: BookOpen, label: 'Vie Spirituelle' },
+    { id: 'social', icon: Heart, label: 'Vie Sociale' },
+    { id: 'finance_perso', icon: Wallet, label: 'Mes Finances' },
   ];
 
-  // 2. MENU PILOTAGE DAHIRA (SG & Commission Admin)
-  const sgNavigation = [
-    {
-      group: 'Gouvernance',
-      items: [
-        { id: 'dashboard', icon: Landmark, label: 'Tableau de Bord' },
-        { id: 'members', icon: Users, label: 'Gestion Membres' },
-        { id: 'finance', icon: Wallet, label: 'Trésorerie Centrale' },
-      ]
-    },
-    {
-      group: 'Opérations',
-      items: [
-        { id: 'commissions', icon: Layers, label: 'Coord. Commissions' },
-        { id: 'events', icon: CalendarRange, label: 'Calendrier National' },
-        { id: 'messages', icon: MegaphoneIcon, label: 'Annonces Bureau' },
-      ]
-    }
-  ];
+  const myCommissions = user?.commissions || [];
+  const isInAdmin = myCommissions.some(c => c.type === CommissionType.ADMINISTRATION) || isSG;
 
-  // 3. MENU MEMBRE SIMPLE
-  const memberNavigation = [
-    {
-       group: 'Mon Espace',
-       items: [
-          { id: 'dashboard', icon: LayoutDashboard, label: 'Accueil' },
-          { id: 'profile', icon: User, label: 'Mon Profil & Carte' },
-          { id: 'finance', icon: Wallet, label: 'Mes Cotisations' },
-       ]
-    },
-    {
-       group: 'Vie Spirituelle',
-       items: [
-          { id: 'pedagogy', icon: BookOpen, label: 'Académie Khassaide' },
-          { id: 'culturelle', icon: Library, label: 'Médiathèque' },
-       ]
-    },
-    {
-       group: 'Vie Sociale',
-       items: [
-          { id: 'events', icon: CalendarRange, label: 'Événements' },
-          { id: 'social', icon: Heart, label: 'Solidarité' },
-       ]
-    }
-  ];
-
-  const getNavigation = () => {
-    if (isSystemAdmin) return systemAdminNavigation;
-    if (isSG || isAdminComm) return sgNavigation;
-    return memberNavigation;
+  const renderNavButton = (item: { id: string, icon: any, label: string }, isActive: boolean) => {
+    const Icon = item.icon;
+    return (
+      <button
+        key={item.id}
+        onClick={() => setActiveTab(item.id)}
+        className={`w-full group flex items-center gap-3.5 px-5 py-4 rounded-2xl transition-all duration-500 relative overflow-hidden ${
+          isActive 
+            ? 'bg-emerald-600 text-white shadow-[0_10px_20px_-5px_rgba(16,185,129,0.3)] scale-[1.02]' 
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+        }`}
+      >
+        <div className={`transition-transform duration-500 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:rotate-6'}`}>
+          <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+        </div>
+        <span className={`text-[11px] font-black uppercase tracking-[0.1em] ${isActive ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'}`}>
+          {item.label}
+        </span>
+        {isActive && (
+          <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_white]"></div>
+        )}
+      </button>
+    );
   };
 
-  const navigation = getNavigation();
-
   return (
-    <div className="h-full flex flex-col sidebar-glass bg-white/95 backdrop-blur-xl border-r border-slate-200/60 overflow-hidden">
-      {/* Brand Section */}
-      <div className="px-8 py-8 shrink-0 flex items-center gap-3 border-b border-slate-100/50">
-         <div 
-           className={`relative w-10 h-10 rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 transition-transform duration-300 ${isSG || isAdminComm ? 'bg-[#059669]' : 'bg-slate-900'}`}
-           onClick={() => setActiveTab('dashboard')}
-         >
-            <span className={`font-black text-xl font-arabic arabic-glow pb-1 ${isSG || isAdminComm ? 'text-[#D4AF37]' : 'text-emerald-400'}`}>م</span>
-         </div>
-         <div className="flex flex-col cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-            <h1 className="text-lg font-black text-slate-900 tracking-tight leading-none group-hover:text-emerald-700 transition-colors">Majma<span className="text-emerald-600">Digital</span></h1>
-            <p className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${isSG || isAdminComm ? 'text-[#D4AF37]' : 'text-slate-400'}`}>
-               {isSystemAdmin ? 'System Root' : (isSG || isAdminComm ? 'PILOTAGE DAHIRA' : 'Espace Membre')}
-            </p>
-         </div>
+    <div className="h-full flex flex-col bg-[#030712] border-r border-white/5 shadow-2xl">
+      {/* Brand */}
+      <div className="p-8 pb-10 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-arabic text-2xl pb-1 shadow-[0_0_20px_rgba(16,185,129,0.2)] bg-emerald-600 text-white transform -rotate-3">
+          م
+        </div>
+        <div>
+          <h1 className="text-xl font-black text-white tracking-tighter leading-none">Majma<span className="text-emerald-500">Digital</span></h1>
+          <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5 opacity-60">Platinum Edition</p>
+        </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar min-h-0">
-        {navigation.map((section, idx) => (
-          <div key={idx} className="space-y-3 animate-in slide-in-from-left-4" style={{ animationDelay: `${idx * 100}ms` }}>
-            <h3 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60 flex items-center gap-2">
-              <span className={`w-1 h-1 rounded-full ${isSG || isAdminComm ? 'bg-[#D4AF37]' : 'bg-slate-300'}`}></span>
-              {section.group}
-            </h3>
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group relative ${
-                      isActive 
-                        ? (isSG || isAdminComm ? 'bg-[#059669] text-white shadow-lg shadow-emerald-900/20 translate-x-1' : 'bg-slate-900 text-white shadow-lg translate-x-1')
-                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 relative z-10">
-                      <item.icon 
-                        size={18} 
-                        className={`transition-colors duration-300 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-emerald-600'}`} 
-                      />
-                      <span className={`text-[13px] font-medium tracking-tight ${isActive ? 'font-bold' : ''}`}>
-                        {item.label}
-                      </span>
-                    </div>
-                    {isActive && (
-                      <div className={`w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]`}></div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+      <nav className="flex-1 px-4 space-y-10 overflow-y-auto custom-scrollbar">
+        
+        {/* --- SECTION 1: ESPACE MEMBRE --- */}
+        {!isSystemAdmin && (
+          <div className="space-y-2">
+            <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4">Personnel</h3>
+            {memberNav.map(item => renderNavButton(item, activeTab === item.id))}
           </div>
-        ))}
+        )}
+
+        {/* --- SECTION 2: MÉTIER --- */}
+        {!isSystemAdmin && myCommissions.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4">Pôles d'Action</h3>
+            {myCommissions.map((c, i) => 
+              renderNavButton({ 
+                id: `comm_${c.type.toLowerCase()}`, 
+                icon: Zap, 
+                label: `Pôle ${c.type}` 
+              }, activeTab === `comm_${c.type.toLowerCase()}`)
+            )}
+          </div>
+        )}
+
+        {/* --- SECTION 3: DIRECTION --- */}
+        {isInAdmin && !isSystemAdmin && (
+          <div className="space-y-2">
+            <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4">Gouvernance</h3>
+            {renderNavButton({ id: 'admin_dashboard', icon: Landmark, label: 'Cockpit Bureau' }, activeTab === 'admin_dashboard')}
+            {renderNavButton({ id: 'members', icon: Users, label: 'Annuaire Global' }, activeTab === 'members')}
+            {renderNavButton({ id: 'map', icon: Map, label: 'Cartographie' }, activeTab === 'map')}
+          </div>
+        )}
+
+        {/* --- SECTION SYSTÈME --- */}
+        {isSystemAdmin && (
+          <div className="space-y-2">
+            <h3 className="px-5 text-[9px] font-black text-rose-500 uppercase tracking-[0.3em] mb-4">Infrastructure</h3>
+            {renderNavButton({ id: 'admin_system', icon: Cpu, label: 'Root Control' }, activeTab === 'admin_system')}
+          </div>
+        )}
       </nav>
 
-      {/* Footer Area */}
-      <div className="p-4 border-t border-slate-100 bg-slate-50/50 shrink-0 space-y-2">
-         <button 
-           onClick={() => setActiveTab('settings')}
-           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
-             activeTab === 'settings' 
-               ? 'bg-white text-slate-900 font-bold shadow-sm border border-slate-200' 
-               : 'text-slate-500 hover:bg-white hover:text-slate-800'
-           }`}
-         >
-            <Settings size={18} className={`transition-colors ${activeTab === 'settings' ? 'text-emerald-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span className="text-xs font-bold">Paramètres</span>
-         </button>
+      {/* Footer Profile & Logout */}
+      <div className="p-4 mt-auto border-t border-white/5 space-y-2">
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl transition-all ${
+            activeTab === 'settings' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Settings size={18} />
+          <span className="text-[11px] font-black uppercase tracking-widest">Paramètres</span>
+        </button>
+        <button 
+          onClick={() => logout()}
+          className="w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/5 transition-all"
+        >
+          <LogOut size={18} />
+          <span className="text-[11px] font-black uppercase tracking-widest">Déconnexion</span>
+        </button>
       </div>
     </div>
   );

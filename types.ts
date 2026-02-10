@@ -1,5 +1,3 @@
-
-// ... (Enums existants restent inchangés)
 export enum CommissionType {
   ADMINISTRATION = 'Administration',
   FINANCE = 'Finance',
@@ -27,51 +25,11 @@ export enum MemberCategory {
   ELEVE = 'Élève'
 }
 
-// NOUVEAUX TYPES AJOUTÉS
-
-export interface AcademicInfo {
-  establishment?: string;
-  level?: string;
-  field?: string;
+export interface CommissionAssignment {
+  type: CommissionType;
+  role_commission: string;
+  permissions: string[];
 }
-
-export interface ProfessionalInfo {
-  company?: string;
-  position?: string;
-  sector?: string;
-}
-
-export interface MemberDocument {
-  id: string;
-  name: string;
-  type: string;
-  date: string;
-  url?: string;
-  verified: boolean;
-  size?: number;
-}
-
-export interface MemberPreferences {
-  notifications: {
-    email: boolean;
-    push: boolean;
-    sms: boolean;
-  };
-  privacy: {
-    showPhone: boolean;
-    showAddress: boolean;
-  };
-}
-
-export interface Commission {
-  name: CommissionType;
-  slug: string;
-  description: string;
-  memberCount: number;
-  dieuwrine: string;
-}
-
-// ... (Interfaces existantes inchangées)
 
 export interface Member {
   id: string;
@@ -86,75 +44,115 @@ export interface Member {
   address: string;
   joinDate: string;
   coordinates: { lat: number; lng: number };
-  commissions: { id?: string; type: CommissionType; role_commission: string; permissions: string[] }[];
+  commissions: CommissionAssignment[];
   bio?: string;
+  avatarUrl?: string;
   birthDate?: string;
-  gender?: 'Homme' | 'Femme';
-  academicInfo?: AcademicInfo;
-  professionalInfo?: ProfessionalInfo;
-  level?: string; 
+  gender?: 'Homme' | 'Femme' | 'M' | 'F';
+  academicInfo?: { establishment: string; level: string; field: string };
+  professionalInfo?: { company: string; position: string; sector: string };
   documents?: MemberDocument[];
-  preferences?: MemberPreferences;
+  preferences?: any;
+  level?: string;
 }
 
-// NOUVEAUX TYPES FINANCIERS
+export interface MemberDocument {
+  id: string;
+  name: string;
+  type: 'PDF' | 'IMAGE' | 'AUTRE';
+  date: string;
+  url?: string;
+  verified?: boolean;
+}
 
 export interface Contribution {
   id: string;
   memberId: string;
-  type: 'Adiyas' | 'Sass' | 'Diayanté' | 'Adiya Élite' | 'Gott';
+  type: 'Adiyas' | 'Sass' | 'Diayanté' | 'Gott' | 'Adiya Élite';
   amount: number;
   date: string;
-  eventLabel?: string;
-  paymentMethod?: 'Espèces' | 'Wave' | 'Orange Money' | 'Virement';
   status: 'paid' | 'pending' | 'failed';
+  eventLabel?: string;
   transactionId?: string;
 }
 
-export interface AdiyaCampaign {
+export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done' | 'blocked' | 'waiting';
+export type TaskPriority = 'low' | 'medium' | 'high';
+
+export interface TaskComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  date: string;
+}
+
+export interface Task {
   id: string;
   title: string;
-  description?: string;
-  unitAmount: number;
-  targetAmount?: number;
-  deadline: string;
-  status: 'open' | 'closed' | 'draft';
-  participants: { memberId: string; amountPaid: number; status: 'partial' | 'completed'; date: string }[];
-  createdBy?: string;
-}
-
-export interface FundraisingEvent {
-  id: string;
-  name: string;
-  type: 'Magal' | 'Ziar' | 'Gott' | 'Autre';
-  status: 'active' | 'closed' | 'planned';
-  deadline: string;
-  groups: FundraisingGroup[];
+  description: string;
+  commission: CommissionType;
+  assignedTo: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  dueDate: string;
+  createdBy: string;
   createdAt: string;
+  comments: TaskComment[];
 }
 
-export interface FundraisingGroup {
-  id: string;
-  name: string;
-  amount: number;
-}
-
-// ... (Le reste des types existants: Event, Task, etc.)
-export interface UserProfile extends Member {
-  avatarUrl?: string;
-  originalRole?: string;
+export interface Commission {
+  name: CommissionType;
+  slug: string;
+  description: string;
+  memberCount: number;
+  dieuwrine: string;
 }
 
 export interface Event {
   id: string;
   title: string;
-  type: string;
+  type: 'Magal' | 'Ziar' | 'Gott' | 'Thiant' | 'Réunion' | 'Atelier' | 'Sortie' | 'Dîner' | 'Sport' | 'Autre';
   date: string;
-  time: string;
+  time?: string;
   location: string;
-  organizingCommission: CommissionType;
+  organizingCommission: string | CommissionType;
+  description?: string;
+  status?: string;
+}
+
+export type MeetingReportStatus = 'brouillon' | 'soumis_admin' | 'valide_admin' | 'soumis_bureau' | 'approuve_bureau' | 'archive';
+export type MeetingType = 'ordinaire' | 'extraordinaire' | 'urgence' | 'planification';
+export type AttendanceStatus = 'present' | 'absent_excuse' | 'absent';
+
+export interface MeetingAttendee {
+  memberId: string;
+  name: string;
+  role: string;
+  status: AttendanceStatus;
+}
+
+export interface AgendaItem {
+  id: string;
+  title: string;
+  duration: number;
+  presenter: string;
+  notes: string;
+}
+
+export interface MeetingDecision {
+  id: string;
   description: string;
-  status: 'planifie' | 'en_cours' | 'termine' | 'annule';
+  votes: { for: number; against: number; abstain: number };
+  status: 'adopted' | 'rejected' | 'pending';
+}
+
+export interface MeetingActionItem {
+  id: string;
+  description: string;
+  assignedTo: string;
+  dueDate: string;
+  status: 'a_faire' | 'en_cours' | 'termine' | 'retard';
 }
 
 export interface InternalMeetingReport {
@@ -173,116 +171,14 @@ export interface InternalMeetingReport {
   actionItems: MeetingActionItem[];
   status: MeetingReportStatus;
   createdBy: string;
-  createdAt?: string; // Fix: Add createdAt for audit logging in admin views
-  confidentiality: 'interne' | 'confidentiel' | 'public';
+  confidentiality?: 'interne' | 'confidentiel' | 'public';
   meetingQrCode?: string;
   adminFeedback?: string;
   bureauFeedback?: string;
 }
-export type MeetingType = 'ordinaire' | 'extraordinaire' | 'urgence' | 'planification';
-export interface MeetingAttendee {
-  memberId: string;
-  name: string;
-  role: string;
-  status: AttendanceStatus;
-  arrivalTime?: string;
-}
-export type AttendanceStatus = 'present' | 'absent_excuse' | 'absent';
-export interface AgendaItem {
-  id: string;
-  title: string;
-  duration: number;
-  presenter: string;
-  notes?: string;
-}
-export interface MeetingDecision {
-  id: string;
-  description: string;
-  votes: { for: number; against: number; abstain: number };
-  status: 'adopted' | 'rejected' | 'pending';
-}
-export interface MeetingActionItem {
-  id: string;
-  description: string;
-  assignedTo: string;
-  dueDate: string;
-  status: 'a_faire' | 'en_cours' | 'termine' | 'retard';
-}
-export type MeetingReportStatus = 'brouillon' | 'soumis_admin' | 'valide_admin' | 'soumis_bureau' | 'approuve_bureau' | 'archive';
 
-export interface CommissionFinancialReport {
-  id: string;
-  commission: CommissionType;
-  period: string;
-  startDate: string;
-  endDate: string;
-  totalBudgetAllocated: number;
-  totalExpenses: number;
-  balance: number;
-  expenses: ExpenseItem[];
-  status: 'brouillon' | 'soumis' | 'valide' | 'cloture' | 'rejete' | 'revu_finance';
-  submittedBy: string;
-  submittedAt: string;
-  rejectionReason?: string;
-}
-export interface ExpenseItem {
-  id: string;
-  category: string;
-  description: string;
-  amount: number;
-  date: string;
-}
-
-export interface BudgetRequest {
-  id: string;
-  commission: CommissionType;
-  title: string;
-  description: string;
-  amountRequested: number;
-  amountApproved?: number;
-  category: BudgetCategory;
-  priority: BudgetPriority;
-  timeline: { startDate: string; endDate: string };
-  breakdown: BudgetBreakdownItem[];
-  expectedOutcomes: string;
-  status: 'brouillon' | 'soumis_finance' | 'revu_finance' | 'soumis_bureau' | 'approuve' | 'finance_partiel' | 'rejete' | 'termine';
-  submittedBy: string;
-  submittedAt: string;
-  rejectionReason?: string;
-}
-export type BudgetCategory = 'evenement' | 'projet' | 'equipement' | 'urgence';
-export type BudgetPriority = 'bas' | 'moyen' | 'eleve' | 'urgence';
-export interface BudgetBreakdownItem {
-  id: string;
-  item: string;
-  quantity: number;
-  unitCost: number;
-  total: number;
-  justification?: string;
-}
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  commission: CommissionType;
-  assignedTo: string;
-  priority: TaskPriority;
-  status: TaskStatus;
-  dueDate: string;
-  createdBy: string;
-  createdAt: string;
-  comments: TaskComment[];
-}
-export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done' | 'blocked' | 'waiting';
-export type TaskPriority = 'low' | 'medium' | 'high';
-export interface TaskComment {
-  id: string;
-  authorId: string;
-  authorName: string;
-  text: string;
-  date: string;
-}
+export type VehicleType = 'bus_grand' | 'bus_moyen' | 'minibus' | 'voiture';
+export type VehicleStatus = 'disponible' | 'en_mission' | 'maintenance' | 'hors_service';
 
 export interface Vehicle {
   id: string;
@@ -303,12 +199,25 @@ export interface Vehicle {
     dailyCost: number;
   };
 }
-export type VehicleType = 'bus_grand' | 'bus_moyen' | 'minibus' | 'voiture';
-export type VehicleStatus = 'disponible' | 'en_mission' | 'maintenance' | 'hors_service';
+
+export interface TransportSchedule {
+  id: string;
+  eventId?: string;
+  eventTitle: string;
+  departureDate: string;
+  departureTime: string;
+  origin: string;
+  destination: string;
+  stops: { id: string; location: string; time: string; expectedPassengers: number }[];
+  assignedVehicleId?: string;
+  status: 'planifie' | 'en_cours' | 'termine' | 'annule';
+  seatsFilled: number;
+  totalCapacity: number;
+}
 
 export interface Driver {
   id: string;
-  memberId: string;
+  memberId?: string;
   name: string;
   licenseType: string;
   status: 'disponible' | 'en_mission' | 'repos';
@@ -316,29 +225,7 @@ export interface Driver {
   tripsCompleted: number;
 }
 
-export interface TransportSchedule {
-  id: string;
-  eventId: string;
-  eventTitle: string;
-  departureDate: string;
-  departureTime: string;
-  origin: string;
-  destination: string;
-  stops: { id: string; location: string; time: string; expectedPassengers: number }[];
-  assignedVehicleId: string;
-  status: 'planifie' | 'en_cours' | 'termine' | 'annule';
-  seatsFilled: number;
-  totalCapacity: number;
-}
-
-export interface CulturalActivity {
-  id: string;
-  title: string;
-  type: string;
-  description: string;
-  date: string;
-  location: string;
-}
+export type LibraryResourceType = 'livre' | 'audio' | 'video' | 'document';
 
 export interface LibraryResource {
   id: string;
@@ -351,16 +238,7 @@ export interface LibraryResource {
   views: number;
   rating: number;
 }
-export type LibraryResourceType = 'livre' | 'audio' | 'video' | 'document';
 
-export interface KhassaideModule {
-  id: string;
-  title: string;
-  author: string;
-  level: 'debutant' | 'intermediaire' | 'avance';
-  progress: number;
-  lessons: KhassaideLesson[];
-}
 export interface KhassaideLesson {
   id: string;
   title: string;
@@ -368,39 +246,115 @@ export interface KhassaideLesson {
   status: 'locked' | 'unlocked' | 'completed';
 }
 
-export interface SocialCase {
+export interface KhassaideModule {
   id: string;
-  memberId?: string; 
-  member?: any;
-  type: 'Soutien Médical' | 'Appui Scolaire / Universitaire' | 'Urgence Sociale' | 'Autre';
+  title: string;
+  author: string;
+  level: 'Débutant' | 'Intermédiaire' | 'Avancé' | 'debutant' | 'intermediaire' | 'avance';
+  progress: number;
+  lessons: KhassaideLesson[];
+}
+
+export interface ExpenseItem {
+  id: string;
+  category: string;
   description: string;
-  status: 'nouveau' | 'en_cours' | 'valide' | 'rejete' | 'cloture';
-  createdAt?: string;
+  amount: number;
+  date: string;
+}
+
+export interface CommissionFinancialReport {
+  id: string;
+  commission: CommissionType;
+  period: string;
+  startDate: string;
+  endDate: string;
+  totalBudgetAllocated: number;
+  totalExpenses: number;
+  balance: number;
+  status: 'brouillon' | 'soumis' | 'valide' | 'rejete' | 'cloture';
+  submittedBy: string;
+  submittedAt: string;
+  expenses: ExpenseItem[];
+  rejectionReason?: string;
+}
+
+export type BudgetCategory = 'evenement' | 'projet' | 'equipement' | 'urgence';
+export type BudgetPriority = 'bas' | 'moyen' | 'eleve' | 'urgence';
+
+export interface BudgetBreakdownItem {
+  id: string;
+  item: string;
+  quantity: number;
+  unitCost: number;
+  total: number;
+  justification: string;
+}
+
+export interface BudgetRequest {
+  id: string;
+  commission: CommissionType;
+  title: string;
+  description: string;
+  category: BudgetCategory;
+  priority: BudgetPriority;
+  timeline: { startDate: string; endDate: string };
+  expectedOutcomes: string;
+  amountRequested: number;
+  amountApproved?: number;
+  status: 'soumis_finance' | 'revu_finance' | 'soumis_bureau' | 'approuve' | 'rejete' | 'termine' | 'finance_partiel';
+  submittedBy: string;
+  submittedAt: string;
+  breakdown: BudgetBreakdownItem[];
+  rejectionReason?: string;
+}
+
+export interface AdiyaCampaign {
+  id: string;
+  title: string;
+  unitAmount: number;
+  targetAmount?: number;
+  deadline: string;
+  status: 'open' | 'closed' | 'draft';
+  participants: any[];
+  createdBy: string;
+  description?: string;
+}
+
+export interface FundraisingGroup {
+  id: string;
+  name: string;
+  amount: number;
+}
+
+export interface FundraisingEvent {
+  id: string;
+  name: string;
+  type: 'Magal' | 'Ziar' | 'Gott' | 'Autre';
+  status: 'active' | 'closed';
+  deadline: string;
+  groups: FundraisingGroup[];
+  createdAt: string;
 }
 
 export interface SocialProject {
   id: string;
   title: string;
-  theme: 'Éducation' | 'Santé' | 'Social' | 'Infrastructure';
+  theme: 'Éducation' | 'Santé' | 'Social' | 'Infrastructure' | string;
   description: string;
   targetAmount: number;
   currentAmount: number;
-  status: 'actif' | 'termine' | 'pause';
+  status: 'actif' | 'termine' | 'pause' | string;
   color: string;
-  deadline?: string;
 }
 
-export interface TicketItem {
+export interface SocialPost {
   id: string;
-  passenger: string;
-  phone: string;
-  trip: string;
-  tripId: string;
-  seat: string;
-  status: 'paye' | 'attente' | 'annule';
-  type: 'Espèces' | 'Wave' | 'Orange Money' | '-';
-  amount: number;
+  title: string;
   date: string;
+  time: string;
+  status: string;
+  platforms: string[];
 }
 
 export interface InventoryItem {
@@ -412,45 +366,30 @@ export interface InventoryItem {
   nextCheck: string;
 }
 
-export interface Partner {
-  id: string;
-  name: string;
-  type: string;
-  location: string;
-  contact: string;
-  status: string;
-}
-
-export interface SocialPost {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  status: string;
-  platforms: string[];
-  content?: string;
-}
-
-export interface StudyGroup {
-  id: string;
-  name: string;
-  theme: string;
-  membersCount: number;
-  createdAt?: string;
-}
-
 export enum CrisisLevel {
   NORMAL = 'Normal',
   WARNING = 'Attention',
   CRITICAL = 'Crise'
 }
 
-export interface CrisisProtocolStep {
+export interface CrisisStep {
   id: string;
   label: string;
   role: string;
-  status: 'pending' | 'in_progress' | 'done';
+  status: 'pending' | 'done';
   isCritical: boolean;
+}
+
+export interface CrisisContact {
+  name: string;
+  role: string;
+  phone: string;
+}
+
+export interface CrisisLog {
+  time: string;
+  action: string;
+  user: string;
 }
 
 export interface CrisisScenario {
@@ -459,8 +398,8 @@ export interface CrisisScenario {
   title: string;
   description: string;
   severity: string;
-  steps: CrisisProtocolStep[];
-  contacts: { name: string; role: string; phone: string }[];
+  steps: CrisisStep[];
+  contacts: CrisisContact[];
   communicationTemplate: string;
 }
 
@@ -469,7 +408,7 @@ export interface ActiveCrisis {
   scenarioId: string;
   startTime: string;
   status: 'active' | 'resolved';
-  log: { time: string; action: string; user: string }[];
+  log: CrisisLog[];
   completedSteps: string[];
 }
 
@@ -485,7 +424,7 @@ export interface Anomaly {
   value: number;
   expected: number;
   deviation: string;
-  severity: 'high' | 'medium';
+  severity: 'medium' | 'high';
   date: string;
 }
 
@@ -502,3 +441,42 @@ export interface PredictionModel {
   intercept: number;
   nextValue: number;
 }
+
+export interface SocialCase {
+  id: string;
+  memberId: string;
+  type: string;
+  description: string;
+  status: string;
+}
+
+export interface TicketItem {
+  id: string;
+  passenger: string;
+  phone: string;
+  trip: string;
+  tripId: string;
+  seat: string;
+  status: string;
+  type: string;
+  amount: number;
+  date: string;
+}
+
+export interface Partner {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  contact: string;
+  status: string;
+}
+
+export interface StudyGroup {
+  id: string;
+  name: string;
+  theme: string;
+  membersCount: number;
+}
+
+export interface CulturalActivity extends Event {}

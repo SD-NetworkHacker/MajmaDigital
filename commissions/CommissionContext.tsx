@@ -1,42 +1,50 @@
-
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { CommissionType } from '../types';
-
-interface CommissionState {
-  activeTab: string;
-  filters: Record<string, any>;
-  selectedItemId: string | null;
-  isEditMode: boolean;
-}
+import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { CommissionType, GlobalRole } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { useData } from '../contexts/DataContext';
 
 interface CommissionContextType {
-  state: CommissionState;
-  setActiveTab: (tab: string) => void;
-  setFilter: (key: string, value: any) => void;
-  setSelectedItem: (id: string | null) => void;
-  toggleEditMode: () => void;
+  activeCommission: CommissionType | null;
+  canEdit: boolean;
+  isSupervising: boolean;
+  setActiveCommission: (type: CommissionType | null) => void;
 }
 
 const CommissionContext = createContext<CommissionContextType | undefined>(undefined);
 
 export const CommissionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<CommissionState>({
-    activeTab: 'overview',
-    filters: {},
-    selectedItemId: null,
-    isEditMode: false
-  });
+  const { user } = useAuth();
+  const { members } = useData();
+  const [activeCommission, setActiveCommission] = useState<CommissionType | null>(null);
 
-  const setActiveTab = (activeTab: string) => setState(prev => ({ ...prev, activeTab }));
-  const setFilter = (key: string, value: any) => setState(prev => ({ 
-    ...prev, 
-    filters: { ...prev.filters, [key]: value } 
-  }));
-  const setSelectedItem = (selectedItemId: string | null) => setState(prev => ({ ...prev, selectedItemId }));
-  const toggleEditMode = () => setState(prev => ({ ...prev, isEditMode: !prev.isEditMode }));
+  const permissions = useMemo(() => {
+    if (!user || !activeCommission) return { canEdit: false, isSupervising: false };
+
+    // Trouver le profil complet du membre
+    const userProfile = members.find(m => m.id === user.id || m.email === user.email);
+    
+    // Le SG est dans la commission Administration
+    const isSG = user.role === 'SG' || user.role === 'ADJOINT_SG';
+    
+    // 1. Vérifier si l'utilisateur appartient officiellement à la commission affichée
+    const isMemberOfThisComm = userProfile?.commissions.some(c => c.type === activeCommission);
+    
+    // 2. Logique de Supervision (Droit de regard du SG sur les autres commissions)
+    const isSupervising = isSG && activeCommission !== CommissionType.ADMINISTRATION;
+    
+    // 3. Droit d'édition : On doit être membre de la commission ET ne pas être en simple supervision
+    const canEdit = isMemberOfThisComm && !isSupervising;
+
+    return { canEdit, isSupervising };
+  }, [user, activeCommission, members]);
 
   return (
-    <CommissionContext.Provider value={{ state, setActiveTab, setFilter, setSelectedItem, toggleEditMode }}>
+    <CommissionContext.Provider value={{ 
+      activeCommission, 
+      setActiveCommission,
+      canEdit: permissions.canEdit,
+      isSupervising: permissions.isSupervising
+    }}>
       {children}
     </CommissionContext.Provider>
   );

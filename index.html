@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="fr" class="h-full antialiased scroll-smooth" style="scroll-padding-top: 80px;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MajmaDigital - Dahira Management OS</title>
+    <title>MajmaDigital Platinum - Dahira Management OS</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,34 +20,40 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
                         arabic: ['"Amiri"', 'serif'],
                         display: ['"Montserrat"', 'sans-serif'],
                     },
                     colors: {
+                        platinum: {
+                            50: '#f8fafc',
+                            900: '#030712',
+                            950: '#020617',
+                        },
                         brand: {
-                            50: '#ecfdf5',
-                            100: '#d1fae5',
                             500: '#10b981',
                             600: '#059669',
-                            900: '#064e3b',
+                            gold: '#D4AF37'
                         }
                     },
                     animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'blob': 'blob 7s infinite',
-                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'shimmer': 'shimmer 2s infinite linear',
+                        'reveal': 'reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                     },
                     keyframes: {
-                        blob: {
-                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
                         },
-                        fadeInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        },
+                        reveal: {
+                            '0%': { opacity: '0', transform: 'translateY(10px) scale(0.98)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
                         }
                     }
                 }
@@ -60,41 +65,44 @@
         :root { --primary: #10b981; }
         html, body {
             height: 100%; width: 100%; margin: 0; padding: 0;
-            background-color: #ffffff; color: #0f172a;
+            background-color: #f8fafc; color: #0f172a;
             -webkit-tap-highlight-color: transparent;
             font-family: "Plus Jakarta Sans", sans-serif;
-            -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
         }
         #root { height: 100%; width: 100%; display: flex; flex-direction: column; }
         
-        /* Glassmorphism */
-        .glass-nav {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(241, 245, 249, 1);
+        /* Custom Scrollbar Platinum */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { 
+            background: #e2e8f0; 
+            border-radius: 10px;
+            border: 3px solid transparent;
+            background-clip: content-box;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+        /* Glass Utility */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
         
-        /* Utilities */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 20px; }
-        .arabic-glow { text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); font-family: 'Amiri', serif; }
-        
-        /* Background */
-        .mesh-blob {
-            position: absolute;
-            background: linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%);
-            filter: blur(60px); z-index: -1; border-radius: 50%;
-            animation: blob 10s infinite;
+        .dark-glass {
+            background: rgba(3, 7, 18, 0.8);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .section-reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        /* Fluid transitions */
+        .page-transition {
+            animation: reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .section-reveal.active {
-            opacity: 1;
-            transform: translateY(0);
+
+        .bento-grid {
+            display: grid;
+            grid-auto-rows: minmax(100px, auto);
         }
     </style>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -122,7 +130,7 @@
 }
 </script>
 </head>
-<body class="h-full w-full overflow-x-hidden selection:bg-emerald-100 selection:text-emerald-900 font-sans bg-white">
+<body class="h-full w-full overflow-x-hidden selection:bg-emerald-100 selection:text-emerald-900 bg-slate-50">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
 </body>

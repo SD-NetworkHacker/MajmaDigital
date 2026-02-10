@@ -1,162 +1,123 @@
-
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, Suspense } from 'react';
 import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
 
-// DASHBOARDS
-import AdminDashboard from './components/admin/AdminDashboard';
-import MemberDashboard from './components/member/MemberDashboard';
-
-// Lazy Components
+// Lazy Modules
 const MemberModule = React.lazy(() => import('./components/MemberModule'));
 const MemberMapModule = React.lazy(() => import('./components/MemberMapModule'));
 const CommissionModule = React.lazy(() => import('./components/CommissionModule'));
 const FinanceModule = React.lazy(() => import('./components/FinanceModule'));
 const EventModule = React.lazy(() => import('./components/EventModule'));
-const MessagesModule = React.lazy(() => import('./components/MessagesModule'));
 const AdminModule = React.lazy(() => import('./components/AdminModule'));
 const SettingsModule = React.lazy(() => import('./components/SettingsModule'));
 const PedagogicalModule = React.lazy(() => import('./components/PedagogicalModule'));
 const HealthModule = React.lazy(() => import('./components/HealthModule'));
 const SocialModule = React.lazy(() => import('./components/SocialModule'));
 const AIChatBot = React.lazy(() => import('./components/AIChatBot'));
-const WarRoomLayout = React.lazy(() => import('./components/bureau/WarRoomLayout'));
 const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
-const TransportDashboard = React.lazy(() => import('./commissions/transport/TransportDashboard'));
-const CulturalDashboard = React.lazy(() => import('./commissions/culturelle/CulturalDashboard'));
 
 import GuestDashboard from './components/GuestDashboard';
-import { Mail, RefreshCw } from 'lucide-react';
-import { DataProvider, useData } from './contexts/DataContext';
+import { Menu, X, Command, Sparkles } from 'lucide-react';
+import { DataProvider } from './contexts/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
-import AuthLayout from './components/auth/AuthLayout';
 
-const PageLoader = ({ message = "Initialisation..." }) => (
-    <div className="h-full w-full flex items-center justify-center bg-slate-50 flex-col fixed inset-0 z-50 overflow-hidden">
+const PageLoader = ({ message = "Initialisation Platinum..." }) => (
+    <div className="h-full w-full flex items-center justify-center bg-[#030712] flex-col fixed inset-0 z-[2000] overflow-hidden">
         <div className="relative z-10 flex flex-col items-center">
-            <div className="relative w-28 h-28 bg-slate-900 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-emerald-900/20 mb-8 animate-in zoom-in duration-500">
-                <span className="font-arabic text-7xl text-emerald-50 pb-3 drop-shadow-lg relative z-10 select-none animate-pulse-slow">م</span>
+            <div className="relative w-32 h-32 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.4)] mb-10 transform -rotate-6 animate-pulse">
+                <span className="font-arabic text-8xl text-white pb-4 drop-shadow-2xl">م</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Majma<span className="text-emerald-600">Digital</span></h1>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 animate-pulse mt-2">{message}</p>
+            <h1 className="text-3xl font-black text-white tracking-tighter">Majma<span className="text-emerald-500">Digital</span></h1>
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce delay-100"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce delay-200"></div>
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">{message}</p>
+            </div>
         </div>
     </div>
 );
 
-const EmailVerificationView: React.FC = () => {
-    const { user, resendConfirmation, logout } = useAuth();
-    return (
-        <AuthLayout title="Confirmez votre email" subtitle="Vérifiez votre boîte de réception">
-            <div className="text-center space-y-8 animate-in zoom-in duration-500">
-                <div className="w-24 h-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center mx-auto border border-indigo-100 shadow-inner">
-                    <Mail size={40} className="text-indigo-600" />
-                </div>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                    Bonjour <strong className="text-slate-900">{user?.firstName}</strong>. <br/>
-                    Votre compte a été créé, mais vous devez confirmer votre adresse email <strong>{user?.email}</strong> pour continuer.
-                </p>
-                <div className="space-y-4">
-                    <button 
-                        onClick={() => user?.email && resendConfirmation(user.email)}
-                        className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all"
-                    >
-                        <RefreshCw size={16}/> Renvoyer le lien de confirmation
-                    </button>
-                    <button 
-                        onClick={() => window.location.reload()}
-                        className="w-full py-4 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all"
-                    >
-                        J'ai confirmé mon email
-                    </button>
-                    <button 
-                        onClick={() => logout()}
-                        className="w-full py-2 text-rose-500 font-bold text-[10px] uppercase tracking-widest hover:underline"
-                    >
-                        Déconnexion
-                    </button>
-                </div>
-            </div>
-        </AuthLayout>
-    );
-};
-
 const MainContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [viewProfileId, setViewProfileId] = useState<string | null>(null);
-  
   const { user, loading: isAuthLoading } = useAuth();
-  const { isLoading: isDataLoading } = useData();
 
-  useEffect(() => {
-    console.log("App state updated:", { 
-      isAuthLoading, 
-      hasUser: !!user, 
-      userId: user?.id,
-      isDataLoading 
-    });
-  }, [isAuthLoading, user, isDataLoading]);
-
-  if (isAuthLoading) return <PageLoader message="Vérification de la session..." />;
+  if (isAuthLoading) return <PageLoader message="Session sécurisée..." />;
   if (!user) return <GuestDashboard />;
 
-  if (!user.emailConfirmed) {
-      return <EmailVerificationView />;
-  }
-
-  const role = (user.role || '').toUpperCase();
-  const isAdminOrManager = ['ADMIN', 'SG', 'ADJOINT_SG', 'DIEUWRINE'].includes(role);
-
   const renderContent = () => {
-    if (activeTab === 'bureau' && isAdminOrManager) return <Suspense fallback={<PageLoader message="Accès WarRoom..." />}><WarRoomLayout /></Suspense>;
-    
     return (
-      <Suspense fallback={<PageLoader message="Chargement du module..." />}>
-        {(() => {
-          switch (activeTab) {
-            case 'dashboard': return isAdminOrManager ? <AdminDashboard setActiveTab={setActiveTab} members={[]} events={[]} contributions={[]} /> : <MemberDashboard setActiveTab={setActiveTab} />;
-            case 'members': return <MemberModule onViewProfile={(id) => { setViewProfileId(id); setActiveTab('profile'); }} />;
-            case 'map': return <MemberMapModule members={[]} />;
-            case 'commissions': return <CommissionModule members={[]} events={[]} />;
-            case 'pedagogy': return <PedagogicalModule />;
-            case 'social': return <SocialModule />;
-            case 'health': return <HealthModule />;
-            case 'finance': return <FinanceModule />;
-            case 'events': return <EventModule />;
-            case 'transport': return <TransportDashboard />;
-            case 'culturelle': return <CulturalDashboard />;
-            case 'messages': return <MessagesModule />;
-            case 'admin': return isAdminOrManager ? <AdminModule /> : <MemberDashboard setActiveTab={setActiveTab} />;
-            case 'settings': return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
-            case 'profile': return <UserProfile targetId={viewProfileId} onBack={() => { setViewProfileId(null); setActiveTab('members'); }} />;
-            default: return <MemberDashboard setActiveTab={setActiveTab} />;
-          }
-        })()}
-      </Suspense>
+      <div className="page-transition min-h-full">
+        <Suspense fallback={<PageLoader message="Module en cours..." />}>
+          {(() => {
+            switch (activeTab) {
+              case 'dashboard':
+              case 'admin_dashboard':
+                return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+              case 'members': return <MemberModule />;
+              case 'map': return <MemberMapModule members={[]} />;
+              case 'commissions': return <CommissionModule />;
+              case 'pedagogy': return <PedagogicalModule />;
+              case 'social': return <SocialModule />;
+              case 'health': return <HealthModule />;
+              case 'finance': return <FinanceModule />;
+              case 'events': return <EventModule />;
+              case 'admin': return <AdminModule />;
+              case 'settings': return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
+              case 'profile': return <UserProfile onBack={() => setActiveTab('dashboard')} />;
+              default: 
+                if (activeTab.startsWith('comm_')) return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+                return <Dashboard activeTab="dashboard" setActiveTab={setActiveTab} />;
+            }
+          })()}
+        </Suspense>
+      </div>
     );
   };
 
-  if (isDataLoading) return <PageLoader message="Synchro des données..." />;
-
   return (
     <div className="flex h-screen w-full bg-[#f8fafc] overflow-hidden relative">
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* Sidebar Desktop/Mobile */}
+      <div className={`fixed inset-y-0 left-0 z-[1000] w-80 transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
          <Sidebar activeTab={activeTab} setActiveTab={(tab) => { setActiveTab(tab); setIsMobileMenuOpen(false); }} />
       </div>
-      {isMobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsMobileMenuOpen(false)}></div>}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 relative">
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[900] lg:hidden animate-in fade-in duration-300" onClick={() => setIsMobileMenuOpen(false)}></div>
+      )}
+
+      {/* Main Panel */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-[#f1f5f9]">
+         {/* Top Mobile Bar */}
+         <div className="lg:hidden flex items-center justify-between p-5 bg-white border-b border-slate-200 shrink-0">
+            <div className="flex items-center gap-3">
+               <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-arabic text-lg pb-1 shadow-md">م</div>
+               <span className="font-black text-sm uppercase tracking-tighter">MajmaDigital</span>
+            </div>
             <button 
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden absolute top-4 left-4 p-2 bg-white rounded-xl shadow-sm z-30"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2.5 bg-slate-100 rounded-xl text-slate-600 active:scale-90 transition-all"
             >
-                <RefreshCw size={20}/>
+                {isMobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}
             </button>
-            {renderContent()}
+         </div>
+
+         {/* Content Wrapper */}
+         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
+            <div className="max-w-[1600px] mx-auto">
+               {renderContent()}
+            </div>
          </div>
       </div>
+
+      {/* Floating UI Elements */}
       <Suspense fallback={null}><AIChatBot /></Suspense>
     </div>
   );
