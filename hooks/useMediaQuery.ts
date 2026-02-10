@@ -3,10 +3,10 @@ import { useState, useEffect } from 'react';
 export const useMediaQuery = () => {
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
-    // On met par défaut isMobile à true pour le premier rendu (mobile-first / safe hydration)
-    isMobile: typeof window !== 'undefined' ? window.innerWidth < 768 : true,
-    isTablet: typeof window !== 'undefined' ? window.innerWidth >= 768 && window.innerWidth < 1024 : false,
-    isDesktop: typeof window !== 'undefined' ? window.innerWidth >= 1024 : false,
+    // On met par défaut isMobile à true pour le premier rendu (mobile-first)
+    isMobile: true,
+    isTablet: false,
+    isDesktop: false,
   });
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export const useMediaQuery = () => {
       });
     };
 
-    // Exécution immédiate pour synchroniser après le montage
+    // Synchronisation immédiate après le montage
     handleResize();
 
     window.addEventListener('resize', handleResize);

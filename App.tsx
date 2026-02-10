@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { usePWA } from './hooks/usePWA';
 import { initViewportHeight } from './utils/viewport';
+import { safeLower } from './utils/string';
 
 // Lazy Modules
 const MemberModule = React.lazy(() => import('./components/MemberModule'));
@@ -30,8 +31,8 @@ import { NotificationProvider } from './context/NotificationContext';
 import { LoadingProvider } from './context/LoadingContext';
 import { ThemeProvider } from './context/ThemeContext';
 
-const PageLoader = ({ message = "Initialisation du module..." }) => (
-    <div className="h-full w-full flex flex-col items-center justify-center bg-slate-50/50 p-12 min-h-[400px]">
+const PageLoader = ({ message = "Initialisation..." }) => (
+    <div className="h-full w-full flex flex-col items-center justify-center bg-slate-50 p-12 min-h-[400px]">
         <div className="relative w-16 h-16 mb-6">
             <Loader2 className="w-full h-full text-emerald-600 animate-spin" />
             <div className="absolute inset-0 flex items-center justify-center font-arabic text-xl text-emerald-600 pb-1">م</div>
@@ -53,17 +54,18 @@ const MainContent = () => {
   }, []);
 
   const handleNavigate = (tabId: string) => {
-    // startTransition résout l'erreur 525 en marquant le changement d'onglet comme non-urgent
     startTransition(() => {
-      setActiveTab(tabId);
+      setActiveTab(tabId || 'dashboard');
     });
   };
 
-  if (isAuthLoading) return <PageLoader message="Vérification de session..." />;
+  if (isAuthLoading) return <PageLoader message="Vérification session..." />;
   if (!user) return <GuestDashboard />;
 
   const renderCurrentModule = () => {
-    switch (activeTab) {
+    const safeTab = safeLower(activeTab);
+
+    switch (safeTab) {
       case 'dashboard':
       case 'admin_dashboard':
         return <Dashboard activeTab={activeTab} setActiveTab={handleNavigate} />;
@@ -85,18 +87,16 @@ const MainContent = () => {
 
   return (
     <div className="flex h-screen w-full bg-[#f8fafc] overflow-hidden relative font-sans">
-      {/* SIDEBAR : Uniquement sur Desktop */}
       {!isMobile && (
-        <div className="w-80 h-full shrink-0">
+        <div className="w-80 h-full shrink-0 border-r border-slate-200/60 bg-white">
            <Sidebar activeTab={activeTab} setActiveTab={handleNavigate} />
         </div>
       )}
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-[#f1f5f9]">
-         {/* HEADER */}
-         <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200/60 shrink-0 lg:py-6 z-10">
+         <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200/60 shrink-0 z-10">
             <div className="flex items-center gap-4">
-               <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-arabic text-xl pb-1 shadow-lg shadow-emerald-900/20">م</div>
+               <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-arabic text-xl pb-1 shadow-lg">م</div>
                <div className="flex flex-col">
                   <span className="font-black text-sm uppercase tracking-widest text-slate-900">MajmaDigital</span>
                   <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest">Platform Edition</span>
@@ -105,29 +105,21 @@ const MainContent = () => {
             
             <div className="flex items-center gap-2">
                {isInstallable && isMobile && (
-                  <button 
-                    onClick={installApp}
-                    className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-100 shadow-sm active:scale-95 transition-all"
-                  >
+                  <button onClick={installApp} className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-100 shadow-sm">
                     <Download size={14} /> Installer
                   </button>
                )}
-               
                {isMobile && (
-                  <button 
-                    onClick={() => handleNavigate('settings')}
-                    className="p-2.5 bg-slate-100 text-slate-500 rounded-xl active:scale-90 transition-all border border-slate-200"
-                  >
+                  <button onClick={() => handleNavigate('settings')} className="p-2.5 bg-slate-100 text-slate-500 rounded-xl border border-slate-200">
                     <Command size={18}/>
                   </button>
                )}
             </div>
          </header>
 
-         {/* ZONE DE CONTENU - Protégée par Suspense et ErrorBoundary */}
          <div className={`flex-1 overflow-hidden relative ${isMobile ? 'pb-20' : ''}`}>
             <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
+              <Suspense fallback={<PageLoader message="Chargement du module..." />}>
                 {isMobile ? (
                   <PullToRefresh onRefresh={refreshAll}>
                     <div className={`max-w-[1600px] mx-auto p-4 md:p-10 transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
@@ -144,7 +136,6 @@ const MainContent = () => {
          </div>
       </div>
 
-      {/* BOTTOM NAVIGATION : Mobile uniquement */}
       {isMobile && <BottomNav activeTab={activeTab} setActiveTab={handleNavigate} />}
       
       {!isMobile && (
@@ -157,17 +148,19 @@ const MainContent = () => {
 };
 
 const App = () => (
-  <ThemeProvider>
-    <LoadingProvider>
-      <NotificationProvider>
-        <AuthProvider>
-          <DataProvider>
-            <MainContent />
-          </DataProvider>
-        </AuthProvider>
-      </NotificationProvider>
-    </LoadingProvider>
-  </ThemeProvider>
+  <ErrorBoundary>
+    <ThemeProvider>
+      <LoadingProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <DataProvider>
+              <MainContent />
+            </DataProvider>
+          </AuthProvider>
+        </NotificationProvider>
+      </LoadingProvider>
+    </ThemeProvider>
+  </ErrorBoundary>
 );
 
 export default App;

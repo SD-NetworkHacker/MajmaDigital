@@ -6,16 +6,18 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CommissionType } from '../types';
+import { safeLower } from '../utils/string';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
-// Fixed: Removed React.FC to avoid issues with required children in some TS environments
 const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
   const { user, logout } = useAuth();
   
+  if (!user) return <div className="h-full bg-[#030712] animate-pulse" />;
+
   const isSystemAdmin = user?.role === 'ADMIN';
   const isSG = user?.role === 'SG' || user?.role === 'ADJOINT_SG';
   
@@ -56,8 +58,7 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
   };
 
   return (
-    <div className="h-full hidden lg:flex flex-col bg-[#030712] border-r border-white/5 shadow-2xl">
-      {/* Brand */}
+    <div className="h-full flex flex-col bg-[#030712] border-r border-white/5 shadow-2xl">
       <div className="p-8 pb-10 flex items-center gap-4">
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-arabic text-2xl pb-1 shadow-[0_0_20px_rgba(16,185,129,0.2)] bg-emerald-600 text-white transform -rotate-3">
           م
@@ -68,9 +69,7 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-10 overflow-y-auto custom-scrollbar no-scrollbar">
-        
-        {/* --- SECTION 1: ESPACE MEMBRE --- */}
+      <nav className="flex-1 px-4 space-y-10 overflow-y-auto no-scrollbar">
         {!isSystemAdmin && (
           <div className="space-y-2">
             <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4">Personnel</h3>
@@ -78,21 +77,20 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
           </div>
         )}
 
-        {/* --- SECTION 2: MÉTIER --- */}
         {!isSystemAdmin && myCommissions.length > 0 && (
           <div className="space-y-2">
             <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4">Pôles d'Action</h3>
-            {myCommissions.map((c, i) => 
-              renderNavButton({ 
-                id: `comm_${c.type.toLowerCase()}`, 
+            {myCommissions.map((c, i) => {
+              const commId = `comm_${safeLower(c.type)}`;
+              return renderNavButton({ 
+                id: commId, 
                 icon: Briefcase, 
                 label: `Pôle ${c.type}` 
-              }, activeTab === `comm_${c.type.toLowerCase()}`)
-            )}
+              }, activeTab === commId)
+            })}
           </div>
         )}
 
-        {/* --- SECTION 3: DIRECTION --- */}
         {isInAdmin && !isSystemAdmin && (
           <div className="space-y-2">
             <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4">Gouvernance</h3>
@@ -102,7 +100,6 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
           </div>
         )}
 
-        {/* --- SECTION SYSTÈME --- */}
         {isSystemAdmin && (
           <div className="space-y-2">
             <h3 className="px-5 text-[9px] font-black text-rose-500 uppercase tracking-[0.3em] mb-4">Infrastructure</h3>
@@ -111,7 +108,6 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
         )}
       </nav>
 
-      {/* Footer Profile & Logout */}
       <div className="p-4 mt-auto border-t border-white/5 space-y-2">
         <button
           onClick={() => setActiveTab('settings')}
