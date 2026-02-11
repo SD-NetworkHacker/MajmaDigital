@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { 
     Member, Event, Contribution, AdiyaCampaign, BudgetRequest, CommissionFinancialReport, 
@@ -6,7 +7,8 @@ import {
     InternalMeetingReport
 } from '../types';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
+// Fix: Corrected path for AuthContext
+import { useAuth } from './AuthContext';
 
 interface DataContextType {
   members: Member[];
@@ -90,7 +92,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { data, error } = await supabase.from(tableName).select('*');
       if (error) {
-        // Suppress signal aborted errors as they are non-critical effect interruptions
         if (error.message?.includes('aborted') || error.message?.includes('signal')) {
             return [];
         }
@@ -223,7 +224,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!error) refreshAll();
   };
 
-  // Implement placeholders for remaining methods used in UI
+  // Implement placeholders
   const addInventoryItem = async (item: InventoryItem) => { console.log('Mock addInventoryItem'); };
   const deleteInventoryItem = async (id: string) => { console.log('Mock deleteInventoryItem'); };
   const addVehicle = async (v: Vehicle) => { console.log('Mock addVehicle'); };

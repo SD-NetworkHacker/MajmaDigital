@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, Loader2, CheckCircle, Zap } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+// Fix: Corrected path for AuthContext
+import { useAuth } from '../../contexts/AuthContext';
 import AuthLayout from './AuthLayout';
 
 interface LoginFormProps {
@@ -25,7 +27,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
     setError('');
     setIsSubmitting(true);
     try {
-      await login(email.trim(), password, rememberMe);
+      await login(email.trim(), password);
     } catch (err: any) {
       setError(err.message || "Identifiants incorrects.");
       setIsSubmitting(false);
@@ -37,7 +39,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onForgotPassword
     setError('');
     setIsSubmitting(true);
     try {
-      await login('sidysowreck@gmail.com', 'azertyuiop', true);
+      await login('sidysowreck@gmail.com', 'azertyuiop');
     } catch (err: any) {
       setError(err.message || "Échec de la connexion rapide.");
       setIsSubmitting(false);

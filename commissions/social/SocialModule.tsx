@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Heart, HandHelping, Users, TrendingUp, Plus, Target, PieChart as PieIcon, ArrowUpRight, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+// Fix: Corrected path for AuthContext
+import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { SocialProject } from '../../types';
 
@@ -155,25 +156,6 @@ const SocialModule: React.FC = () => {
                     </div>
                 )}
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center text-center justify-center min-h-[300px]">
-                    <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-6">
-                        <HandHelping size={40} />
-                    </div>
-                    <h3 className="text-xl font-black text-slate-900 mb-2">Besoin d'un soutien ?</h3>
-                    <p className="text-sm text-slate-500 max-w-sm mx-auto mb-8">La commission sociale est là pour vous accompagner dans les moments difficiles.</p>
-                    <button onClick={() => setView('request')} className="text-rose-600 font-black text-xs uppercase tracking-widest hover:underline">Faire une demande</button>
-                </div>
-
-                <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center text-center justify-center min-h-[300px]">
-                     <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mb-6">
-                        <Users size={40} />
-                    </div>
-                    <h3 className="text-xl font-black text-slate-900 mb-2">Réseau d'Entraide</h3>
-                    <p className="text-sm text-slate-500 max-w-sm mx-auto">Connectez-vous avec d'autres membres pour du mentorat ou de l'échange de services.</p>
-                </div>
-            </div>
         </div>
       );
   }
@@ -256,71 +238,12 @@ const SocialModule: React.FC = () => {
             </div>
             <Heart className="absolute -right-10 -bottom-10 text-white/5 group-hover:scale-110 transition-transform duration-1000" size={180} />
           </div>
-          
-          <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-gray-800 text-[10px] uppercase tracking-widest flex items-center gap-3">
-                <PieIcon size={18} className="text-rose-600" />
-                Répartition des Fonds
-              </h3>
-            </div>
-            <div className="space-y-6">
-              {[
-                { label: 'Santé & Urgences', p: 40, c: 'bg-rose-500' },
-                { label: 'Soutien Scolaire', p: 30, c: 'bg-blue-500' },
-                { label: 'Projets Com.', p: 30, c: 'bg-emerald-500' }
-              ].map((item, i) => (
-                <div key={i} className="space-y-3">
-                  <div className="flex justify-between items-center text-[10px] font-black uppercase">
-                    <span className="text-gray-400">{item.label}</span>
-                    <span className="text-gray-800">{item.p}%</span>
-                  </div>
-                  <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden border border-gray-100">
-                    <div className={`${item.c} h-full transition-all duration-1000 ease-out`} style={{ width: `${item.p}%` }}></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         <div className="lg:col-span-3 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             {socialProjects.length > 0 ? socialProjects.map(proj => (
-                 <div key={proj.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:border-emerald-200 transition-all">
-                     <div className="flex justify-between items-start mb-3">
-                        <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full bg-${proj.color}-50 text-${proj.color}-600`}>{proj.theme}</span>
-                        <div className={`p-2 rounded-full bg-${proj.color}-50 text-${proj.color}-600`}><Target size={16}/></div>
-                     </div>
-                     <h4 className="text-base font-black text-slate-800 mb-2">{proj.title}</h4>
-                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
-                        <div className={`h-full bg-${proj.color}-500`} style={{ width: `${Math.min(100, (proj.currentAmount/proj.targetAmount)*100)}%` }}></div>
-                     </div>
-                     <p className="text-[10px] font-bold text-slate-400 text-right">{proj.currentAmount.toLocaleString()} / {proj.targetAmount.toLocaleString()} F</p>
-                 </div>
-             )) : (
-                 <div className="col-span-2 flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-[3rem]">
-                     <Target size={48} className="mb-4 opacity-20"/>
-                     <p className="text-xs font-bold uppercase">Aucun projet actif</p>
-                 </div>
-             )}
-          </div>
-
-          <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
-              <h3 className="font-black text-gray-800 flex items-center gap-3">
-                <HandHelping size={22} className="text-rose-500" />
-                Dernières Interventions Sociales
-              </h3>
-              <button className="text-[10px] font-black text-rose-600 uppercase tracking-widest hover:underline flex items-center gap-2">
-                Tout l'historique <ArrowUpRight size={14} />
-              </button>
-            </div>
-            <div className="divide-y divide-gray-50">
-               <div className="py-12 text-center text-slate-400 text-xs italic">
-                   Aucune intervention récente.
-               </div>
-            </div>
+          <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden p-10 flex flex-col items-center justify-center text-center">
+             <p className="text-sm text-slate-400 mb-4">Gestion des dossiers sociaux</p>
+             <button className="text-rose-600 font-black uppercase text-xs hover:underline">Accéder aux dossiers confidentiels</button>
           </div>
         </div>
       </div>

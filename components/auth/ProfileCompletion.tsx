@@ -1,9 +1,10 @@
 
 import React, { useState, useRef } from 'react';
 import { Camera, User, Save, UploadCloud } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+// Fix: Corrected AuthContext path
+import { useAuth } from '../../contexts/AuthContext';
 import { useLoading } from '../../context/LoadingContext';
-import { useNotification } from '../../context/NotificationContext';
+// Fix: Removed NotificationContext as it is obsolete
 import AuthLayout from './AuthLayout';
 
 interface ProfileCompletionProps {
@@ -11,9 +12,8 @@ interface ProfileCompletionProps {
 }
 
 const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => {
-  const { user, refreshProfile } = useAuth(); // Assume update function exists or mocked
+  const { user, refreshProfile } = useAuth();
   const { showLoading, hideLoading } = useLoading();
-  const { addNotification } = useNotification();
   
   const [bio, setBio] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -36,10 +36,9 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
     
     // Simulation Update Profile
     setTimeout(() => {
-      // Ici on appellerait une fonction pour mettre à jour le profil
       console.log('Profile updated', { bio, avatar: avatarPreview });
       hideLoading();
-      addNotification("Profil mis à jour !", "success");
+      alert("Profil mis à jour !");
       onComplete();
     }, 1500);
   };

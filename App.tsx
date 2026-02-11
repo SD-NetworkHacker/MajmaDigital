@@ -16,6 +16,7 @@ const MemberMapModule = React.lazy(() => import('./components/MemberMapModule'))
 const CommissionModule = React.lazy(() => import('./components/CommissionModule'));
 const FinanceModule = React.lazy(() => import('./components/FinanceModule'));
 const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
+const SettingsModule = React.lazy(() => import('./components/SettingsModule'));
 
 const AppContent = () => {
   const { user, loading } = useAuth();
@@ -28,21 +29,34 @@ const AppContent = () => {
 
   if (loading) return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950">
-      <Loader2 className="text-emerald-500 animate-spin mb-4" size={48} />
-      <p className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Initialisation Majma OS</p>
+      <div className="relative">
+        <Loader2 className="text-emerald-500 animate-spin mb-6" size={48} />
+        <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full animate-pulse"></div>
+      </div>
+      <p className="text-[10px] font-black text-white uppercase tracking-[0.4em] animate-pulse">Majma OS • Initialisation</p>
     </div>
   );
 
   if (!user) return <GuestDashboard />;
 
   const renderModule = () => {
-    if (activeTab === 'dashboard' || activeTab === 'admin_dashboard') return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
-    if (activeTab === 'members') return <MemberModule />;
-    if (activeTab === 'map') return <MemberMapModule members={[]} />;
-    if (activeTab === 'profile') return <UserProfile onBack={() => setActiveTab('dashboard')} />;
-    if (activeTab === 'finance_perso') return <FinanceModule />;
-    if (activeTab === 'commissions') return <CommissionModule />;
-    if (activeTab.startsWith('comm_')) return <CommissionModule defaultView={null} />;
+    const tab = activeTab.toLowerCase();
+    
+    if (tab === 'dashboard' || tab === 'admin_dashboard') {
+      return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+    }
+    if (tab === 'members') return <MemberModule />;
+    if (tab === 'map') return <MemberMapModule members={[]} />;
+    if (tab === 'profile') return <UserProfile onBack={() => setActiveTab('dashboard')} />;
+    if (tab === 'settings') return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
+    if (tab === 'finance_perso') return <FinanceModule />;
+    if (tab === 'commissions') return <CommissionModule />;
+    
+    // Gestion dynamique des préfixes de commission
+    if (tab.startsWith('comm_')) {
+      return <CommissionModule defaultView={null} />;
+    }
+    
     return <Dashboard activeTab="dashboard" setActiveTab={setActiveTab} />;
   };
 
@@ -55,10 +69,14 @@ const AppContent = () => {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <main className={`flex-1 overflow-y-auto ${isMobile ? 'pb-24' : 'p-8'}`}>
+        <main className={`flex-1 overflow-y-auto ${isMobile ? 'pb-24 pt-4' : 'p-8'}`}>
           <ErrorBoundary>
-            <Suspense fallback={<Loader2 className="animate-spin m-auto" />}>
-              <div className="max-w-[1600px] mx-auto p-4">
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="animate-spin text-emerald-500 opacity-20" size={40} />
+              </div>
+            }>
+              <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
                 {renderModule()}
               </div>
             </Suspense>

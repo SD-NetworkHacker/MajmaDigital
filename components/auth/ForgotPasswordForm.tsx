@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Mail, Send, ChevronLeft } from 'lucide-react';
 import { useLoading } from '../../context/LoadingContext';
-import { useNotification } from '../../context/NotificationContext';
+// Fix: Removed NotificationContext import as it is obsolete
 import AuthLayout from './AuthLayout';
 
 interface ForgotPasswordFormProps {
@@ -11,7 +11,6 @@ interface ForgotPasswordFormProps {
 
 const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }) => {
   const { showLoading, hideLoading } = useLoading();
-  const { addNotification } = useNotification();
   const [email, setEmail] = useState('');
   const [isSent, setIsSent] = useState(false);
 
@@ -24,7 +23,8 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }
     setTimeout(() => {
       hideLoading();
       setIsSent(true);
-      addNotification("Email de récupération envoyé !", "success");
+      // Fix: Replaced addNotification with alert
+      alert("Email de récupération envoyé !");
     }, 1500);
   };
 

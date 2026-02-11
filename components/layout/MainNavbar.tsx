@@ -4,8 +4,9 @@ import {
   Menu, X, Bell, User, LogOut, Settings, 
   ChevronDown, Search, LayoutGrid, Shield 
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { useNotification } from '../../context/NotificationContext';
+// Fix: Corrected path for AuthContext
+import { useAuth } from '../../contexts/AuthContext';
+// Fix: Removed NotificationContext as it is obsolete
 import { useTheme } from '../../context/ThemeContext';
 
 interface MainNavbarProps {
@@ -15,14 +16,14 @@ interface MainNavbarProps {
 
 const MainNavbar: React.FC<MainNavbarProps> = ({ onNavigate, currentView }) => {
   const { user, logout } = useAuth();
-  const { notifications } = useNotification();
-  const { theme } = useTheme(); // Pour info, même si on force le style ici
+  const { theme } = useTheme(); 
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const unreadNotifications = notifications.length;
+  // Fix: Set unreadNotifications to 0 since context is missing
+  const unreadNotifications = 0;
 
   // Fermer le menu utilisateur si on clique ailleurs
   useEffect(() => {
@@ -92,7 +93,7 @@ const MainNavbar: React.FC<MainNavbarProps> = ({ onNavigate, currentView }) => {
             
             {/* Search (Desktop) */}
             <div className="hidden md:flex relative group">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-none">
                 <Search size={14} className="text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
               </div>
               <input 

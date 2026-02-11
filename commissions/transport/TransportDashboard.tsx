@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Bus, Map, Users, Ticket, Wrench, LayoutDashboard, Wallet, FileText,
@@ -21,7 +22,8 @@ import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
 import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType, TransportSchedule } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fix: Corrected path for AuthContext
+import { useAuth } from '../../contexts/AuthContext';
 import { getSchedules } from '../../services/transportService';
 
 interface BookedTicket extends TransportSchedule {
@@ -29,4 +31,3 @@ interface BookedTicket extends TransportSchedule {
   bookingId: string;
   bookingDate: string;
 }
-

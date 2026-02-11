@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   LayoutDashboard, Calendar, Library, BookOpen, 
@@ -15,7 +16,8 @@ import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
 import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fix: Corrected path for AuthContext
+import { useAuth } from '../../contexts/AuthContext';
 
 const CulturalDashboard: React.FC = () => {
   const { members } = useData();

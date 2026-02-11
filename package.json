@@ -1,6 +1,6 @@
 {
-  "name": "majma-digital-v3",
-  "version": "3.2.0",
+  "name": "majma-digital-platinum",
+  "version": "3.3.0",
   "private": true,
   "scripts": {
     "dev": "vite",

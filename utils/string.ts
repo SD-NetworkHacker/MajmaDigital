@@ -1,19 +1,17 @@
 /**
  * Sécurise l'appel à toLowerCase sur n'importe quelle valeur.
- * @param str Valeur à transformer
- * @returns Chaîne en minuscule ou vide si la valeur est invalide
  */
 export const safeLower = (str: any): string => {
   if (str === null || str === undefined) return '';
-  return String(str).toLowerCase();
+  return String(str).toLowerCase().trim();
 };
 
 /**
- * Vérifie si une chaîne contient une autre de manière sécurisée et insensible à la casse.
+ * Recherche insensible à la casse et sécurisée.
  */
 export const safeIncludes = (target: any, search: string): boolean => {
-  const safeTarget = safeLower(target);
-  const safeSearch = safeLower(search);
-  if (!safeSearch) return true;
-  return safeTarget.includes(safeSearch);
+  const t = safeLower(target);
+  const s = safeLower(search);
+  if (!s) return true;
+  return t.includes(s);
 };

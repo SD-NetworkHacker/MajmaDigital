@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Lock, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { useLoading } from '../../context/LoadingContext';
-import { useNotification } from '../../context/NotificationContext';
+// Fix: Removed NotificationContext import as it is obsolete
 import AuthLayout from './AuthLayout';
 
 interface ResetPasswordFormProps {
@@ -11,7 +11,6 @@ interface ResetPasswordFormProps {
 
 const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
   const { showLoading, hideLoading } = useLoading();
-  const { addNotification } = useNotification();
   
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,11 +19,12 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      addNotification("Les mots de passe ne correspondent pas", "error");
+      // Fix: Replaced addNotification with alert
+      alert("Les mots de passe ne correspondent pas");
       return;
     }
     if (password.length < 6) {
-      addNotification("Le mot de passe doit contenir au moins 6 caractères", "warning");
+      alert("Le mot de passe doit contenir au moins 6 caractères");
       return;
     }
 
@@ -32,7 +32,7 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
     // Simulate API
     setTimeout(() => {
       hideLoading();
-      addNotification("Mot de passe réinitialisé avec succès", "success");
+      alert("Mot de passe réinitialisé avec succès");
       onSuccess();
     }, 1500);
   };

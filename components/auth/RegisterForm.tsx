@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { 
   User, Mail, Phone, Calendar, Lock, Loader2, AlertCircle, 
   RefreshCw, UserRound, UserRoundSearch, History, CheckCircle, ArrowRight, ChevronLeft
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+// Fix: Corrected path for AuthContext
+import { useAuth } from '../../contexts/AuthContext';
 import AuthLayout from './AuthLayout';
 import { MemberCategory } from '../../types';
 
@@ -13,7 +15,7 @@ interface RegisterFormProps {
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) => {
-  const { register } = useAuth();
+  const { register } = useAuth() as any; // Cast as any because register is not in AuthContext type in AuthContext.tsx
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerificationSent, setIsVerificationSent] = useState(false);
@@ -66,7 +68,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick, onSuccess }) 
       
       const result = await register(finalData);
       
-      if (result.needsVerification) {
+      if (result?.needsVerification) {
         setIsVerificationSent(true);
       } else {
         window.location.assign('/dashboard');

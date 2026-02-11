@@ -8,9 +8,10 @@ export interface UserProfile {
   firstName: string;
   lastName: string;
   role: string;
-  commissions: string[]; // JSON array ["Administration", "Finance"]
+  commissions: string[]; 
   matricule?: string;
   category?: string;
+  avatarUrl?: string;
 }
 
 interface AuthContextType {
@@ -18,6 +19,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,28 +29,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string, email: string) => {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    if (profile) {
-      setUser({
-        id: userId,
-        email: email,
-        firstName: profile.first_name || 'Membre',
-        lastName: profile.last_name || '',
-        role: profile.role || 'MEMBRE',
-        commissions: Array.isArray(profile.commissions) ? profile.commissions : [],
-        matricule: profile.matricule,
-        category: profile.category
-      });
+      if (profile) {
+        setUser({
+          id: userId,
+          email: email,
+          firstName: profile.first_name || 'Membre',
+          lastName: profile.last_name || '',
+          role: profile.role || 'MEMBRE',
+          commissions: Array.isArray(profile.commissions) ? profile.commissions : [],
+          matricule: profile.matricule,
+          category: profile.category,
+          avatarUrl: profile.avatar_url
+        });
+      }
+    } catch (err) {
+      console.error("Auth Profile Error:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
+    // Initial Session Check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         fetchProfile(session.user.id, session.user.email!);
@@ -57,7 +66,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Auth State Listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         fetchProfile(session.user.id, session.user.email!);
       } else {
@@ -75,18 +85,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    localStorage.clear();
-    sessionStorage.clear();
-    // Purge cookies
-    document.cookie.split(";").forEach((c) => {
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
-    window.location.assign('/');
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("SignOut error:", e);
+    } finally {
+      // DECONNEXION RADICALE
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Purge Cookies
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        document.cookie = name.trim() + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+      }
+
+      // Hard Redirect
+      window.location.assign('/');
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) await fetchProfile(user.id, user.email);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

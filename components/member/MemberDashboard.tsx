@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { 
   Calendar, ArrowRight, MapPin, Sparkles, BookOpen, Wallet, Zap,
@@ -5,7 +6,8 @@ import {
   Smartphone, ChevronRight, CheckCircle, FileText, HeartHandshake,
   ShieldCheck, Loader2, Clock
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+// Fix: Corrected path for AuthContext
+import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { MemberCategory, CommissionType } from '../../types';
 import { INITIAL_COMMISSIONS } from '../../constants';

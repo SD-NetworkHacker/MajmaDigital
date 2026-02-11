@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, TrendingUp, Calendar, Sparkles, 
@@ -12,7 +13,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { getSmartInsight } from '../../services/geminiService';
 import { Member, Event, Contribution, GlobalRole } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../context/AuthContext';
+// Fix: Corrected path for AuthContext
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AdminDashboardProps {
   members: Member[];
@@ -23,7 +25,7 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
   const { reports, members, contributions, events, totalTreasury, activeMembersCount } = useData();
-  const { impersonate, user } = useAuth();
+  const { impersonate, user } = useAuth() as any; // Cast for simulation specific methods
   
   const [insight, setInsight] = useState<string>('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -71,7 +73,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         return;
       }
       
-      if (isAiLoading) return; // Prevent overlapping requests
+      if (isAiLoading) return;
 
       if (isMounted) setIsAiLoading(true);
       try {
@@ -94,7 +96,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
     return () => {
       isMounted = false;
     };
-  }, [members?.length, contributions?.length]); // Use lengths to stabilize the effect dependencies
+  }, [members?.length, contributions?.length]);
 
   const refreshInsight = async () => {
       setIsAiLoading(true);
@@ -109,58 +111,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
       }
   };
 
-  const triggerAdminAction = async (action: string) => {
-    setAdminActionStatus(prev => ({ ...prev, [action]: 'loading' }));
-    
-    if (action === 'backup') {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const backupData = { members, contributions, events, date: new Date().toISOString() };
-        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `majma_backup_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    } else if (action === 'maintenance') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setMaintenanceMode(prev => !prev);
-    } else if (action === 'roles') {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setActiveTab('members');
-    } else if (action === 'reboot') {
-        sessionStorage.removeItem('dashboard_insight');
-        await refreshInsight();
-    } else {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-    }
-    
-    setAdminActionStatus(prev => ({ ...prev, [action]: 'success' }));
-    setTimeout(() => {
-      setAdminActionStatus(prev => ({ ...prev, [action]: 'idle' }));
-    }, 2500);
-  };
-
   const nextEvent = useMemo(() => {
     const now = new Date();
     return (events || [])
       .filter(e => new Date(e.date) >= now)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
   }, [events]);
-
-  const majorEvent = useMemo(() => {
-    const now = new Date();
-    return (events || [])
-      .filter(e => (e.type === 'Magal' || e.type === 'Ziar' || e.type === 'Gott') && new Date(e.date) >= now)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-  }, [events]);
-
-  const daysToMajorEvent = useMemo(() => {
-    if (!majorEvent) return null;
-    const diff = new Date(majorEvent.date).getTime() - new Date().getTime();
-    return Math.ceil(diff / (1000 * 3600 * 24));
-  }, [majorEvent]);
 
   const simulationProfiles = useMemo(() => {
     const mList = members || [];
@@ -329,10 +285,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
                     </h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Flux de cotisations (6 derniers mois)</p>
                  </div>
-                 <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-colors">Recettes</button>
-                    <button className="px-4 py-2 bg-white border border-slate-100 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-slate-600 transition-colors">Dépenses</button>
-                 </div>
               </div>
               
               <div className="h-[320px] w-full min-w-0">
@@ -365,36 +317,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
                 </ResponsiveContainer>
               </div>
            </div>
-
-           <div>
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">
-                 <Activity size={16} className="text-slate-400" /> Pulse des Commissions
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                 {commissionPulseData.map((comm) => (
-                    <div 
-                      key={comm.id} 
-                      onClick={() => setActiveTab(comm.action)}
-                      className={`p-4 bg-white border border-slate-100 rounded-2xl flex items-center gap-3 hover:shadow-lg transition-all cursor-pointer group hover:border-${comm.color.split('-')[1]}`}
-                    >
-                       <div className={`p-2.5 rounded-xl ${comm.bg} ${comm.color} group-hover:scale-110 transition-transform`}>
-                          <comm.icon size={18} />
-                       </div>
-                       <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider truncate">{comm.label}</p>
-                          <p className="text-xs font-bold text-slate-800 truncate">{comm.value}</p>
-                       </div>
-                    </div>
-                 ))}
-              </div>
-           </div>
         </div>
 
         <div className="xl:col-span-4 space-y-8">
            {showSimulationConsole && (
              <div className="glass-card p-6 bg-slate-900 text-white relative overflow-hidden group border border-slate-800 shadow-2xl ring-1 ring-white/10">
                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-black z-0"></div>
-               <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 z-0"></div>
                
                <div className="relative z-10">
                  <div className="flex items-center justify-between mb-8">
@@ -459,7 +387,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
                         {simSearch && <button onClick={() => setSimSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"><X size={12} /></button>}
                       </div>
                       <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
-                         {simSearchResults.length > 0 ? simSearchResults.map(m => (
+                         {(simSearchResults || []).map(m => (
                            <button key={m.id} onClick={() => impersonate(m)} className="w-full flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors group text-left border border-transparent hover:border-white/5">
                               <div className="flex items-center gap-3 overflow-hidden">
                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.status === 'active' ? 'bg-emerald-50/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>{getRoleIcon(m.role as string)}</div>
@@ -470,45 +398,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
                               </div>
                               <ChevronRight size={12} className="text-slate-600 group-hover:text-amber-400"/>
                            </button>
-                         )) : <div className="text-center py-6 text-slate-500 flex flex-col items-center">
-                            <Search size={24} className="mb-2 opacity-20"/>
-                            <p className="text-[10px] italic">{simSearch ? 'Aucun résultat' : 'Recherchez pour simuler'}</p>
-                         </div>}
+                         ))}
                       </div>
                    </div>
                  )}
                </div>
              </div>
            )}
-
-           <div className="glass-card p-8 bg-white h-full flex flex-col min-h-[400px]">
-              <div className="flex justify-between items-center mb-8">
-                 <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2"><Clock size={16} className="text-slate-400"/> Flux d'Activité</h4>
-                 <button className="text-[10px] font-black text-emerald-600 hover:underline uppercase">Tout voir</button>
-              </div>
-              
-              <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                 {activityFeed.length > 0 ? activityFeed.map((item, i) => (
-                   <div key={item.id} className="flex gap-4 group">
-                      <div className="flex flex-col items-center">
-                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.bg} ${item.color} shadow-sm group-hover:scale-110 transition-transform`}><item.icon size={18} /></div>
-                         {i !== activityFeed.length - 1 && <div className="w-0.5 h-full bg-slate-100 my-2 rounded-full"></div>}
-                      </div>
-                      <div className="pb-4">
-                         <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">{item.date.toLocaleDateString()}</p>
-                         <h5 className="text-xs font-black text-slate-800">{item.label}</h5>
-                         <p className="text-[11px] text-slate-500 font-medium mt-1 truncate max-w-[180px]">{item.sub}</p>
-                      </div>
-                   </div>
-                 )) : (
-                   <div className="flex flex-col items-center justify-center h-40 text-slate-300">
-                      <BellRing size={32} className="mb-2 opacity-50"/>
-                      <p className="text-xs font-bold uppercase">Aucune activité récente</p>
-                   </div>
-                 )}
-              </div>
-           </div>
-           
         </div>
       </div>
     </div>

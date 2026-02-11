@@ -1,40 +1,39 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Wallet, TrendingUp, Target, PieChart, FileText, 
-  Share2, Download, Zap, CreditCard, LayoutDashboard, 
-  ShieldCheck, Calculator, Landmark, History, User, CheckSquare,
-  BadgeCheck, Mail, ArrowLeft, ListTodo, Sparkles, Lock
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Landmark, TrendingUp, Target, PieChart, FileText, Share2, Download, Zap, CreditCard, LayoutDashboard, ShieldCheck, Calculator, Landmark as LandmarkIcon, History, User, CheckSquare, BadgeCheck, Mail, ArrowLeft, ListTodo, Sparkles, Lock } from 'lucide-react';
+import { getSmartInsight } from '../../services/geminiService';
+// Fixed: Corrected paths for components located in components/ folder
+import TransactionForm from '../../components/TransactionForm';
+import MemberStatementModal from '../../components/MemberStatementModal';
+// Fixed: Added CommissionType to imports from types
+import { Contribution, CommissionType } from '../../types';
+import { useData } from '../../contexts/DataContext';
+// Fixed: AuthContext path updated to contexts/
+import { useAuth } from '../../contexts/AuthContext';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import MemberFinancePortal from './MemberFinancePortal';
+import { formatDate } from '../../utils/date';
+
+// Fixed: Added missing local component imports for the finance module
+import FinanceReviewPanel from './FinanceReviewPanel';
+import TaskManager from '../../components/shared/TaskManager';
 import ContributionManager from './ContributionManager';
 import PaymentProcessing from './PaymentProcessing';
 import BudgetPlanner from './BudgetPlanner';
 import FinancialReporting from './FinancialReporting';
-import MemberFinancePortal from './MemberFinancePortal';
-import FinanceReviewPanel from './FinanceReviewPanel';
-import FinancialOverviewWidget from '../shared/FinancialOverviewWidget';
-import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
-import TaskManager from '../../components/shared/TaskManager';
-import { CommissionType } from '../../types';
-import { useData } from '../../contexts/DataContext';
-// Fixed: AuthContext path updated to contexts/
-import { useAuth } from '../../contexts/AuthContext';
-import { getSmartInsight } from '../../services/geminiService';
 
 const FinanceDashboard: React.FC = () => {
-  const [activeFinanceTab, setActiveFinanceTab] = useState('overview');
+  const { contributions, members, addContribution, updateContribution, deleteContribution, totalTreasury } = useData();
+  const { user } = useAuth(); 
+  const { isMobile } = useMediaQuery();
+
+  const [activeFinanceTab, setActiveTab] = useState('overview');
   const [aiInsight, setAiInsight] = useState("Analyse des flux financiers en cours...");
-  const { members, contributions, totalTreasury } = useData();
-  const { user } = useAuth();
+  const [showForm, setShowForm] = useState(false);
+  const [selectedMemberForStatement, setSelectedMemberForStatement] = useState<any | null>(null);
+  const [editingTx, setEditingTx] = useState<Contribution | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. Identifier le rôle précis de l'utilisateur dans CETTE commission
-  const currentUserMember = useMemo(() => (members || []).find(m => m.email === user?.email), [members, user]);
-  const myCommissionRole = useMemo(() => {
-    return currentUserMember?.commissions?.find(c => c.type === CommissionType.FINANCE)?.role_commission || 'Membre';
-  }, [currentUserMember]);
-
-  // 2. Définir les niveaux d'accès
-  const isDecisionMaker = ['Dieuwrine', 'Dieuwrine Adjoint', 'Trésorier', 'Secrétaire'].some(r => myCommissionRole.includes(r));
-  const isTreasurer = myCommissionRole.includes('Trésorier') || myCommissionRole.includes('Dieuwrine');
+  const isManager = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin' || user?.role === 'DIEUWRINE';
 
   // Load AI Insight
   useEffect(() => {
@@ -45,12 +44,6 @@ const FinanceDashboard: React.FC = () => {
     loadInsight();
   }, []);
 
-  // Filtrer les membres de la commission Finance
-  const commissionTeam = useMemo(() => (members || []).filter(m => 
-    m.commissions?.some(c => c.type === CommissionType.FINANCE)
-  ), [members]);
-
-  // Calcul des statistiques réelles
   const stats = useMemo(() => {
     const contribs = contributions || [];
     const adiyasTotal = contribs.filter(c => c.type === 'Adiyas').reduce((acc, c) => acc + c.amount, 0);
@@ -73,31 +66,25 @@ const FinanceDashboard: React.FC = () => {
     return { adiyasTotal, sassTotal, diayanteTotal, recentLogs };
   }, [contributions, members]);
 
-  // Configuration des onglets avec permissions
+  if (!isManager) return <MemberFinancePortal />;
+
   const navItems = [
     { id: 'overview', label: 'Console Trésorerie', icon: LayoutDashboard, restricted: false },
     { id: 'tasks', label: 'Mes Tâches', icon: ListTodo, restricted: false },
-    { id: 'contributions', label: 'Saisie Cotisations', icon: Calculator, restricted: false }, // Tous les membres finance peuvent saisir
+    { id: 'contributions', label: 'Saisie Cotisations', icon: Calculator, restricted: false },
     { id: 'payments', label: 'Caisse & Reçus', icon: CreditCard, restricted: false },
-    { id: 'review', label: 'Contrôle & Validation', icon: CheckSquare, restricted: true }, // Réservé Décideurs
-    { id: 'budget', label: 'Planif. Budgétaire', icon: Target, restricted: true }, // Réservé Décideurs
-    { id: 'reports', label: 'États Financiers', icon: PieChart, restricted: true }, // Réservé Trésorier/Dieuwrine
+    { id: 'review', label: 'Contrôle & Validation', icon: CheckSquare, restricted: true },
+    { id: 'budget', label: 'Planif. Budgétaire', icon: Target, restricted: true },
+    { id: 'reports', label: 'États Financiers', icon: PieChart, restricted: true },
   ];
 
-  // Filtrer les onglets selon le rôle
-  const visibleNavItems = navItems.filter(item => !item.restricted || isDecisionMaker);
+  const visibleNavItems = navItems.filter(item => !item.restricted || (user?.role === 'admin' || user?.role === 'Super Admin' || user?.role === 'DIEUWRINE'));
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-      
-      {/* Role Banner */}
-      <div className="flex items-center gap-3 bg-blue-50/50 p-3 rounded-2xl border border-blue-100 w-fit">
-         <span className="px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase rounded-lg tracking-widest">
-            Votre Rôle
-         </span>
-         <span className="text-xs font-bold text-blue-900">{myCommissionRole}</span>
-         {!isDecisionMaker && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Lock size={10}/> Accès Standard</span>}
-      </div>
+    <div className="space-y-8 animate-in fade-in duration-700 pb-12">
+      {showForm && (
+        <TransactionForm onClose={() => { setShowForm(false); setEditingTx(null); }} onSubmit={(data) => { addContribution(data); setShowForm(false); }} members={members} />
+      )}
 
       {/* Sub-Navigation Finance */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
@@ -105,7 +92,7 @@ const FinanceDashboard: React.FC = () => {
           {visibleNavItems.map(item => (
             <button 
               key={item.id}
-              onClick={() => setActiveFinanceTab(item.id)}
+              onClick={() => setActiveTab(item.id)}
               className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                 activeFinanceTab === item.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-900/10 border border-indigo-500' : 'text-slate-400 hover:text-indigo-600'
               }`}
@@ -116,9 +103,10 @@ const FinanceDashboard: React.FC = () => {
           ))}
         </div>
 
-        {activeTab !== 'overview' && (
+        {/* Fix: use activeFinanceTab instead of activeTab */}
+        {activeFinanceTab !== 'overview' && (
           <button 
-            onClick={() => setActiveFinanceTab('overview')}
+            onClick={() => setActiveTab('overview')}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-all shadow-sm group"
           >
             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
@@ -129,7 +117,6 @@ const FinanceDashboard: React.FC = () => {
 
       {activeFinanceTab === 'overview' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-          {/* Ledger Header */}
           <div className="bg-gradient-to-br from-blue-900 via-indigo-900 to-black rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-16">
@@ -147,7 +134,6 @@ const FinanceDashboard: React.FC = () => {
                   <TrendingUp size={40} className="text-blue-400" />
                 </div>
               </div>
-              {/* Stats Grid - Visible to everyone */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                  {[
                    { l: 'Adiyas', v: stats.adiyasTotal.toLocaleString(), trend: 'Participations', color: 'text-amber-400' },
@@ -167,7 +153,6 @@ const FinanceDashboard: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Quick Actions */}
             <div className="lg:col-span-8 glass-card p-10">
               <div className="flex justify-between items-center mb-10">
                 <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
@@ -182,15 +167,14 @@ const FinanceDashboard: React.FC = () => {
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed mb-6">Enregistrer une nouvelle cotisation ou un versement pour un membre.</p>
                   <button 
-                    onClick={() => setActiveFinanceTab('contributions')}
+                    onClick={() => setActiveTab('contributions')}
                     className="w-full py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-900/10"
                   >
                     Nouvelle Entrée
                   </button>
                 </div>
                 
-                {/* Conditional Block: Only for Decision Makers */}
-                {isDecisionMaker ? (
+                {isManager ? (
                   <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-emerald-200 transition-all cursor-pointer">
                     <div className="flex items-center gap-4 mb-4">
                       <div className="p-3 bg-white rounded-2xl shadow-sm text-emerald-600"><FileText size={20}/></div>
@@ -198,7 +182,7 @@ const FinanceDashboard: React.FC = () => {
                     </div>
                     <p className="text-xs text-slate-500 leading-relaxed mb-6">Valider les demandes budgétaires ou générer les états financiers.</p>
                     <button 
-                      onClick={() => setActiveFinanceTab('review')}
+                      onClick={() => setActiveTab('review')}
                       className="w-full py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-900/10"
                     >
                       Console de Validation
@@ -214,9 +198,7 @@ const FinanceDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Audit & Compliance */}
             <div className="lg:col-span-4 space-y-8">
-              {/* Only show full logs to Treasurer */}
               <div className="glass-card p-10 bg-slate-900 text-white relative overflow-hidden group">
                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-10 opacity-50">Audit Trail (Live)</h4>
                  <div className="space-y-4 relative z-10 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
@@ -240,12 +222,13 @@ const FinanceDashboard: React.FC = () => {
       )}
 
       {/* Corrected activeTab references to activeFinanceTab */}
-      {activeFinanceTab === 'review' && isDecisionMaker && <FinanceReviewPanel />}
+      {activeFinanceTab === 'review' && isManager && <FinanceReviewPanel />}
       {activeFinanceTab === 'tasks' && <TaskManager commission={CommissionType.FINANCE} />}
       {activeFinanceTab === 'contributions' && <ContributionManager />}
       {activeFinanceTab === 'payments' && <PaymentProcessing />}
-      {activeTab === 'budget' && isDecisionMaker && <BudgetPlanner />}
-      {activeTab === 'reports' && isTreasurer && <FinancialReporting />}
+      {/* Fix: use activeFinanceTab instead of activeTab */}
+      {activeFinanceTab === 'budget' && isManager && <BudgetPlanner />}
+      {activeFinanceTab === 'reports' && isManager && <FinancialReporting />}
     </div>
   );
 };
