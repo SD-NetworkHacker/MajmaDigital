@@ -72,7 +72,8 @@ const MediaDashboard: React.FC = () => {
          <span className="px-3 py-1 bg-amber-600 text-white text-[10px] font-black uppercase rounded-lg tracking-widest">
             Poste
          </span>
-         <span className="textxs font-bold text-amber-900">{myRole}</span>
+         {/* Fix: changed textxs to text-xs */}
+         <span className="text-xs font-bold text-amber-900">{myRole}</span>
          {isLeader && <span className="text-[10px] text-amber-600 flex items-center gap-1 font-black uppercase"><ShieldCheck size={10}/> Admin</span>}
       </div>
 
@@ -177,14 +178,14 @@ const MediaDashboard: React.FC = () => {
         </div>
       )}
 
-      {activeSubTab === 'finance' && isLeader && <CommissionFinancialDashboard commission={CommissionType.COMMUNICATION} />}
-      {activeSubTab === 'meetings' && isLeader && <CommissionMeetingDashboard commission={CommissionType.COMMUNICATION} />}
-      {activeSubTab === 'tasks' && <TaskManager commission={CommissionType.COMMUNICATION} />}
-      {activeSubTab === 'ai-agent' && isContentCreator && <AICommunityManager />}
-      {activeSubTab === 'coverage' && isTechTeam && <EventCoveragePlanner />}
-      {activeSubTab === 'library' && <MultimediaLibrary />}
-      {activeSubTab === 'scheduler' && isContentCreator && <ContentScheduler />}
-      {activeSubTab === 'analytics' && isLeader && <SocialMediaAnalytics />}
+      {activeTab === 'finance' && isLeader && <CommissionFinancialDashboard commission={CommissionType.COMMUNICATION} />}
+      {activeTab === 'meetings' && isLeader && <CommissionMeetingDashboard commission={CommissionType.COMMUNICATION} />}
+      {activeTab === 'tasks' && <TaskManager commission={CommissionType.COMMUNICATION} />}
+      {activeTab === 'ai-agent' && isContentCreator && <AICommunityManager />}
+      {activeTab === 'coverage' && isTechTeam && <EventCoveragePlanner />}
+      {activeTab === 'library' && <MultimediaLibrary />}
+      {activeTab === 'scheduler' && isContentCreator && <ContentScheduler />}
+      {activeTab === 'analytics' && isLeader && <SocialMediaAnalytics />}
     </div>
   );
 };

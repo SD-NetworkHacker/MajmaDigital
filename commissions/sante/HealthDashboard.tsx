@@ -4,7 +4,8 @@ import {
   Brain, Siren, LayoutDashboard, Bell, 
   ChevronRight, Apple, AlertCircle, Search, 
   Filter, Plus, Zap, TrendingUp, Lock, UserCheck,
-  Wallet, FileText, BadgeCheck, Mail, User, ListTodo
+  Wallet, FileText, BadgeCheck, Mail, User, ListTodo,
+  ArrowLeft
 } from 'lucide-react';
 import WellnessProgram from './WellnessProgram';
 import MedicalSupportHub from './MedicalSupportHub';
@@ -17,7 +18,6 @@ import MeetingOverviewWidget from '../shared/MeetingOverviewWidget';
 import TaskManager from '../../components/shared/TaskManager';
 import { CommissionType } from '../../types';
 import { useData } from '../../contexts/DataContext';
-// Fixed: AuthContext path updated to contexts/
 import { useAuth } from '../../contexts/AuthContext';
 
 const HealthDashboard: React.FC = () => {
@@ -36,19 +36,14 @@ const HealthDashboard: React.FC = () => {
   const isLeader = ['Dieuwrine', 'Adjoint', 'Secrétaire', 'Responsable'].some(r => myRole.includes(r));
   const isMedicalStaff = myRole.includes('Médecin') || myRole.includes('Infirmier') || myRole.includes('Sage-femme') || isLeader;
 
-  // Filtrer les membres de la commission Santé
-  const commissionTeam = useMemo(() => (members || []).filter(m => 
-    m.commissions?.some(c => c.type === CommissionType.SANTE)
-  ), [members]);
-
   const navItems = [
     { id: 'overview', label: 'Console Santé', icon: LayoutDashboard, access: true },
     { id: 'finance', label: 'Budget', icon: Wallet, access: isLeader },
     { id: 'meetings', label: 'Réunions', icon: FileText, access: isLeader },
     { id: 'tasks', label: 'Tâches', icon: ListTodo, access: true },
     { id: 'wellness', label: 'Bien-être & Challenges', icon: Apple, access: true },
-    { id: 'support', label: 'Soutien Médical', icon: Stethoscope, access: isMedicalStaff }, // Restreint
-    { id: 'mental', label: 'Santé Mentale', icon: Brain, access: isMedicalStaff }, // Restreint
+    { id: 'support', label: 'Soutien Médical', icon: Stethoscope, access: isMedicalStaff },
+    { id: 'mental', label: 'Santé Mentale', icon: Brain, access: isMedicalStaff },
     { id: 'emergency', label: 'Urgence Majma', icon: Siren, access: true },
   ];
 
@@ -105,7 +100,6 @@ const HealthDashboard: React.FC = () => {
                <FinancialOverviewWidget commission={CommissionType.SANTE} onClick={() => setActiveTab('finance')} />
                <MeetingOverviewWidget commission={CommissionType.SANTE} onClick={() => setActiveTab('meetings')} />
                
-               {/* Quick Stats */}
                <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                      <div className="p-3 bg-teal-50 text-teal-600 rounded-2xl"><Stethoscope size={20}/></div>
@@ -143,4 +137,20 @@ const HealthDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="absolute top-0 right-0 p-20 opacity-5 font
+            <div className="absolute top-0 right-0 p-20 opacity-5 font-arabic text-[25rem] pointer-events-none rotate-12">ص</div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'finance' && isLeader && <CommissionFinancialDashboard commission={CommissionType.SANTE} />}
+      {activeTab === 'meetings' && isLeader && <CommissionMeetingDashboard commission={CommissionType.SANTE} />}
+      {activeTab === 'tasks' && <TaskManager commission={CommissionType.SANTE} />}
+      {activeTab === 'wellness' && <WellnessProgram />}
+      {activeTab === 'support' && <MedicalSupportHub secureMode={isSecureMode} />}
+      {activeTab === 'mental' && <MentalHealthSupport />}
+      {activeTab === 'emergency' && <EmergencyResponse />}
+    </div>
+  );
+};
+
+export default HealthDashboard;
