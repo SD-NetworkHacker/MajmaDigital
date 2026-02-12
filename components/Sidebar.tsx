@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   LayoutDashboard, Users, Landmark, Wallet, 
-  Layers, User, Map, LogOut, ShieldAlert 
+  Layers, User, LogOut 
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { safeLower } from '../utils/string';
@@ -17,7 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   if (!user) return null;
 
   const commissions = Array.isArray(user.commissions) ? user.commissions : [];
-  const isAdmin = commissions.some(c => safeLower(c) === 'administration');
+  const isAdmin = user.role === 'SG' || user.role === 'ADMIN' || user.role === 'DIEUWRINE';
 
   const navItem = (id: string, Icon: any, label: string) => {
     const isActive = activeTab === id;
@@ -32,21 +32,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
       >
         <Icon size={20} className={isActive ? 'text-white' : 'text-slate-500 group-hover:text-emerald-400'} />
         <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-        {isActive && <div className="ml-auto w-1 h-4 bg-white rounded-full"></div>}
       </button>
     );
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#030712] border-r border-white/5 p-5">
+    <div className="h-full flex flex-col bg-[#030712] p-5">
       <div className="p-4 mb-10 flex items-center gap-3">
         <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-arabic text-xl pb-1 shadow-lg shadow-emerald-900/20">م</div>
         <h1 className="text-xl font-black text-white tracking-tighter">Majma<span className="text-emerald-500">Digital</span></h1>
       </div>
 
       <nav className="flex-1 space-y-2 overflow-y-auto no-scrollbar">
-        <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4">Personnel</h3>
-        {navItem('dashboard', LayoutDashboard, 'Dashboard')}
+        <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4">Espace Personnel</h3>
+        {navItem('dashboard', LayoutDashboard, 'Mon Dashboard')}
         {navItem('profile', User, 'Mon Profil')}
         {navItem('finance_perso', Wallet, 'Mes Finances')}
 
@@ -79,13 +78,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         )}
       </nav>
 
-      <div className="pt-4 border-t border-white/5 mt-auto">
+      <div className="pt-4 border-t border-white/5">
         <button 
           onClick={logout} 
           className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-rose-500 hover:bg-rose-500/10 transition-all font-black uppercase text-[10px] tracking-widest"
         >
           <LogOut size={20} />
-          <span>Déconnexion</span>
+          <span>Sortie</span>
         </button>
       </div>
     </div>

@@ -12,11 +12,10 @@ import MobileNav from './components/Navigation/MobileNav';
 import ErrorBoundary from './components/ErrorBoundary';
 import GuestDashboard from './components/GuestDashboard';
 import MemberModule from './components/MemberModule';
-import MemberMapModule from './components/MemberMapModule';
-import CommissionModule from './components/CommissionModule';
 import FinanceModule from './components/FinanceModule';
 import UserProfile from './components/profile/UserProfile';
 import SettingsModule from './components/SettingsModule';
+import CommissionModule from './components/CommissionModule';
 import AIChatBot from './components/AIChatBot';
 
 const AppContent = () => {
@@ -30,11 +29,8 @@ const AppContent = () => {
 
   if (loading) return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950">
-      <div className="relative">
-        <Loader2 className="text-emerald-500 animate-spin mb-6" size={48} />
-        <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full animate-pulse"></div>
-      </div>
-      <p className="text-[10px] font-black text-white uppercase tracking-[0.4em] animate-pulse">Chargement Majma OS...</p>
+      <Loader2 className="text-emerald-500 animate-spin mb-4" size={48} />
+      <p className="text-[10px] font-black text-white uppercase tracking-[0.4em] animate-pulse">Initialisation Majma OS...</p>
     </div>
   );
 
@@ -49,8 +45,6 @@ const AppContent = () => {
         return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
       case 'members':
         return <MemberModule />;
-      case 'map':
-        return <MemberMapModule members={[]} />;
       case 'profile':
         return <UserProfile onBack={() => setActiveTab('dashboard')} />;
       case 'finance_perso':
@@ -60,23 +54,23 @@ const AppContent = () => {
       case 'settings':
         return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
       default:
-        if (tab.startsWith('comm_')) return <CommissionModule defaultView={null} />;
+        if (tab.startsWith('comm_')) return <CommissionModule />;
         return <Dashboard activeTab="dashboard" setActiveTab={setActiveTab} />;
     }
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#f8fafc] overflow-hidden">
+    <div className="flex h-full w-full bg-[#f8fafc] overflow-hidden">
       {!isMobile && (
-        <div className="w-80 h-full shrink-0">
+        <aside className="w-80 h-full shrink-0 border-r border-white/5 bg-[#030712]">
           <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        </div>
+        </aside>
       )}
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <main className={`flex-1 overflow-y-auto ${isMobile ? 'pb-24 pt-4' : 'p-8'}`}>
+        <main className={`flex-1 overflow-y-auto ${isMobile ? 'pb-24 pt-4 px-4' : 'p-8'}`}>
           <ErrorBoundary>
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
+            <div className="max-w-[1600px] mx-auto">
               {renderModule()}
             </div>
           </ErrorBoundary>

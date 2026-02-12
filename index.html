@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr" class="h-full antialiased scroll-smooth">
+<html lang="fr" class="h-full antialiased">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MajmaDigital Platinum</title>
     
-    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#030712">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -33,7 +32,9 @@
         html, body { height: 100%; width: 100%; margin: 0; padding: 0; background-color: #f8fafc; overflow: hidden; position: fixed; }
         #root { height: 100%; width: 100%; display: flex; flex-direction: column; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        @media (max-width: 768px) { main { height: calc(100% - 64px); } }
     </style>
+
     <script type="importmap">
 {
   "imports": {
@@ -50,12 +51,12 @@
     "yup": "https://esm.sh/yup@1.3.3",
     "@hookform/resolvers/yup": "https://esm.sh/@hookform/resolvers@3.3.4/yup",
     "zustand": "https://esm.sh/zustand@4.5.1",
-    "date-fns/": "https://esm.sh/date-fns@^4.1.0/",
-    "react/": "https://esm.sh/react@^19.2.4/",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4",
+    "react/": "https://esm.sh/react@^19.2.4/",
     "@hookform/resolvers/": "https://esm.sh/@hookform/resolvers@^5.2.2/",
-    "vite": "https://esm.sh/vite@^7.3.1"
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4",
+    "date-fns/": "https://esm.sh/date-fns@^4.1.0/"
   }
 }
 </script>
