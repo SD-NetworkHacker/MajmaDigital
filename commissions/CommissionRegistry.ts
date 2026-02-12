@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { CommissionType } from '../types';
 
-// Imports statiques pour éviter l'erreur "Failed to fetch dynamically imported module"
+// Imports statiques obligatoires (Stabilité Vercel)
 import AdministrationDashboard from './administration/AdministrationDashboard';
 import FinanceDashboard from './finance/FinanceDashboard';
 import MediaDashboard from './communication/MediaDashboard';

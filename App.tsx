@@ -5,7 +5,7 @@ import { DataProvider } from './contexts/DataContext';
 import { initViewportHeight } from './utils/viewport';
 import { useMediaQuery } from './hooks/useMediaQuery';
 
-// Imports Statiques (Anti-bug Vercel)
+// Imports Statiques obligatoires pour la stabilité sur Vercel
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import MobileNav from './components/Navigation/MobileNav';
