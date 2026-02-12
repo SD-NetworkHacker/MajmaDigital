@@ -58,7 +58,7 @@ const HealthDashboard: React.FC = () => {
             Poste
          </span>
          <span className="text-xs font-bold text-teal-900">{myRole}</span>
-         {isMedicalStaff && <span className="text-[10px] text-teal-600 flex items-center gap-1 font-black uppercase"><ShieldCheck size={10}/> Corps Médical</span>}
+         {isMedicalStaff && <span className="text-[10px] text-teal-600 flex items-center gap-1 font-black uppercase ml-2"><ShieldCheck size={10}/> Corps Médical</span>}
       </div>
 
       {/* Sub-Navigation Santé */}
@@ -103,10 +103,10 @@ const HealthDashboard: React.FC = () => {
                <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                      <div className="p-3 bg-teal-50 text-teal-600 rounded-2xl"><Stethoscope size={20}/></div>
-                     <span className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-1 rounded-lg">0</span>
+                     <span className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-1 rounded-lg">Live</span>
                   </div>
                   <div>
-                     <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Médecins</h4>
+                     <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Corps Médical</h4>
                      <p className="text-[10px] text-slate-400 font-bold">Actifs dans le réseau</p>
                   </div>
                </div>
@@ -135,6 +135,20 @@ const HealthDashboard: React.FC = () => {
                 <div className="p-4 bg-white/10 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-inner group-hover:scale-110 transition-transform duration-700">
                   <HeartPulse size={48} className="text-teal-200" />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {[
+                  { l: 'Membres', v: '100%', trend: 'Suivis', color: 'text-teal-300' },
+                  { l: 'Urgences', v: '0', trend: 'Actives', color: 'text-emerald-300' },
+                  { l: 'Conseils', v: 'Active', trend: 'IA', color: 'text-teal-200' },
+                  { l: 'Stock', v: 'OK', trend: 'Premier secours', color: 'text-white' }
+                ].map((item, i) => (
+                  <div key={i} className="p-6 bg-white/5 backdrop-blur-md rounded-3xl border border-white/5">
+                    <p className="text-[9px] font-black uppercase opacity-40 mb-2 tracking-widest">{item.l}</p>
+                    <p className="text-xl font-black mb-1">{item.v}</p>
+                    <span className={`text-[8px] font-bold ${item.color} bg-white/5 px-2 py-0.5 rounded-full`}>{item.trend}</span>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="absolute top-0 right-0 p-20 opacity-5 font-arabic text-[25rem] pointer-events-none rotate-12">ص</div>

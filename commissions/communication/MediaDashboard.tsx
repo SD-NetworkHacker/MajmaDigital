@@ -74,7 +74,7 @@ const MediaDashboard: React.FC = () => {
          </span>
          {/* Fix: changed textxs to text-xs */}
          <span className="text-xs font-bold text-amber-900">{myRole}</span>
-         {isLeader && <span className="text-[10px] text-amber-600 flex items-center gap-1 font-black uppercase"><ShieldCheck size={10}/> Admin</span>}
+         {isLeader && <span className="text-[10px] text-teal-600 flex items-center gap-1 font-black uppercase"><ShieldCheck size={10}/> Admin</span>}
       </div>
 
       {/* Navigation Sub-Tabs */}
@@ -96,7 +96,7 @@ const MediaDashboard: React.FC = () => {
       {activeSubTab === 'overview' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
           
-          {/* Admin Widgets Row */}
+          {/* Admin Widgets Row (Only visible to leaders) */}
           {isLeader && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                <FinancialOverviewWidget commission={CommissionType.COMMUNICATION} onClick={() => setActiveSubTab('finance')} />
@@ -178,14 +178,15 @@ const MediaDashboard: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'finance' && isLeader && <CommissionFinancialDashboard commission={CommissionType.COMMUNICATION} />}
-      {activeTab === 'meetings' && isLeader && <CommissionMeetingDashboard commission={CommissionType.COMMUNICATION} />}
-      {activeTab === 'tasks' && <TaskManager commission={CommissionType.COMMUNICATION} />}
-      {activeTab === 'ai-agent' && isContentCreator && <AICommunityManager />}
-      {activeTab === 'coverage' && isTechTeam && <EventCoveragePlanner />}
-      {activeTab === 'library' && <MultimediaLibrary />}
-      {activeTab === 'scheduler' && isContentCreator && <ContentScheduler />}
-      {activeTab === 'analytics' && isLeader && <SocialMediaAnalytics />}
+      {/* Corrected: replaced activeTab with activeSubTab based on component state */}
+      {activeSubTab === 'finance' && isLeader && <CommissionFinancialDashboard commission={CommissionType.COMMUNICATION} />}
+      {activeSubTab === 'meetings' && isLeader && <CommissionMeetingDashboard commission={CommissionType.COMMUNICATION} />}
+      {activeSubTab === 'tasks' && <TaskManager commission={CommissionType.COMMUNICATION} />}
+      {activeSubTab === 'ai-agent' && isContentCreator && <AICommunityManager />}
+      {activeSubTab === 'coverage' && isTechTeam && <EventCoveragePlanner />}
+      {activeSubTab === 'library' && <MultimediaLibrary />}
+      {activeSubTab === 'scheduler' && isContentCreator && <ContentScheduler />}
+      {activeSubTab === 'analytics' && isLeader && <SocialMediaAnalytics />}
     </div>
   );
 };

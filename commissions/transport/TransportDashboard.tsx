@@ -62,7 +62,7 @@ const TransportDashboard: React.FC = () => {
             Poste
          </span>
          <span className="text-xs font-bold text-orange-900">{myRole}</span>
-         {isOpsTeam && <span className="text-[10px] text-orange-600 flex items-center gap-1 font-black uppercase"><Zap size={10}/> Ops Team</span>}
+         {isOpsTeam && <span className="text-[10px] text-orange-600 flex items-center gap-1 font-black uppercase ml-2"><Zap size={10}/> Ops Team</span>}
       </div>
 
       {/* Sub-Navigation Transport */}
@@ -122,7 +122,7 @@ const TransportDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="absolute top-0 right-0 p-20 opacity-5 font-arabic text-[25rem] pointer-events-none rotate-12">ص</div>
+            <div className="absolute top-0 right-0 p-20 opacity-5 font-arabic text-[25rem] pointer-events-none rotate-12 text-orange-400/10">ص</div>
           </div>
         </div>
       )}

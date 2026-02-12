@@ -18,8 +18,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [newComment, setNewComment] = useState('');
-
+  
   const [newTask, setNewTask] = useState<Partial<Task>>({
     priority: 'medium',
     status: 'todo',
@@ -153,7 +152,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ commission }) => {
                 {commissionTasks.filter(t => t.status === status).map(task => (
                   <div key={task.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group">
                      <div className="flex justify-between items-start mb-3">
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${getPriorityColor(task.priority)}`}>
+                        <span className={`px-2 py-1 rounded text-[8px] font-black uppercase border ${getPriorityColor(task.priority)}`}>
                            {task.priority}
                         </span>
                         <button onClick={() => updateTask(task.id, { status: status === 'todo' ? 'in_progress' : status === 'in_progress' ? 'done' : 'todo' })}>
