@@ -1,22 +1,23 @@
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DataProvider } from './contexts/DataContext';
+import { initViewportHeight } from './utils/viewport';
+import { useMediaQuery } from './hooks/useMediaQuery';
+
+// Imports Statiques (Anti-bug Vercel)
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import MobileNav from './components/Navigation/MobileNav';
 import ErrorBoundary from './components/ErrorBoundary';
-import { useMediaQuery } from './hooks/useMediaQuery';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { DataProvider } from './contexts/DataContext';
 import GuestDashboard from './components/GuestDashboard';
-import { Loader2 } from 'lucide-react';
-import { initViewportHeight } from './utils/viewport';
-
-// Lazy Modules
-const MemberModule = React.lazy(() => import('./components/MemberModule'));
-const MemberMapModule = React.lazy(() => import('./components/MemberMapModule'));
-const CommissionModule = React.lazy(() => import('./components/CommissionModule'));
-const FinanceModule = React.lazy(() => import('./components/FinanceModule'));
-const UserProfile = React.lazy(() => import('./components/profile/UserProfile'));
-const SettingsModule = React.lazy(() => import('./components/SettingsModule'));
+import MemberModule from './components/MemberModule';
+import MemberMapModule from './components/MemberMapModule';
+import CommissionModule from './components/CommissionModule';
+import FinanceModule from './components/FinanceModule';
+import UserProfile from './components/profile/UserProfile';
+import SettingsModule from './components/SettingsModule';
+import AIChatBot from './components/AIChatBot';
 
 const AppContent = () => {
   const { user, loading } = useAuth();
@@ -33,7 +34,7 @@ const AppContent = () => {
         <Loader2 className="text-emerald-500 animate-spin mb-6" size={48} />
         <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full animate-pulse"></div>
       </div>
-      <p className="text-[10px] font-black text-white uppercase tracking-[0.4em] animate-pulse">Majma OS • Initialisation</p>
+      <p className="text-[10px] font-black text-white uppercase tracking-[0.4em] animate-pulse">Chargement Majma OS...</p>
     </div>
   );
 
@@ -42,22 +43,26 @@ const AppContent = () => {
   const renderModule = () => {
     const tab = activeTab.toLowerCase();
     
-    if (tab === 'dashboard' || tab === 'admin_dashboard') {
-      return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+    switch (tab) {
+      case 'dashboard':
+      case 'admin_dashboard':
+        return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+      case 'members':
+        return <MemberModule />;
+      case 'map':
+        return <MemberMapModule members={[]} />;
+      case 'profile':
+        return <UserProfile onBack={() => setActiveTab('dashboard')} />;
+      case 'finance_perso':
+        return <FinanceModule />;
+      case 'commissions':
+        return <CommissionModule />;
+      case 'settings':
+        return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
+      default:
+        if (tab.startsWith('comm_')) return <CommissionModule defaultView={null} />;
+        return <Dashboard activeTab="dashboard" setActiveTab={setActiveTab} />;
     }
-    if (tab === 'members') return <MemberModule />;
-    if (tab === 'map') return <MemberMapModule members={[]} />;
-    if (tab === 'profile') return <UserProfile onBack={() => setActiveTab('dashboard')} />;
-    if (tab === 'settings') return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
-    if (tab === 'finance_perso') return <FinanceModule />;
-    if (tab === 'commissions') return <CommissionModule />;
-    
-    // Gestion dynamique des préfixes de commission
-    if (tab.startsWith('comm_')) {
-      return <CommissionModule defaultView={null} />;
-    }
-    
-    return <Dashboard activeTab="dashboard" setActiveTab={setActiveTab} />;
   };
 
   return (
@@ -71,17 +76,12 @@ const AppContent = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <main className={`flex-1 overflow-y-auto ${isMobile ? 'pb-24 pt-4' : 'p-8'}`}>
           <ErrorBoundary>
-            <Suspense fallback={
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="animate-spin text-emerald-500 opacity-20" size={40} />
-              </div>
-            }>
-              <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
-                {renderModule()}
-              </div>
-            </Suspense>
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
+              {renderModule()}
+            </div>
           </ErrorBoundary>
         </main>
+        <AIChatBot />
       </div>
 
       {isMobile && <MobileNav activeTab={activeTab} onNavigate={setActiveTab} />}

@@ -24,15 +24,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     return (
       <button
         onClick={() => setActiveTab(id)}
-        className={`w-full group flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 ${
+        className={`w-full group flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 ${
           isActive 
             ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-900/20' 
             : 'text-slate-400 hover:text-white hover:bg-white/5'
         }`}
       >
         <Icon size={20} className={isActive ? 'text-white' : 'text-slate-500 group-hover:text-emerald-400'} />
-        <span className="text-[11px] font-black uppercase tracking-widest">{label}</span>
-        {isActive && <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>}
+        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+        {isActive && <div className="ml-auto w-1 h-4 bg-white rounded-full"></div>}
       </button>
     );
   };
@@ -45,8 +45,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
       </div>
 
       <nav className="flex-1 space-y-2 overflow-y-auto no-scrollbar">
-        <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4">Espace Personnel</h3>
-        {navItem('dashboard', LayoutDashboard, 'Mon Dashboard')}
+        <h3 className="px-5 text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4">Personnel</h3>
+        {navItem('dashboard', LayoutDashboard, 'Dashboard')}
         {navItem('profile', User, 'Mon Profil')}
         {navItem('finance_perso', Wallet, 'Mes Finances')}
 
@@ -57,14 +57,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
               <button
                 key={c}
                 onClick={() => setActiveTab(`comm_${safeLower(c)}`)}
-                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 ${
+                className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 ${
                   activeTab === `comm_${safeLower(c)}` 
-                    ? 'bg-slate-800 text-emerald-400 shadow-lg' 
+                    ? 'bg-slate-800 text-emerald-400' 
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Layers size={18} className={activeTab === `comm_${safeLower(c)}` ? 'text-emerald-400' : 'text-slate-600'} />
-                <span className="text-[11px] font-black uppercase tracking-widest truncate">{c}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest truncate">{c}</span>
               </button>
             ))}
           </>
@@ -74,16 +74,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           <>
             <h3 className="px-5 pt-8 text-[9px] font-black text-rose-500 uppercase tracking-widest mb-4">Gouvernance</h3>
             {navItem('admin_dashboard', Landmark, 'Cockpit Pilotage')}
-            {navItem('members', Users, 'Annuaire Global')}
-            {navItem('map', Map, 'Cartographie')}
+            {navItem('members', Users, 'Registre Global')}
           </>
         )}
       </nav>
 
       <div className="pt-4 border-t border-white/5 mt-auto">
         <button 
-          onClick={() => logout()} 
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-rose-500 hover:bg-rose-500/10 transition-all font-black uppercase text-[11px] tracking-widest"
+          onClick={logout} 
+          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-rose-500 hover:bg-rose-500/10 transition-all font-black uppercase text-[10px] tracking-widest"
         >
           <LogOut size={20} />
           <span>Déconnexion</span>
