@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { Lock, CheckCircle, Eye, EyeOff } from 'lucide-react';
-import { useLoading } from '../../context/LoadingContext';
 // Fix: Removed NotificationContext import as it is obsolete
 import AuthLayout from './AuthLayout';
 
@@ -10,8 +9,7 @@ interface ResetPasswordFormProps {
 }
 
 const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
-  const { showLoading, hideLoading } = useLoading();
-  
+  const [isLoading, setIsLoading] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,10 +26,10 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
       return;
     }
 
-    showLoading();
+    setIsLoading(true);
     // Simulate API
     setTimeout(() => {
-      hideLoading();
+      setIsLoading(false);
       alert("Mot de passe réinitialisé avec succès");
       onSuccess();
     }, 1500);
@@ -86,9 +84,10 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
 
         <button 
           type="submit"
-          className="w-full py-4 bg-emerald-600 text-white rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-emerald-900/20 hover:bg-emerald-700 hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 active:scale-95"
+          disabled={isLoading}
+          className="w-full py-4 bg-emerald-600 text-white rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-emerald-900/20 hover:bg-emerald-700 hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
         >
-          <CheckCircle size={16} /> Réinitialiser
+          <CheckCircle size={16} /> {isLoading ? 'Réinitialisation...' : 'Réinitialiser'}
         </button>
       </form>
     </AuthLayout>

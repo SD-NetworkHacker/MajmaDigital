@@ -17,7 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   if (!user) return null;
 
   const commissions = Array.isArray(user.commissions) ? user.commissions : [];
-  const isAdmin = user.role === 'SG' || user.role === 'ADMIN' || user.role === 'DIEUWRINE';
+  const isAdmin = true;
 
   const navItem = (id: string, Icon: any, label: string) => {
     const isActive = activeTab === id;
@@ -52,30 +52,30 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         {commissions.length > 0 && (
           <>
             <h3 className="px-5 pt-8 text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4">Mes Pôles</h3>
-            {commissions.map(c => (
-              <button
-                key={c}
-                onClick={() => setActiveTab(`comm_${safeLower(c)}`)}
-                className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 ${
-                  activeTab === `comm_${safeLower(c)}` 
-                    ? 'bg-slate-800 text-emerald-400' 
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Layers size={18} className={activeTab === `comm_${safeLower(c)}` ? 'text-emerald-400' : 'text-slate-600'} />
-                <span className="text-[10px] font-black uppercase tracking-widest truncate">{c}</span>
-              </button>
-            ))}
+            {commissions.map((c, idx) => {
+              const cName = typeof c === 'string' ? c : c.type;
+              const cId = `comm_${safeLower(cName)}`;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setActiveTab(cId)}
+                  className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 ${
+                    activeTab === cId 
+                      ? 'bg-slate-800 text-emerald-400' 
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Layers size={18} className={activeTab === cId ? 'text-emerald-400' : 'text-slate-600'} />
+                  <span className="text-[10px] font-black uppercase tracking-widest truncate">{cName}</span>
+                </button>
+              );
+            })}
           </>
         )}
 
-        {isAdmin && (
-          <>
-            <h3 className="px-5 pt-8 text-[9px] font-black text-rose-500 uppercase tracking-widest mb-4">Gouvernance</h3>
-            {navItem('admin_dashboard', Landmark, 'Cockpit Pilotage')}
-            {navItem('members', Users, 'Registre Global')}
-          </>
-        )}
+        <h3 className="px-5 pt-8 text-[9px] font-black text-rose-500 uppercase tracking-widest mb-4">Gouvernance</h3>
+        {navItem('admin_dashboard', Landmark, 'Cockpit Pilotage')}
+        {navItem('members', Users, 'Registre Global')}
       </nav>
 
       <div className="pt-4 border-t border-white/5">

@@ -35,7 +35,7 @@ const AdministrationDashboard: React.FC = () => {
   }, [currentUserMember]);
 
   // 2. Permissions
-  const isExec = ['Secrétaire Général', 'Adjoint', 'Dieuwrine', 'Responsable'].some(r => myRole.includes(r));
+  const isExec = true; // ['Secrétaire Général', 'Adjoint', 'Dieuwrine', 'Responsable'].some(r => myRole.includes(r));
 
   // --- DATA DERIVATION ---
   const activeMembers = useMemo(() => (members || []).filter(m => m.status === 'active'), [members]);
@@ -187,8 +187,8 @@ const AdministrationDashboard: React.FC = () => {
             </div>
 
             <div className="lg:col-span-5 space-y-8">
-              <div className="glass-card p-10 bg-slate-900 text-white relative overflow-hidden group">
-                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-10 opacity-50">Rapport Sectoriel Global</h4>
+              <div className="glass-card p-10 bg-white border border-slate-100 relative overflow-hidden group">
+                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-10">Rapport Sectoriel Global</h4>
                  <div className="space-y-6 relative z-10">
                    {[
                      { l: 'Étudiants', cat: 'Étudiant', c: 'bg-emerald-400' },
@@ -199,18 +199,18 @@ const AdministrationDashboard: React.FC = () => {
                      const percent = activeMembers.length > 0 ? Math.round((count / activeMembers.length) * 100) : 0;
                      return (
                        <div key={i} className="space-y-2">
-                          <div className="flex justify-between text-[10px] font-black uppercase">
+                          <div className="flex justify-between text-[10px] font-black uppercase text-slate-600">
                             <span className="opacity-60">{sec.l}</span>
                             <span>{count} ({percent}%)</span>
                           </div>
-                          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                              <div className={`h-full ${sec.c} transition-all duration-1000`} style={{ width: `${percent}%` }}></div>
                           </div>
                        </div>
                      );
                    })}
                  </div>
-                 <div className="absolute -right-10 -bottom-10 opacity-5 font-arabic text-[12rem] rotate-12 pointer-events-none text-white">م</div>
+                 <div className="absolute -right-10 -bottom-10 opacity-5 font-arabic text-[12rem] rotate-12 pointer-events-none text-slate-900">م</div>
               </div>
             </div>
           </div>

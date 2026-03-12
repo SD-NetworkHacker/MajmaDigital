@@ -7,7 +7,6 @@ import {
 // Fix: Corrected path for AuthContext
 import { useAuth } from '../../contexts/AuthContext';
 // Fix: Removed NotificationContext as it is obsolete
-import { useTheme } from '../../context/ThemeContext';
 
 interface MainNavbarProps {
   onNavigate: (view: string) => void;
@@ -16,8 +15,6 @@ interface MainNavbarProps {
 
 const MainNavbar: React.FC<MainNavbarProps> = ({ onNavigate, currentView }) => {
   const { user, logout } = useAuth();
-  const { theme } = useTheme(); 
-  
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -44,7 +41,7 @@ const MainNavbar: React.FC<MainNavbarProps> = ({ onNavigate, currentView }) => {
   const navLinks = [
     { id: 'dashboard', label: 'Tableau de Bord', role: 'all' },
     { id: 'commissions', label: 'Commissions', role: 'all' },
-    { id: 'finance', label: 'Finance', role: 'admin' }, // Exemple restriction
+    { id: 'finance', label: 'Finance', role: 'all' }, // Restriction supprimée
     { id: 'members', label: 'Membres', role: 'all' },
   ];
 
@@ -69,8 +66,6 @@ const MainNavbar: React.FC<MainNavbarProps> = ({ onNavigate, currentView }) => {
           {/* 2. DESKTOP NAVIGATION */}
           <nav className="hidden lg:flex items-center gap-1 bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50">
             {navLinks.map((link) => {
-              if (link.role === 'admin' && user?.role !== 'admin' && user?.role !== 'manager') return null;
-              
               const isActive = currentView === link.id;
               return (
                 <button
@@ -149,11 +144,9 @@ const MainNavbar: React.FC<MainNavbarProps> = ({ onNavigate, currentView }) => {
                     <button onClick={() => handleNavClick('settings')} className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors text-left">
                       <Settings size={16} /> Paramètres
                     </button>
-                    {user?.role === 'admin' && (
-                      <button onClick={() => handleNavClick('admin')} className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors text-left">
-                        <Shield size={16} /> Administration
-                      </button>
-                    )}
+                    <button onClick={() => handleNavClick('admin')} className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors text-left">
+                      <Shield size={16} /> Administration
+                    </button>
                   </div>
                   <div className="p-2 border-t border-slate-50">
                     <button 

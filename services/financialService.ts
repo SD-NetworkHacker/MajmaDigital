@@ -4,60 +4,37 @@ import {
   BudgetRequest, 
   CommissionType,
 } from '../types';
-import { supabase } from '../lib/supabase'; // Fixed import
-
-// Helper pour gérer les erreurs
-const handleError = (error: any) => {
-    if (error) {
-        console.error("Supabase Finance Error:", error);
-        throw new Error(error.message);
-    }
-};
+import * as db from './dbService';
 
 export const getCommissionReports = async (commission: CommissionType) => {
-  const { data, error } = await supabase
-    .from('financial_reports')
-    .select('*')
-    .eq('commission', commission);
-  
-  if (error) return [];
-  return data;
+  const reports = await db.dbFetchFinancialReports();
+  return reports.filter(r => r.commission === commission);
 };
 
 export const getAllFinancialReports = async () => {
-  const { data, error } = await supabase.from('financial_reports').select('*');
-  if (error) return [];
-  return data;
+  return await db.dbFetchFinancialReports();
 };
 
 export const createReport = async (report: Partial<CommissionFinancialReport>) => {
   const newReport = {
     ...report,
-    status: 'brouillon',
+    status: 'brouillon' as const,
     submittedAt: new Date().toISOString(),
     expenses: report.expenses || [],
     totalExpenses: (report.expenses || []).reduce((sum, item) => sum + item.amount, 0),
     balance: (report.totalBudgetAllocated || 0) - ((report.expenses || []).reduce((sum, item) => sum + item.amount, 0))
   };
 
-  const { data, error } = await supabase.from('financial_reports').insert([newReport]).select().single();
-  handleError(error);
-  return data;
+  return await db.dbAddFinancialReport(newReport);
 };
 
 export const getCommissionRequests = async (commission: CommissionType) => {
-  const { data, error } = await supabase
-    .from('budget_requests')
-    .select('*')
-    .eq('commission', commission);
-  if (error) return [];
-  return data;
+  const requests = await db.dbFetchBudgetRequests();
+  return requests.filter(r => r.commission === commission);
 };
 
 export const getAllBudgetRequests = async () => {
-  const { data, error } = await supabase.from('budget_requests').select('*');
-  if (error) return [];
-  return data;
+  return await db.dbFetchBudgetRequests();
 };
 
 export const createBudgetRequest = async (request: Partial<BudgetRequest>) => {
@@ -66,20 +43,19 @@ export const createBudgetRequest = async (request: Partial<BudgetRequest>) => {
   const newRequest = {
     ...request,
     amountRequested: totalAmount,
-    status: 'soumis_finance',
+    status: 'soumis_finance' as const,
     submittedAt: new Date().toISOString()
   };
 
-  const { data, error } = await supabase.from('budget_requests').insert([newRequest]).select().single();
-  handleError(error);
-  return data;
+  return await db.dbAddBudgetRequest(newRequest);
 };
 
 export const processRequestDecision = async (requestId: string, decision: 'approve' | 'reject', reviewerRole: 'finance' | 'bureau', amountApproved?: number, reason?: string) => {
   const updates: any = {};
   const THRESHOLD_BUREAU = 50000;
 
-  const { data: currentReq } = await supabase.from('budget_requests').select('amountRequested').eq('id', requestId).single();
+  const requests = await db.dbFetchBudgetRequests();
+  const currentReq = requests.find(r => r.id === requestId);
   
   if (!currentReq) return null;
 
@@ -105,9 +81,7 @@ export const processRequestDecision = async (requestId: string, decision: 'appro
     }
   }
 
-  const { data, error } = await supabase.from('budget_requests').update(updates).eq('id', requestId).select().single();
-  handleError(error);
-  return data;
+  return await db.dbUpdateBudgetRequest(requestId, updates);
 };
 
 export const processReportDecision = async (reportId: string, decision: 'validate' | 'reject', feedback?: string) => {
@@ -118,7 +92,5 @@ export const processReportDecision = async (reportId: string, decision: 'validat
     updates.status = 'rejete';
   }
   
-  const { data, error } = await supabase.from('financial_reports').update(updates).eq('id', reportId).select().single();
-  handleError(error);
-  return data;
+  return await db.dbUpdateFinancialReport(reportId, updates);
 };

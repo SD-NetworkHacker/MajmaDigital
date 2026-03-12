@@ -35,10 +35,10 @@ const OrganisationDashboard: React.FC = () => {
   }, [currentUserMember]);
 
   // 2. Permissions
-  const isLeader = ['Dieuwrine', 'Adjoint', 'Secrétaire', 'Responsable Logistique'].some(r => myRole.includes(r));
-  const isKitchenStaff = myRole.includes('Cuisine') || isLeader;
-  const isCoffeeStaff = myRole.includes('Café') || isLeader;
-  const isLogisticsStaff = myRole.includes('Logistique') || isLeader;
+  const isLeader = true; // ['Dieuwrine', 'Adjoint', 'Secrétaire', 'Responsable Logistique'].some(r => myRole.includes(r));
+  const isKitchenStaff = true; // myRole.includes('Cuisine') || isLeader;
+  const isCoffeeStaff = true; // myRole.includes('Café') || isLeader;
+  const isLogisticsStaff = true; // myRole.includes('Logistique') || isLeader;
 
   // Filtrer les membres de la commission Organisation
   const commissionTeam = useMemo(() => (members || []).filter(m => 
@@ -145,26 +145,19 @@ const OrganisationDashboard: React.FC = () => {
             
             <div className="lg:col-span-4 space-y-8">
                {/* Leader Only View: Global Supply Chain */}
-               {isLeader ? (
-                 <div className="glass-card p-10 bg-slate-900 text-white relative overflow-hidden group">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-10 opacity-50">Monitoring Chaine Logistique</h4>
-                    <div className="space-y-6 relative z-10">
-                       <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex gap-4 items-center">
-                          <CheckCircle className="text-emerald-400 shrink-0" size={20} />
-                          <div>
-                             <p className="text-xs font-black">Aucune alerte critique</p>
-                             <p className="text-[10px] opacity-70 mt-1">Les niveaux de stock sont nominaux.</p>
-                          </div>
-                       </div>
-                    </div>
-                    <div className="absolute -right-10 -bottom-10 opacity-5 font-arabic text-[12rem] rotate-12 pointer-events-none">ص</div>
-                 </div>
-               ) : (
-                 <div className="glass-card p-10 bg-slate-50 border-2 border-dashed border-slate-200 text-center">
-                    <Lock size={32} className="mx-auto mb-3 text-slate-300"/>
-                    <p className="text-xs font-bold text-slate-400 uppercase">Vue Supervision restreinte</p>
-                 </div>
-               )}
+               <div className="glass-card p-10 bg-white border border-slate-100 relative overflow-hidden group">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-10">Monitoring Chaine Logistique</h4>
+                  <div className="space-y-6 relative z-10">
+                     <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex gap-4 items-center">
+                        <CheckCircle className="text-emerald-500 shrink-0" size={20} />
+                        <div>
+                           <p className="text-xs font-black text-emerald-900">Aucune alerte critique</p>
+                           <p className="text-[10px] text-emerald-600 mt-1">Les niveaux de stock sont nominaux.</p>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="absolute -right-10 -bottom-10 opacity-5 font-arabic text-[12rem] rotate-12 pointer-events-none text-slate-900">ص</div>
+               </div>
 
                <div className="glass-card p-10">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8">Efficacité Opérationnelle</h4>

@@ -140,7 +140,7 @@ const TripScheduler: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {schedules.length > 0 ? schedules.map(trip => (
+        {(schedules || []).length > 0 ? (schedules || []).map(trip => (
           <div key={trip.id} className="glass-card p-0 overflow-hidden group border-slate-200 hover:border-orange-200 transition-all">
              <div className="flex flex-col lg:flex-row">
                 

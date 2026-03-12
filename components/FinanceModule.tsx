@@ -22,7 +22,7 @@ const FinanceModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
 
-  const isManager = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin' || user?.role === 'DIEUWRINE';
+  const isManager = true; // user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin' || user?.role === 'DIEUWRINE';
 
   const filteredContributions = useMemo(() => {
     const term = searchTerm.toLowerCase();

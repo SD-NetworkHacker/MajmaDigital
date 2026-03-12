@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { Mail, Send, ChevronLeft } from 'lucide-react';
-import { useLoading } from '../../context/LoadingContext';
 // Fix: Removed NotificationContext import as it is obsolete
 import AuthLayout from './AuthLayout';
 
@@ -10,7 +9,7 @@ interface ForgotPasswordFormProps {
 }
 
 const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }) => {
-  const { showLoading, hideLoading } = useLoading();
+  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [isSent, setIsSent] = useState(false);
 
@@ -18,10 +17,10 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }
     e.preventDefault();
     if (!email) return;
 
-    showLoading();
+    setIsLoading(true);
     // Simulation API
     setTimeout(() => {
-      hideLoading();
+      setIsLoading(false);
       setIsSent(true);
       // Fix: Replaced addNotification with alert
       alert("Email de récupération envoyé !");
@@ -56,9 +55,10 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }
 
           <button 
             type="submit"
-            className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-black hover:shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95"
+            disabled={isLoading}
+            className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-black hover:shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
           >
-            <Send size={16} /> Envoyer le lien
+            <Send size={16} /> {isLoading ? 'Envoi...' : 'Envoyer le lien'}
           </button>
 
           <button 

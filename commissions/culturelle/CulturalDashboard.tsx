@@ -23,12 +23,12 @@ const CulturalDashboard: React.FC = () => {
   const { members } = useData();
   const { user } = useAuth();
   
-  const isAdmin = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin';
-  const [activeTab, setActiveTab] = useState(isAdmin ? 'overview' : 'library');
+  const isAdmin = true; // user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin';
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Filtrer les membres de la commission Culturelle
   const commissionTeam = useMemo(() => (members || []).filter(m => 
-    m.commissions?.some(c => c.type === CommissionType.CULTURELLE)
+    (m.commissions || []).some(c => (typeof c === 'string' ? c : c.type) === CommissionType.CULTURELLE)
   ), [members]);
 
   const getRolePriority = (role: string) => {
@@ -41,12 +41,10 @@ const CulturalDashboard: React.FC = () => {
   };
 
   const navItems = [
-    ...(isAdmin ? [
-      { id: 'overview', label: 'Console Culture', icon: LayoutDashboard },
-      { id: 'finance', label: 'Budget', icon: Wallet },
-      { id: 'meetings', label: 'Réunions', icon: FileText },
-      { id: 'tasks', label: 'Tâches', icon: ListTodo },
-    ] : []),
+    { id: 'overview', label: 'Console Culture', icon: LayoutDashboard },
+    { id: 'finance', label: 'Budget', icon: Wallet },
+    { id: 'meetings', label: 'Réunions', icon: FileText },
+    { id: 'tasks', label: 'Tâches', icon: ListTodo },
     { id: 'library', label: 'Médiathèque', icon: Library },
     { id: 'calendar', label: 'Agenda', icon: Calendar },
     { id: 'academy', label: 'Académie', icon: BookOpen },
@@ -71,7 +69,7 @@ const CulturalDashboard: React.FC = () => {
         ))}
       </div>
 
-      {isAdmin && activeTab === 'overview' && (
+      {activeTab === 'overview' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
           
           {/* Admin Widgets Row */}
@@ -172,12 +170,16 @@ const CulturalDashboard: React.FC = () => {
              {commissionTeam.length > 0 ? (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {commissionTeam.sort((a, b) => {
-                      const roleA = a.commissions?.find(c => c.type === CommissionType.CULTURELLE)?.role_commission || '';
-                      const roleB = b.commissions?.find(c => c.type === CommissionType.CULTURELLE)?.role_commission || '';
-                      return getRolePriority(roleA) - getRolePriority(roleB);
+                       const getRole = (m: any) => {
+                           const comm = (m.commissions || []).find((c: any) => (typeof c === 'string' ? c : c.type) === CommissionType.CULTURELLE);
+                           return (comm && typeof comm !== 'string') ? comm.role_commission : '';
+                       };
+                       const roleA = getRole(a) || '';
+                       const roleB = getRole(b) || '';
+                       return getRolePriority(roleA) - getRolePriority(roleB);
                   }).map(member => {
-                      const assignment = member.commissions?.find(c => c.type === CommissionType.CULTURELLE);
-                      const roleName = assignment ? assignment.role_commission : 'Membre';
+                       const assignment = (member.commissions || []).find((c: any) => (typeof c === 'string' ? c : c.type) === CommissionType.CULTURELLE);
+                       const roleName = (assignment && typeof assignment !== 'string' && assignment.role_commission) ? assignment.role_commission : 'Membre';
                       
                       return (
                           <div key={member.id} className="p-6 rounded-[1.5rem] border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-indigo-900/5 hover:border-indigo-100 transition-all group cursor-pointer relative overflow-hidden">
@@ -220,9 +222,9 @@ const CulturalDashboard: React.FC = () => {
         </div>
       )}
 
-      {isAdmin && activeTab === 'finance' && <CommissionFinancialDashboard commission={CommissionType.CULTURELLE} />}
-      {isAdmin && activeTab === 'meetings' && <CommissionMeetingDashboard commission={CommissionType.CULTURELLE} />}
-      {isAdmin && activeTab === 'tasks' && <TaskManager commission={CommissionType.CULTURELLE} />}
+      {activeTab === 'finance' && <CommissionFinancialDashboard commission={CommissionType.CULTURELLE} />}
+      {activeTab === 'meetings' && <CommissionMeetingDashboard commission={CommissionType.CULTURELLE} />}
+      {activeTab === 'tasks' && <TaskManager commission={CommissionType.CULTURELLE} />}
       
       {activeTab === 'library' && <DigitalLibrary />}
       {activeTab === 'calendar' && <CulturalCalendar />}

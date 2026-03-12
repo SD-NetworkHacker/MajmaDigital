@@ -33,7 +33,7 @@ const FinanceDashboard: React.FC = () => {
   const [editingTx, setEditingTx] = useState<Contribution | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const isManager = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'Super Admin' || user?.role === 'DIEUWRINE';
+  const isManager = true; // Restriction supprimée
 
   // Load AI Insight
   useEffect(() => {
@@ -66,7 +66,7 @@ const FinanceDashboard: React.FC = () => {
     return { adiyasTotal, sassTotal, diayanteTotal, recentLogs };
   }, [contributions, members]);
 
-  if (!isManager) return <MemberFinancePortal />;
+  // if (!isManager) return <MemberFinancePortal />; // Restriction supprimée
 
   const navItems = [
     { id: 'overview', label: 'Console Trésorerie', icon: LayoutDashboard, restricted: false },
@@ -78,7 +78,7 @@ const FinanceDashboard: React.FC = () => {
     { id: 'reports', label: 'États Financiers', icon: PieChart, restricted: true },
   ];
 
-  const visibleNavItems = navItems.filter(item => !item.restricted || (user?.role === 'admin' || user?.role === 'Super Admin' || user?.role === 'DIEUWRINE'));
+  const visibleNavItems = navItems; // Restriction supprimée
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-12">
@@ -174,27 +174,19 @@ const FinanceDashboard: React.FC = () => {
                   </button>
                 </div>
                 
-                {isManager ? (
-                  <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-emerald-200 transition-all cursor-pointer">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="p-3 bg-white rounded-2xl shadow-sm text-emerald-600"><FileText size={20}/></div>
-                      <h4 className="font-black text-sm text-slate-800">Bilans & Validation</h4>
-                    </div>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-6">Valider les demandes budgétaires ou générer les états financiers.</p>
-                    <button 
-                      onClick={() => setActiveTab('review')}
-                      className="w-full py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-900/10"
-                    >
-                      Console de Validation
-                    </button>
+                <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-emerald-200 transition-all cursor-pointer">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 bg-white rounded-2xl shadow-sm text-emerald-600"><FileText size={20}/></div>
+                    <h4 className="font-black text-sm text-slate-800">Bilans & Validation</h4>
                   </div>
-                ) : (
-                  <div className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col justify-center items-center text-center opacity-60">
-                     <Lock size={24} className="mb-2 text-slate-400"/>
-                     <p className="text-xs font-bold uppercase text-slate-500">Zone Réservée</p>
-                     <p className="text-[10px] mt-1">Validation Budgétaire</p>
-                  </div>
-                )}
+                  <p className="text-xs text-slate-500 leading-relaxed mb-6">Valider les demandes budgétaires ou générer les états financiers.</p>
+                  <button 
+                    onClick={() => setActiveTab('review')}
+                    className="w-full py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-900/10"
+                  >
+                    Console de Validation
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -222,13 +214,13 @@ const FinanceDashboard: React.FC = () => {
       )}
 
       {/* Corrected activeTab references to activeFinanceTab */}
-      {activeFinanceTab === 'review' && isManager && <FinanceReviewPanel />}
+      {activeFinanceTab === 'review' && <FinanceReviewPanel />}
       {activeFinanceTab === 'tasks' && <TaskManager commission={CommissionType.FINANCE} />}
       {activeFinanceTab === 'contributions' && <ContributionManager />}
       {activeFinanceTab === 'payments' && <PaymentProcessing />}
       {/* Fix: use activeFinanceTab instead of activeTab */}
-      {activeFinanceTab === 'budget' && isManager && <BudgetPlanner />}
-      {activeFinanceTab === 'reports' && isManager && <FinancialReporting />}
+      {activeFinanceTab === 'budget' && <BudgetPlanner />}
+      {activeFinanceTab === 'reports' && <FinancialReporting />}
     </div>
   );
 };

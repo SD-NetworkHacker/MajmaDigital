@@ -15,16 +15,6 @@ const MemberModule: React.FC<{ onViewProfile?: (id: string) => void }> = ({ onVi
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(isMobile ? 'grid' : 'list');
   const [roleFilter, setRoleFilter] = useState('Tous les rôles');
 
-  // Sécurité Cruciale : Garde-fou si l'utilisateur ou les données manquent
-  if (!user || isLoading) {
-    return (
-      <div className="h-screen w-full flex flex-col items-center justify-center">
-        <Loader2 className="animate-spin text-emerald-500 mb-4" size={32} />
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Synchronisation registre...</p>
-      </div>
-    );
-  }
-
   const filteredMembers = useMemo(() => {
     const term = (searchTerm || '').toLowerCase().trim();
     return (members || []).filter(m => {
@@ -42,6 +32,16 @@ const MemberModule: React.FC<{ onViewProfile?: (id: string) => void }> = ({ onVi
       default: return <Briefcase size={14} />;
     }
   };
+
+  // Sécurité Cruciale : Garde-fou si l'utilisateur ou les données manquent
+  if (!user || isLoading) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center">
+        <Loader2 className="animate-spin text-emerald-500 mb-4" size={32} />
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Synchronisation registre...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -94,34 +94,64 @@ const MemberModule: React.FC<{ onViewProfile?: (id: string) => void }> = ({ onVi
         </div>
       </div>
 
-      <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "bg-white rounded-2xl border border-slate-100 overflow-hidden"}>
-        {filteredMembers.map(member => (
+      <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm"}>
+        {filteredMembers.map((member, index) => (
           <div 
             key={member.id}
             onClick={() => onViewProfile?.(member.id)}
-            className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
+            className={viewMode === 'grid' 
+              ? "bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
+              : `flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer ${index !== filteredMembers.length - 1 ? 'border-b border-slate-100' : ''}`
+            }
           >
-             <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-lg shadow-inner uppercase">
-                   {(member.firstName || 'U')[0]}{(member.lastName || '')[0]}
-                </div>
-                <div>
-                   <h4 className="font-black text-slate-900 leading-tight">{member.firstName} {member.lastName}</h4>
-                   <p className="text-[10px] font-mono text-slate-400 mt-1 uppercase">{member.matricule}</p>
-                </div>
-             </div>
-             <div className="flex flex-wrap gap-2 mb-6">
-                <div className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2 text-[9px] font-black uppercase text-slate-500">
-                   {getCategoryIcon(member.category)} {member.category}
-                </div>
-                <div className="px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2 text-[9px] font-black uppercase text-emerald-600">
-                   <CheckCircle size={10} /> {member.role}
-                </div>
-             </div>
-             <div className="flex justify-between items-center pt-4 border-t border-slate-50 text-slate-300 text-[9px] font-black uppercase tracking-widest">
-                <span>Voir Profil</span>
-                <CheckCircle size={14} className="text-emerald-500" />
-             </div>
+             {viewMode === 'grid' ? (
+               <>
+                 <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-lg shadow-inner uppercase">
+                       {(member.firstName || 'U')[0]}{(member.lastName || '')[0]}
+                    </div>
+                    <div>
+                       <h4 className="font-black text-slate-900 leading-tight">{member.firstName} {member.lastName}</h4>
+                       <p className="text-[10px] font-mono text-slate-400 mt-1 uppercase">{member.matricule}</p>
+                    </div>
+                 </div>
+                 <div className="flex flex-wrap gap-2 mb-6">
+                    <div className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2 text-[9px] font-black uppercase text-slate-500">
+                       {getCategoryIcon(member.category)} {member.category}
+                    </div>
+                    <div className="px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2 text-[9px] font-black uppercase text-emerald-600">
+                       <CheckCircle size={10} /> {member.role}
+                    </div>
+                 </div>
+                 <div className="flex justify-between items-center pt-4 border-t border-slate-50 text-slate-300 text-[9px] font-black uppercase tracking-widest">
+                    <span>Voir Profil</span>
+                    <CheckCircle size={14} className="text-emerald-500" />
+                 </div>
+               </>
+             ) : (
+               <>
+                 <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-sm shadow-inner uppercase">
+                       {(member.firstName || 'U')[0]}{(member.lastName || '')[0]}
+                    </div>
+                    <div>
+                       <h4 className="font-bold text-slate-900">{member.firstName} {member.lastName}</h4>
+                       <p className="text-[10px] font-mono text-slate-400 uppercase">{member.matricule}</p>
+                    </div>
+                 </div>
+                 <div className="hidden md:flex items-center gap-4">
+                    <div className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2 text-[9px] font-black uppercase text-slate-500">
+                       {getCategoryIcon(member.category)} {member.category}
+                    </div>
+                    <div className="px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2 text-[9px] font-black uppercase text-emerald-600">
+                       <CheckCircle size={10} /> {member.role}
+                    </div>
+                 </div>
+                 <div className="text-slate-300">
+                    <CheckCircle size={16} className="text-emerald-500" />
+                 </div>
+               </>
+             )}
           </div>
         ))}
       </div>

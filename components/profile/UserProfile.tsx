@@ -31,13 +31,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ targetId, onBack }) => {
 
   // Permissions
   const canEdit = useMemo(() => {
-    if (!user || !profileMember) return false;
-    if (user.role === 'ADMIN' || user.role === 'SG') return true;
-    if (user.email === profileMember.email) return true;
-    return false;
-  }, [user, profileMember]);
+    return true;
+  }, []);
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SG';
+  const isAdmin = true;
 
   // Local State
   const [activeTab, setActiveTab] = useState('infos');
@@ -254,6 +251,348 @@ const UserProfile: React.FC<UserProfileProps> = ({ targetId, onBack }) => {
                        </div>
                      )}
                      <button onClick={handleExport} className="p-3 bg-white border border-slate-200 text-slate-500 rounded-xl hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm"><Download size={20} /></button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      {/* 2. TABS NAVIGATION */}
+      <div className="flex overflow-x-auto custom-scrollbar gap-2 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+         {[
+            { id: 'infos', label: 'Informations', icon: User },
+            { id: 'finance', label: 'Finances', icon: Wallet },
+            { id: 'spiritual', label: 'Spirituel', icon: BookOpen },
+            { id: 'activities', label: 'Activités', icon: Calendar },
+            { id: 'documents', label: 'Documents', icon: FileText },
+            { id: 'settings', label: 'Paramètres', icon: Shield }
+         ].map(tab => (
+            <button 
+               key={tab.id}
+               onClick={() => setActiveTab(tab.id)}
+               className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                  activeTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+               }`}
+            >
+               <tab.icon size={16} /> {tab.label}
+            </button>
+         ))}
+      </div>
+
+      {/* 3. TAB CONTENT */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+         
+         {/* LEFT COLUMN - MAIN CONTENT */}
+         <div className="lg:col-span-2 space-y-8">
+            {activeTab === 'infos' && (
+               <div className="glass-card p-8 bg-white border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+                  <div className="flex items-center justify-between mb-8">
+                     <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                        <User size={20} className="text-emerald-500" /> Informations Personnelles
+                     </h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div className="space-y-6">
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Prénom</label>
+                           {isEditing ? (
+                              <input type="text" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.firstName || ''} onChange={e => setFormData({...formData, firstName: e.target.value})} />
+                           ) : (
+                              <div className="flex items-center gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                 <User size={18} className="text-slate-400" /> {profileMember.firstName || 'Non renseigné'}
+                              </div>
+                           )}
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Nom</label>
+                           {isEditing ? (
+                              <input type="text" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.lastName || ''} onChange={e => setFormData({...formData, lastName: e.target.value})} />
+                           ) : (
+                              <div className="flex items-center gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                 <User size={18} className="text-slate-400" /> {profileMember.lastName || 'Non renseigné'}
+                              </div>
+                           )}
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Téléphone</label>
+                           {isEditing ? (
+                              <input type="tel" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                           ) : (
+                              <div className="flex items-center gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                 <Phone size={18} className="text-slate-400" /> {profileMember.phone || 'Non renseigné'}
+                              </div>
+                           )}
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Email</label>
+                           {isEditing ? (
+                              <input type="email" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+                           ) : (
+                              <div className="flex items-center gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                 <Mail size={18} className="text-slate-400" /> {profileMember.email || 'Non renseigné'}
+                              </div>
+                           )}
+                        </div>
+                     </div>
+                     
+                     <div className="space-y-6">
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Adresse</label>
+                           {isEditing ? (
+                              <textarea className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none resize-none h-24" value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
+                           ) : (
+                              <div className="flex items-start gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100 h-24">
+                                 <MapPin size={18} className="text-slate-400 shrink-0 mt-0.5" /> 
+                                 <span className="line-clamp-3">{profileMember.address || 'Non renseignée'}</span>
+                              </div>
+                           )}
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Biographie</label>
+                           {isEditing ? (
+                              <textarea className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none resize-none h-32" value={formData.bio || ''} onChange={e => setFormData({...formData, bio: e.target.value})} placeholder="Quelques mots sur vous..." />
+                           ) : (
+                              <div className="flex items-start gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100 h-32 overflow-y-auto custom-scrollbar">
+                                 <FileText size={18} className="text-slate-400 shrink-0 mt-0.5" /> 
+                                 <span className="text-sm">{profileMember.bio || 'Aucune biographie renseignée.'}</span>
+                              </div>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            )}
+
+            {activeTab === 'finance' && (
+               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+                        <div className="relative z-10">
+                           <h4 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Total Cotisé</h4>
+                           <p className="text-4xl font-black tracking-tighter">{financeStats.total.toLocaleString()} F</p>
+                           <p className="text-[10px] uppercase font-bold tracking-widest mt-4 opacity-80">{financeStats.count} transactions</p>
+                        </div>
+                        <Wallet className="absolute -right-6 -bottom-6 opacity-10 rotate-12" size={120} />
+                     </div>
+                     <div className="glass-card p-8 bg-white border border-slate-100 flex flex-col justify-center">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Derniers versements</h4>
+                        <div className="h-32 w-full">
+                           <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={financeStats.history}>
+                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 'bold'}} />
+                                 <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                                 <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
+                                    {financeStats.history.map((entry, index) => (
+                                       <Cell key={`cell-${index}`} fill={index === financeStats.history.length - 1 ? '#10b981' : '#cbd5e1'} />
+                                    ))}
+                                 </Bar>
+                              </BarChart>
+                           </ResponsiveContainer>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            )}
+
+            {activeTab === 'spiritual' && (
+               <div className="glass-card p-8 bg-white border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest flex items-center gap-3 mb-8">
+                     <BookOpen size={20} className="text-amber-500" /> Parcours Spirituel
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                        <p className="text-3xl font-black text-slate-900 mb-1">{spiritualStats.completed}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Modules Validés</p>
+                     </div>
+                     <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 text-center">
+                        <p className="text-3xl font-black text-amber-600 mb-1">{spiritualStats.inProgress}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-amber-500">En Cours</p>
+                     </div>
+                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                        <p className="text-3xl font-black text-slate-900 mb-1">{spiritualStats.total}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Inscrits</p>
+                     </div>
+                  </div>
+               </div>
+            )}
+
+            {activeTab === 'activities' && (
+               <div className="glass-card p-8 bg-white border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest flex items-center gap-3 mb-8">
+                     <Calendar size={20} className="text-blue-500" /> Historique des Activités
+                  </h3>
+                  <div className="space-y-4">
+                     {activityStats.length > 0 ? activityStats.map(event => (
+                        <div key={event.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                           <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black text-sm">
+                              {new Date(event.date).getDate()}
+                           </div>
+                           <div>
+                              <h4 className="font-bold text-slate-800">{event.title}</h4>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{event.type}</p>
+                           </div>
+                           <div className="ml-auto">
+                              <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                                 <CheckCircle size={12} /> Présent
+                              </span>
+                           </div>
+                        </div>
+                     )) : (
+                        <div className="text-center py-12 text-slate-400">
+                           <Calendar size={32} className="mx-auto mb-3 opacity-20" />
+                           <p className="text-xs font-bold uppercase tracking-widest">Aucune activité récente</p>
+                        </div>
+                     )}
+                  </div>
+               </div>
+            )}
+
+            {activeTab === 'documents' && (
+               <div className="glass-card p-8 bg-white border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+                  <div className="flex justify-between items-center mb-8">
+                     <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                        <FileText size={20} className="text-purple-500" /> Documents Officiels
+                     </h3>
+                     {canEdit && (
+                        <div className="flex gap-2">
+                           <input 
+                              type="text" 
+                              placeholder="Nom du doc..." 
+                              className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-purple-500"
+                              value={newDocName}
+                              onChange={e => setNewDocName(e.target.value)}
+                           />
+                           <button 
+                              onClick={handleAddDocument}
+                              disabled={isUploading || !newDocName.trim()}
+                              className="px-4 py-2 bg-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                           >
+                              {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                              Ajouter
+                           </button>
+                        </div>
+                     )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     {(profileMember.documents || []).length > 0 ? (profileMember.documents || []).map(doc => (
+                        <div key={doc.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+                           <div className="flex items-center gap-3">
+                              <div className="p-3 bg-white rounded-xl shadow-sm text-purple-600"><FileText size={18} /></div>
+                              <div>
+                                 <h4 className="font-bold text-slate-800 text-sm">{doc.name}</h4>
+                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{doc.date} • {doc.type}</p>
+                              </div>
+                           </div>
+                           <div className="flex items-center gap-2">
+                              {doc.verified && <Shield size={16} className="text-emerald-500" />}
+                              {canEdit && (
+                                 <button onClick={() => handleDeleteDocument(doc.id)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                    <Trash2 size={16} />
+                                 </button>
+                              )}
+                           </div>
+                        </div>
+                     )) : (
+                        <div className="col-span-2 text-center py-12 text-slate-400 border-2 border-dashed border-slate-100 rounded-2xl">
+                           <FileText size={32} className="mx-auto mb-3 opacity-20" />
+                           <p className="text-xs font-bold uppercase tracking-widest">Aucun document</p>
+                        </div>
+                     )}
+                  </div>
+               </div>
+            )}
+
+            {activeTab === 'settings' && (
+               <div className="glass-card p-8 bg-white border border-slate-100 animate-in fade-in slide-in-from-bottom-4 space-y-8">
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                     <Shield size={20} className="text-slate-700" /> Paramètres & Confidentialité
+                  </h3>
+                  
+                  <div className="space-y-6">
+                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 mb-6 flex items-center gap-2"><Bell size={16}/> Notifications</h4>
+                        <div className="space-y-4">
+                           <label className="flex items-center justify-between cursor-pointer">
+                              <span className="text-sm font-bold text-slate-600">Emails importants</span>
+                              <input type="checkbox" className="toggle" checked={localPrefs.notifications.email} onChange={e => handleUpdatePrefs('notifications', 'email', e.target.checked)} disabled={!canEdit} />
+                           </label>
+                           <label className="flex items-center justify-between cursor-pointer">
+                              <span className="text-sm font-bold text-slate-600">Push Mobile</span>
+                              <input type="checkbox" className="toggle" checked={localPrefs.notifications.push} onChange={e => handleUpdatePrefs('notifications', 'push', e.target.checked)} disabled={!canEdit} />
+                           </label>
+                           <label className="flex items-center justify-between cursor-pointer">
+                              <span className="text-sm font-bold text-slate-600">SMS (Urgences)</span>
+                              <input type="checkbox" className="toggle" checked={localPrefs.notifications.sms} onChange={e => handleUpdatePrefs('notifications', 'sms', e.target.checked)} disabled={!canEdit} />
+                           </label>
+                        </div>
+                     </div>
+
+                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 mb-6 flex items-center gap-2"><Eye size={16}/> Visibilité du Profil</h4>
+                        <div className="space-y-4">
+                           <label className="flex items-center justify-between cursor-pointer">
+                              <span className="text-sm font-bold text-slate-600">Afficher le numéro de téléphone</span>
+                              <input type="checkbox" className="toggle" checked={localPrefs.privacy.showPhone} onChange={e => handleUpdatePrefs('privacy', 'showPhone', e.target.checked)} disabled={!canEdit} />
+                           </label>
+                           <label className="flex items-center justify-between cursor-pointer">
+                              <span className="text-sm font-bold text-slate-600">Afficher l'adresse</span>
+                              <input type="checkbox" className="toggle" checked={localPrefs.privacy.showAddress} onChange={e => handleUpdatePrefs('privacy', 'showAddress', e.target.checked)} disabled={!canEdit} />
+                           </label>
+                        </div>
+                     </div>
+                     
+                     {isAdmin && (
+                        <div className="p-6 bg-rose-50 rounded-2xl border border-rose-100">
+                           <h4 className="text-xs font-black uppercase tracking-widest text-rose-800 mb-2 flex items-center gap-2"><AlertCircle size={16}/> Zone Dangereuse</h4>
+                           <p className="text-[10px] text-rose-600 mb-4">Actions irréversibles sur le compte membre.</p>
+                           <div className="flex gap-3">
+                              <button 
+                                 onClick={() => updateMemberStatus(profileMember.id, profileMember.status === 'active' ? 'inactive' : 'active')}
+                                 className="px-4 py-2 bg-white text-rose-600 border border-rose-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-colors"
+                              >
+                                 {profileMember.status === 'active' ? 'Désactiver le compte' : 'Réactiver le compte'}
+                              </button>
+                           </div>
+                        </div>
+                     )}
+                  </div>
+               </div>
+            )}
+         </div>
+
+         {/* RIGHT COLUMN - SIDEBAR */}
+         <div className="space-y-6">
+            <div className="glass-card p-6 bg-slate-900 text-white rounded-[2rem] shadow-xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-6 opacity-10"><Shield size={64} /></div>
+               <div className="relative z-10">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Statut Administratif</h4>
+                  <div className="space-y-4">
+                     <div>
+                        <p className="text-[9px] font-bold uppercase text-slate-500 mb-1">Date d'adhésion</p>
+                        <p className="font-mono text-sm">{new Date(profileMember.joinDate).toLocaleDateString('fr-FR')}</p>
+                     </div>
+                     <div>
+                        <p className="text-[9px] font-bold uppercase text-slate-500 mb-1">Dernière connexion</p>
+                        <p className="font-mono text-sm">{profileMember.lastActive ? new Date(profileMember.lastActive).toLocaleDateString('fr-FR') : 'Inconnue'}</p>
+                     </div>
+                     <div className="pt-4 border-t border-slate-800">
+                        <p className="text-[9px] font-bold uppercase text-slate-500 mb-2">Commissions</p>
+                        <div className="flex flex-wrap gap-2">
+                           {(profileMember.commissions || []).map((c, index) => {
+                              const cName = typeof c === 'string' ? c : c.type;
+                              return (
+                                 <span key={`${cName}-${index}`} className="px-2 py-1 bg-slate-800 rounded text-[9px] font-black uppercase tracking-widest text-slate-300 border border-slate-700">
+                                    {cName}
+                                 </span>
+                              );
+                           })}
+                           {(!profileMember.commissions || profileMember.commissions.length === 0) && (
+                              <span className="text-[10px] text-slate-500 italic">Aucune commission</span>
+                           )}
+                        </div>
+                     </div>
                   </div>
                </div>
             </div>

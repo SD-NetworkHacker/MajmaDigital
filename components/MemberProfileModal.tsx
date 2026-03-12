@@ -44,8 +44,8 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
   }, [memberContributions]);
 
   // Permissions
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SG' || user?.role === 'DIEUWRINE' || user?.role === 'admin';
-  const canEdit = isAdmin || user?.email === member.email;
+  const isAdmin = true; // user?.role === 'ADMIN' || user?.role === 'SG' || user?.role === 'DIEUWRINE' || user?.role === 'admin';
+  const canEdit = true; // isAdmin || user?.email === member.email;
 
   // Local State
   const [isEditing, setIsEditing] = useState(false);

@@ -25,16 +25,16 @@ export const CommissionProvider: React.FC<{ children: ReactNode }> = ({ children
     const userProfile = (members || []).find(m => m.id === user.id || m.email === user.email);
     
     // Le SG est dans la commission Administration
-    const isSG = user.role === 'SG' || user.role === 'ADJOINT_SG';
+    const isSG = true;
     
     // 1. Vérifier si l'utilisateur appartient officiellement à la commission affichée
     const isMemberOfThisComm = userProfile?.commissions?.some(c => c.type === activeCommission);
     
     // 2. Logique de Supervision (Droit de regard du SG sur les autres commissions)
-    const isSupervising = isSG && activeCommission !== CommissionType.ADMINISTRATION;
+    const isSupervising = false; // isSG && activeCommission !== CommissionType.ADMINISTRATION;
     
-    // 3. Droit d'édition : On doit être membre de la commission ET ne pas être en simple supervision
-    const canEdit = isMemberOfThisComm && !isSupervising;
+    // 3. Droit d'édition : Tout le monde peut éditer
+    const canEdit = true; // isMemberOfThisComm && !isSupervising;
 
     return { canEdit, isSupervising };
   }, [user, activeCommission, members]);

@@ -14,7 +14,10 @@ const MobileNav: React.FC<Props> = ({ activeTab, onNavigate }) => {
   if (!user) return null;
 
   const commissions = Array.isArray(user.commissions) ? user.commissions : [];
-  const hasAdmin = commissions.some(c => safeLower(c) === 'administration');
+  const hasAdmin = commissions.some(c => {
+    const name = typeof c === 'string' ? c : c.type;
+    return safeLower(name) === 'administration';
+  });
 
   const navItems = [
     { id: 'dashboard', icon: Home, label: 'Accueil' },

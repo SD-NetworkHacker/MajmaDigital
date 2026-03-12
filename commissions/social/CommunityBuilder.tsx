@@ -34,7 +34,7 @@ const CommunityBuilder: React.FC = () => {
                          <div>
                             <p className="text-base font-black text-slate-800 leading-none mb-2">{p.name}</p>
                             <div className="flex items-center gap-3">
-                               <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${p.role === 'Mentor' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{p.role}</span>
+                               <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-blue-100 text-blue-700">{p.role}</span>
                                <span className="text-[10px] text-slate-400 font-bold uppercase">{p.expertise || p.interest}</span>
                             </div>
                          </div>

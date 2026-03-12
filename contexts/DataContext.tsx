@@ -1,7 +1,8 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { Member, Event, Contribution, Task, InternalMeetingReport } from '../types';
+import * as db from '../services/dbService';
 
 interface DataContextType {
   members: Member[];
@@ -9,6 +10,9 @@ interface DataContextType {
   contributions: Contribution[];
   tasks: Task[];
   reports: InternalMeetingReport[];
+  schedules: any[];
+  khassaideModules: any[];
+  tickets: any[];
   totalTreasury: number;
   activeMembersCount: number;
   isLoading: boolean;
@@ -17,6 +21,9 @@ interface DataContextType {
   updateContribution: (id: string, updates: any) => Promise<void>;
   deleteContribution: (id: string) => Promise<void>;
   updateMemberStatus: (id: string, status: string) => Promise<void>;
+  updateMember: (id: string, updates: any) => Promise<void>;
+  addTicket: (t: any) => void;
+  updateTicket: (id: string, updates: any) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -30,6 +37,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [reports, setReports] = useState<InternalMeetingReport[]>([]);
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [khassaideModules, setKhassaideModules] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
 
   const refreshAll = useCallback(async () => {
     if (!user) {
@@ -40,25 +50,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
 
     try {
-      const [mRes, eRes, cRes, tRes, rRes] = await Promise.all([
-        supabase.from('profiles').select('*'),
-        supabase.from('events').select('*'),
-        supabase.from('contributions').select('*'),
-        supabase.from('tasks').select('*'),
-        supabase.from('meeting_reports').select('*')
+      const [mRes, eRes, cRes, tRes, rRes, ticketsRes] = await Promise.all([
+        db.dbFetchMembers(),
+        db.dbFetchEvents(),
+        db.dbFetchContributions(),
+        db.dbFetchTasks(),
+        db.dbFetchReports(),
+        db.dbFetchTickets()
       ]);
 
-      if (mRes.data) setMembers(mRes.data.map((x: any) => ({
-          id: x.id, firstName: x.first_name, lastName: x.last_name, email: x.email, 
-          phone: x.phone, role: x.role, category: x.category, matricule: x.matricule,
-          status: x.status, address: x.address, joinDate: x.created_at,
-          commissions: x.commissions || []
-      })));
-      
-      if (eRes.data) setEvents(eRes.data);
-      if (cRes.data) setContributions(cRes.data);
-      if (tRes.data) setTasks(tRes.data);
-      if (rRes.data) setReports(rRes.data);
+      setMembers(mRes);
+      setEvents(eRes);
+      setContributions(cRes);
+      setTasks(tRes);
+      setReports(rRes);
+      setTickets(ticketsRes);
 
     } catch (err) {
       console.error("DataContext Error:", err);
@@ -73,30 +79,66 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Actions
   const addContribution = async (c: any) => {
-    const { error } = await supabase.from('contributions').insert([{
-        member_id: c.memberId,
-        type: c.type,
-        amount: Number(c.amount),
-        event_label: c.eventLabel,
-        status: 'paid',
-        date: new Date().toISOString().split('T')[0]
-    }]);
-    if (!error) refreshAll();
+    try {
+      await db.dbAddContribution(c);
+      refreshAll();
+    } catch (err) {
+      console.error("Add Contribution Error:", err);
+    }
   };
 
   const updateContribution = async (id: string, updates: any) => {
-    const { error } = await supabase.from('contributions').update(updates).eq('id', id);
-    if (!error) refreshAll();
+    try {
+      await db.dbUpdateContribution(id, updates);
+      refreshAll();
+    } catch (err) {
+      console.error("Update Contribution Error:", err);
+    }
   };
 
   const deleteContribution = async (id: string) => {
-    const { error } = await supabase.from('contributions').delete().eq('id', id);
-    if (!error) refreshAll();
+    try {
+      await db.dbDeleteContribution(id);
+      refreshAll();
+    } catch (err) {
+      console.error("Delete Contribution Error:", err);
+    }
   };
 
   const updateMemberStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from('profiles').update({ status }).eq('id', id);
-    if (!error) refreshAll();
+    try {
+      await db.dbUpdateMemberStatus(id, status);
+      refreshAll();
+    } catch (err) {
+      console.error("Update Member Status Error:", err);
+    }
+  };
+
+  const updateMember = async (id: string, updates: any) => {
+    try {
+      await db.dbUpdateMember(id, updates);
+      refreshAll();
+    } catch (err) {
+      console.error("Update Member Error:", err);
+    }
+  };
+
+  const addTicket = async (t: any) => {
+    try {
+      await db.dbAddTicket(t);
+      refreshAll();
+    } catch (err) {
+      console.error("Add Ticket Error:", err);
+    }
+  };
+
+  const updateTicket = async (id: string, updates: any) => {
+    try {
+      await db.dbUpdateTicket(id, updates);
+      refreshAll();
+    } catch (err) {
+      console.error("Update Ticket Error:", err);
+    }
   };
 
   // Calcul unique pour tout le site
@@ -105,9 +147,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <DataContext.Provider value={{ 
-      members, events, contributions, tasks, reports,
+      members, events, contributions, tasks, reports, schedules, khassaideModules, tickets,
       totalTreasury, activeMembersCount, isLoading, refreshAll,
-      addContribution, updateContribution, deleteContribution, updateMemberStatus
+      addContribution, updateContribution, deleteContribution, updateMemberStatus, updateMember,
+      addTicket, updateTicket
     }}>
       {children}
     </DataContext.Provider>

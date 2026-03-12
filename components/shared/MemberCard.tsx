@@ -49,18 +49,21 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onViewProfile, onContac
         <div className="flex-1">
           <p className="text-[9px] font-bold text-slate-400 uppercase mb-2">Engagements</p>
           <div className="flex flex-wrap gap-1.5">
-            {member.commissions.length > 0 ? (
-              member.commissions.slice(0, 2).map((comm, i) => (
-                <span key={i} className="px-2 py-1 bg-slate-50 border border-slate-100 rounded-md text-[9px] font-bold text-slate-600 flex items-center gap-1">
-                  <ShieldCheck size={10} className="text-emerald-500"/>
-                  {comm.type}
-                </span>
-              ))
+            {(member.commissions || []).length > 0 ? (
+              (member.commissions || []).slice(0, 2).map((comm, i) => {
+                const commName = typeof comm === 'string' ? comm : comm.type;
+                return (
+                  <span key={i} className="px-2 py-1 bg-slate-50 border border-slate-100 rounded-md text-[9px] font-bold text-slate-600 flex items-center gap-1">
+                    <ShieldCheck size={10} className="text-emerald-500"/>
+                    {commName}
+                  </span>
+                );
+              })
             ) : (
               <span className="text-[10px] text-slate-400 italic">Aucune commission</span>
             )}
-            {member.commissions.length > 2 && (
-              <span className="px-2 py-1 bg-slate-50 rounded-md text-[9px] font-bold text-slate-400">+{member.commissions.length - 2}</span>
+            {(member.commissions || []).length > 2 && (
+              <span className="px-2 py-1 bg-slate-50 rounded-md text-[9px] font-bold text-slate-400">+{(member.commissions || []).length - 2}</span>
             )}
           </div>
         </div>

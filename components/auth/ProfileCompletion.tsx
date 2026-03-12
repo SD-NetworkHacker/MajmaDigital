@@ -3,7 +3,6 @@ import React, { useState, useRef } from 'react';
 import { Camera, User, Save, UploadCloud } from 'lucide-react';
 // Fix: Corrected AuthContext path
 import { useAuth } from '../../contexts/AuthContext';
-import { useLoading } from '../../context/LoadingContext';
 // Fix: Removed NotificationContext as it is obsolete
 import AuthLayout from './AuthLayout';
 
@@ -13,8 +12,7 @@ interface ProfileCompletionProps {
 
 const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => {
   const { user, refreshProfile } = useAuth();
-  const { showLoading, hideLoading } = useLoading();
-  
+  const [isLoading, setIsLoading] = useState(false);
   const [bio, setBio] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,12 +30,12 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    showLoading();
+    setIsLoading(true);
     
     // Simulation Update Profile
     setTimeout(() => {
       console.log('Profile updated', { bio, avatar: avatarPreview });
-      hideLoading();
+      setIsLoading(false);
       alert("Profil mis à jour !");
       onComplete();
     }, 1500);
@@ -93,9 +91,10 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
           </button>
           <button 
             type="submit"
-            className="flex-[2] py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-2"
+            disabled={isLoading}
+            className="flex-[2] py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <Save size={16} /> Enregistrer & Accéder
+            <Save size={16} /> {isLoading ? 'Enregistrement...' : 'Enregistrer & Accéder'}
           </button>
         </div>
       </form>

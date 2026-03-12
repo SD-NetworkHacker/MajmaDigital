@@ -92,16 +92,6 @@ const MemberManagementDashboard: React.FC = () => {
         return matchesSearch && matchesSector && matchesStatus && matchesProfile;
       })
       .sort((a, b) => {
-          // Tri par rôle prioritaire si vue globale, sinon alphabétique
-          if (profileView === 'all') {
-             const rolePriority = (role: string) => {
-                 if (role === GlobalRole.SG) return 1;
-                 if (role === GlobalRole.ADJOINT_SG) return 2;
-                 if (role === GlobalRole.DIEUWRINE) return 3;
-                 return 10;
-             };
-             return rolePriority(String(a.role)) - rolePriority(String(b.role)) || (a.lastName || '').localeCompare(b.lastName || '');
-          }
           return (a.lastName || '').localeCompare(b.lastName || '');
       }); 
   }, [members, searchTerm, selectedSector, selectedStatus, profileView]);
@@ -448,13 +438,16 @@ const MemberManagementDashboard: React.FC = () => {
                                     <span className="text-[9px] font-bold uppercase text-slate-700">{member.role}</span>
                                     <div className="flex flex-wrap gap-1">
                                        {hasCommission ? (
-                                          (member.commissions || []).slice(0, 2).map((c, i) => (
-                                             <span key={i} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-[8px] font-black uppercase">{c.type.substring(0,3)}</span>
-                                          ))
+                                          (member.commissions || []).slice(0, 2).map((c, i) => {
+                                             const cName = typeof c === 'string' ? c : c.type;
+                                             return (
+                                                <span key={i} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-[8px] font-black uppercase">{cName.substring(0,3)}</span>
+                                             );
+                                          })
                                        ) : (
                                           <span className="text-[8px] italic text-slate-400 bg-slate-50 px-2 py-0.5 rounded">Sans commission</span>
                                        )}
-                                       {member.commissions.length > 2 && <span className="text-[8px] text-slate-400">+{member.commissions.length - 2}</span>}
+                                       {(member.commissions || []).length > 2 && <span className="text-[8px] text-slate-400">+{(member.commissions || []).length - 2}</span>}
                                     </div>
                                  </div>
                               </td>

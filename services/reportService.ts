@@ -1,44 +1,28 @@
 
 import { InternalMeetingReport, CommissionType, MeetingReportStatus } from '../types';
-import { supabase } from '../lib/supabase'; // Fixed import
-
-const handleError = (error: any) => {
-    if (error) {
-        console.error("Supabase Report Error:", error);
-        throw new Error(error.message);
-    }
-};
+import * as db from './dbService';
 
 export const getAllReports = async (): Promise<InternalMeetingReport[]> => {
-  const { data, error } = await supabase.from('meeting_reports').select('*');
-  if (error) return [];
-  return data;
+  return await db.dbFetchReports();
 };
 
 export const getReportsByCommission = async (commission: CommissionType) => {
-  const { data, error } = await supabase.from('meeting_reports').select('*').eq('commission', commission);
-  if (error) return [];
-  return data;
+  const reports = await db.dbFetchReports();
+  return reports.filter(r => r.commission === commission);
 };
 
 export const getReportsByStatus = async (status: MeetingReportStatus | MeetingReportStatus[]) => {
-  let query = supabase.from('meeting_reports').select('*');
-  
+  const reports = await db.dbFetchReports();
   if (Array.isArray(status)) {
-    query = query.in('status', status);
-  } else {
-    query = query.eq('status', status);
+    return reports.filter(r => status.includes(r.status));
   }
-
-  const { data, error } = await query;
-  if (error) return [];
-  return data;
+  return reports.filter(r => r.status === status);
 };
 
 export const createReport = async (report: Partial<InternalMeetingReport>) => {
   const newReport = {
     ...report,
-    status: 'brouillon',
+    status: 'brouillon' as MeetingReportStatus,
     createdAt: new Date().toISOString(),
     attendees: report.attendees || [],
     agenda: report.agenda || [],
@@ -46,15 +30,11 @@ export const createReport = async (report: Partial<InternalMeetingReport>) => {
     actionItems: report.actionItems || []
   };
 
-  const { data, error } = await supabase.from('meeting_reports').insert([newReport]).select().single();
-  handleError(error);
-  return data;
+  return await db.dbAddReport(newReport);
 };
 
 export const updateReport = async (id: string, updates: Partial<InternalMeetingReport>) => {
-  const { data, error } = await supabase.from('meeting_reports').update(updates).eq('id', id).select().single();
-  handleError(error);
-  return data;
+  return await db.dbUpdateReport(id, updates);
 };
 
 export const submitReportToAdmin = async (reportId: string) => {
@@ -74,7 +54,5 @@ export const acknowledgeReportByBureau = async (reportId: string, feedback?: str
 };
 
 export const deleteReport = async (reportId: string) => {
-  const { error } = await supabase.from('meeting_reports').delete().eq('id', reportId);
-  handleError(error);
-  return true;
+  return await db.dbDeleteReport(reportId);
 };

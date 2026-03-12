@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { safeLower } from '../utils/string';
+import * as db from '../services/dbService';
 
 export interface UserProfile {
   id: string;
@@ -30,23 +31,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchProfile = useCallback(async (userId: string, email: string) => {
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+      const profile = await db.dbFetchProfile(userId);
 
       if (profile) {
         setUser({
           id: userId,
           email: email,
-          firstName: profile.first_name || 'Membre',
-          lastName: profile.last_name || '',
+          firstName: profile.firstName || 'Membre',
+          lastName: profile.lastName || '',
           role: profile.role || 'MEMBRE',
-          commissions: Array.isArray(profile.commissions) ? profile.commissions : [],
+          commissions: Array.isArray(profile.commissions) 
+            ? profile.commissions.map((c: any) => typeof c === 'string' ? c : c.type) 
+            : [],
           matricule: profile.matricule,
           category: profile.category,
-          avatarUrl: profile.avatar_url
+          avatarUrl: (profile as any).avatar_url || (profile as any).avatarUrl
         });
       }
     } catch (err) {
