@@ -24,17 +24,19 @@ export const CommissionProvider: React.FC<{ children: ReactNode }> = ({ children
     // Trouver le profil complet du membre
     const userProfile = (members || []).find(m => m.id === user.id || m.email === user.email);
     
-    // Le SG est dans la commission Administration
-    const isSG = true;
+    // Le SG ou Admin a un droit de regard partout
+    const isSGOrAdmin = userProfile?.role === GlobalRole.SG || userProfile?.role === GlobalRole.ADMIN;
     
     // 1. Vérifier si l'utilisateur appartient officiellement à la commission affichée
-    const isMemberOfThisComm = userProfile?.commissions?.some(c => c.type === activeCommission);
+    const commissionAssignment = userProfile?.commissions?.find(c => c.type === activeCommission);
+    const isMemberOfThisComm = !!commissionAssignment;
     
-    // 2. Logique de Supervision (Droit de regard du SG sur les autres commissions)
-    const isSupervising = false; // isSG && activeCommission !== CommissionType.ADMINISTRATION;
+    // 2. Logique de Supervision (Droit de regard du SG/Admin sur les autres commissions)
+    const isSupervising = isSGOrAdmin && activeCommission !== CommissionType.ADMINISTRATION;
     
-    // 3. Droit d'édition : Tout le monde peut éditer
-    const canEdit = true; // isMemberOfThisComm && !isSupervising;
+    // 3. Droit d'édition : Membres de la commission ou Admin/SG
+    // Pour l'instant on laisse assez large mais on respecte la structure
+    const canEdit = isMemberOfThisComm || isSGOrAdmin;
 
     return { canEdit, isSupervising };
   }, [user, activeCommission, members]);

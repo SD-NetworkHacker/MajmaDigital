@@ -16,6 +16,7 @@ import FinanceModule from './components/FinanceModule';
 import UserProfile from './components/profile/UserProfile';
 import SettingsModule from './components/SettingsModule';
 import CommissionModule from './components/CommissionModule';
+import EventsModule from './components/EventsModule';
 import AIChatBot from './components/AIChatBot';
 
 const AppContent = () => {
@@ -49,6 +50,8 @@ const AppContent = () => {
         return <UserProfile onBack={() => setActiveTab('dashboard')} />;
       case 'finance_perso':
         return <FinanceModule />;
+      case 'events':
+        return <EventsModule />;
       case 'commissions':
         return <CommissionModule />;
       case 'settings':

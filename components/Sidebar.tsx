@@ -17,7 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   if (!user) return null;
 
   const commissions = Array.isArray(user.commissions) ? user.commissions : [];
-  const isAdmin = true;
+  const isAdmin = user.role === 'ADMIN' || user.role === 'SG';
 
   const navItem = (id: string, Icon: any, label: string) => {
     const isActive = activeTab === id;
@@ -73,9 +73,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           </>
         )}
 
-        <h3 className="px-5 pt-8 text-[9px] font-black text-rose-500 uppercase tracking-widest mb-4">Gouvernance</h3>
-        {navItem('admin_dashboard', Landmark, 'Cockpit Pilotage')}
-        {navItem('members', Users, 'Registre Global')}
+        {isAdmin && (
+          <>
+            <h3 className="px-5 pt-8 text-[9px] font-black text-rose-500 uppercase tracking-widest mb-4">Gouvernance</h3>
+            {navItem('admin_dashboard', Landmark, 'Cockpit Pilotage')}
+            {navItem('members', Users, 'Registre Global')}
+          </>
+        )}
       </nav>
 
       <div className="pt-4 border-t border-white/5">

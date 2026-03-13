@@ -188,15 +188,106 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                   </div>
                   
                   <div className="space-y-4">
-                    <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Nom Complet</label>
-                        {isEditing ? (
-                           <div className="flex gap-2">
-                              <input type="text" value={formData.firstName || ''} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-1/2 p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" placeholder="Prénom"/>
-                              <input type="text" value={formData.lastName || ''} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-1/2 p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" placeholder="Nom"/>
-                           </div>
-                        ) : <p className="text-sm font-bold text-slate-800">{member.firstName} {member.lastName}</p>}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Prénom</label>
+                            {isEditing ? (
+                               <input type="text" value={formData.firstName || ''} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" />
+                            ) : <p className="text-sm font-bold text-slate-800">{member.firstName}</p>}
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Nom</label>
+                            {isEditing ? (
+                               <input type="text" value={formData.lastName || ''} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" />
+                            ) : <p className="text-sm font-bold text-slate-800">{member.lastName}</p>}
+                        </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Email</label>
+                            {isEditing ? (
+                               <input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" />
+                            ) : <p className="text-sm font-bold text-slate-800">{member.email}</p>}
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Téléphone</label>
+                            {isEditing ? (
+                               <input type="tel" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" />
+                            ) : <p className="text-sm font-bold text-slate-800">{member.phone}</p>}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Date de Naissance</label>
+                            {isEditing ? (
+                               <input type="date" value={formData.birthDate || ''} onChange={e => setFormData({...formData, birthDate: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500" />
+                            ) : <p className="text-sm font-bold text-slate-800">{member.birthDate ? new Date(member.birthDate).toLocaleDateString() : 'Non renseignée'}</p>}
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Genre</label>
+                            {isEditing ? (
+                               <select value={formData.gender || 'Homme'} onChange={e => setFormData({...formData, gender: e.target.value as any})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500">
+                                  <option value="Homme">Homme</option>
+                                  <option value="Femme">Femme</option>
+                               </select>
+                            ) : <p className="text-sm font-bold text-slate-800">{member.gender || 'Non renseigné'}</p>}
+                        </div>
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Adresse</label>
+                        {isEditing ? (
+                           <textarea value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-sm font-bold border border-slate-200 outline-none focus:border-emerald-500 h-20 resize-none" />
+                        ) : <p className="text-sm font-bold text-slate-800">{member.address || 'Non renseignée'}</p>}
+                    </div>
+
+                    {/* Academic Info */}
+                    {(member.category === 'Étudiant' || member.category === 'Élève') && (
+                        <div className="space-y-1 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                            <label className="text-[10px] text-blue-600 font-black uppercase tracking-widest flex items-center gap-2">
+                                <GraduationCap size={12}/> Académique
+                            </label>
+                            {isEditing ? (
+                               <div className="space-y-2 mt-2">
+                                  <input type="text" placeholder="Établissement" value={formData.academicInfo?.establishment || ''} onChange={e => setFormData({...formData, academicInfo: {...(formData.academicInfo || {establishment:'', level:'', field:''}), establishment: e.target.value}})} className="w-full p-2 bg-white rounded-lg text-xs font-bold border border-blue-200 outline-none focus:border-blue-500" />
+                                  <div className="flex gap-2">
+                                     <input type="text" placeholder="Niveau" value={formData.academicInfo?.level || ''} onChange={e => setFormData({...formData, academicInfo: {...(formData.academicInfo || {establishment:'', level:'', field:''}), level: e.target.value}})} className="w-1/2 p-2 bg-white rounded-lg text-xs font-bold border border-blue-200 outline-none focus:border-blue-500" />
+                                     <input type="text" placeholder="Filière" value={formData.academicInfo?.field || ''} onChange={e => setFormData({...formData, academicInfo: {...(formData.academicInfo || {establishment:'', level:'', field:''}), field: e.target.value}})} className="w-1/2 p-2 bg-white rounded-lg text-xs font-bold border border-blue-200 outline-none focus:border-blue-500" />
+                                  </div>
+                               </div>
+                            ) : (
+                               <div className="mt-1">
+                                  <p className="text-xs font-bold text-blue-800">{member.academicInfo?.establishment || 'Non renseigné'}</p>
+                                  <p className="text-[10px] text-blue-600">{member.academicInfo?.level} - {member.academicInfo?.field}</p>
+                               </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Professional Info */}
+                    {member.category === 'Travailleur' && (
+                        <div className="space-y-1 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                            <label className="text-[10px] text-emerald-600 font-black uppercase tracking-widest flex items-center gap-2">
+                                <Briefcase size={12}/> Professionnel
+                            </label>
+                            {isEditing ? (
+                               <div className="space-y-2 mt-2">
+                                  <input type="text" placeholder="Entreprise" value={formData.professionalInfo?.company || ''} onChange={e => setFormData({...formData, professionalInfo: {...(formData.professionalInfo || {company:'', position:'', sector:''}), company: e.target.value}})} className="w-full p-2 bg-white rounded-lg text-xs font-bold border border-emerald-200 outline-none focus:border-emerald-500" />
+                                  <div className="flex gap-2">
+                                     <input type="text" placeholder="Poste" value={formData.professionalInfo?.position || ''} onChange={e => setFormData({...formData, professionalInfo: {...(formData.professionalInfo || {company:'', position:'', sector:''}), position: e.target.value}})} className="w-1/2 p-2 bg-white rounded-lg text-xs font-bold border border-emerald-200 outline-none focus:border-emerald-500" />
+                                     <input type="text" placeholder="Secteur" value={formData.professionalInfo?.sector || ''} onChange={e => setFormData({...formData, professionalInfo: {...(formData.professionalInfo || {company:'', position:'', sector:''}), sector: e.target.value}})} className="w-1/2 p-2 bg-white rounded-lg text-xs font-bold border border-emerald-200 outline-none focus:border-emerald-500" />
+                                  </div>
+                               </div>
+                            ) : (
+                               <div className="mt-1">
+                                  <p className="text-xs font-bold text-emerald-800">{member.professionalInfo?.company || 'Non renseigné'}</p>
+                                  <p className="text-[10px] text-emerald-600">{member.professionalInfo?.position} - {member.professionalInfo?.sector}</p>
+                               </div>
+                            )}
+                        </div>
+                    )}
                   </div>
                </div>
             </div>

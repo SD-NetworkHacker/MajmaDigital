@@ -21,7 +21,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ setActiveTab }) => {
   const { members, events, contributions } = useData();
   
   // --- STATES MODALES ---
-  const [activeModal, setActiveModal] = useState<'none' | 'pay' | 'request' | 'join'>('none');
+  const [activeModal, setActiveModal] = useState<'none' | 'pay' | 'request' | 'join' | 'access_logs'>('none');
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState(1);
   
@@ -38,7 +38,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ setActiveTab }) => {
   
   const quickActions = useMemo(() => [
       { id: 'pay', label: 'Cotiser', icon: Wallet, color: 'emerald', action: () => { setStep(1); setActiveModal('pay'); } },
-      { id: 'pedagogy', label: 'Études', icon: BookOpen, action: () => setActiveTab('pedagogy'), color: 'cyan' },
+      { id: 'pedagogy', label: 'Études', icon: BookOpen, action: () => setActiveTab('comm_pédagogie'), color: 'cyan' },
       { id: 'events', label: 'Agenda', icon: Calendar, action: () => setActiveTab('events'), color: 'indigo' },
       { 
         id: 'action', 
@@ -208,7 +208,12 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ setActiveTab }) => {
               <div className="p-5 bg-blue-50 text-blue-600 rounded-[2rem] mb-6 group-hover:scale-110 transition-transform shadow-inner"><Fingerprint size={40}/></div>
               <h4 className="text-lg font-black text-slate-900 leading-tight">Accès Sécurisé Atlas</h4>
               <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-widest opacity-60">Validation Chiffrée v3.1</p>
-              <button className="mt-8 px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95">Voir Journal Accès</button>
+              <button 
+                onClick={() => setActiveModal('access_logs')}
+                className="mt-8 px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+              >
+                Voir Journal Accès
+              </button>
            </div>
         </div>
       </div>
@@ -225,12 +230,14 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ setActiveTab }) => {
                        {activeModal === 'pay' && <Wallet size={24}/>}
                        {activeModal === 'request' && <FileQuestion size={24}/>}
                        {activeModal === 'join' && <UserPlus size={24}/>}
+                       {activeModal === 'access_logs' && <ShieldCheck size={24}/>}
                     </div>
                     <div>
                        <h3 className="text-2xl font-black text-slate-900">
                           {activeModal === 'pay' && 'Règlement Rapide'}
                           {activeModal === 'request' && 'Nouveau Dossier'}
                           {activeModal === 'join' && "Candidature Pôle"}
+                          {activeModal === 'access_logs' && "Journal d'Accès"}
                        </h3>
                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Action Immédiate</p>
                     </div>
@@ -297,13 +304,40 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ setActiveTab }) => {
                           </div>
                        )}
 
-                       <button 
-                          onClick={handleFinalizeAction}
-                          disabled={isProcessing}
-                          className="w-full py-6 bg-[#030712] text-white rounded-[1.8rem] font-black uppercase text-xs tracking-[0.3em] shadow-2xl flex items-center justify-center gap-4 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"
-                       >
-                          {isProcessing ? <Loader2 size={24} className="animate-spin"/> : <><Send size={20}/> Confirmer l'Action</>}
-                       </button>
+                       {activeModal === 'access_logs' && (
+                          <div className="space-y-4">
+                             <p className="text-sm font-medium text-slate-500 italic">"Historique récent des connexions et actions sécurisées."</p>
+                             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                                {[
+                                   { date: 'Aujourd\'hui, 14:02', action: 'Connexion Réussie', ip: '192.168.1.45' },
+                                   { date: 'Hier, 18:30', action: 'Mise à jour Profil', ip: '192.168.1.45' },
+                                   { date: '12 Mars, 09:15', action: 'Cotisation Validée', ip: '10.0.0.12' },
+                                ].map((log, i) => (
+                                   <div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
+                                      <div>
+                                         <p className="text-[10px] font-black text-slate-900 uppercase">{log.action}</p>
+                                         <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">{log.date}</p>
+                                      </div>
+                                      <span className="text-[8px] font-mono text-slate-400 bg-white px-2 py-1 rounded border border-slate-100">{log.ip}</span>
+                                   </div>
+                                ))}
+                             </div>
+                             <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center gap-3">
+                                <ShieldCheck size={16} className="text-blue-600" />
+                                <p className="text-[9px] font-bold text-blue-800 uppercase tracking-tight">Votre compte est protégé par un chiffrement de bout en bout.</p>
+                             </div>
+                          </div>
+                       )}
+
+                       {activeModal !== 'access_logs' && (
+                        <button 
+                           onClick={handleFinalizeAction}
+                           disabled={isProcessing}
+                           className="w-full py-6 bg-[#030712] text-white rounded-[1.8rem] font-black uppercase text-xs tracking-[0.3em] shadow-2xl flex items-center justify-center gap-4 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                           {isProcessing ? <Loader2 size={24} className="animate-spin"/> : <><Send size={20}/> Confirmer l'Action</>}
+                        </button>
+                       )}
                     </div>
                  )}
 

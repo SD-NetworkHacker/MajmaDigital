@@ -35,7 +35,9 @@ const AdministrationDashboard: React.FC = () => {
   }, [currentUserMember]);
 
   // 2. Permissions
-  const isExec = true; // ['Secrétaire Général', 'Adjoint', 'Dieuwrine', 'Responsable'].some(r => myRole.includes(r));
+  const isExec = useMemo(() => {
+    return ['Secrétaire Général', 'Adjoint', 'Dieuwrine', 'Responsable'].some(r => myRole.includes(r)) || currentUserMember?.role === 'ADMIN' || currentUserMember?.role === 'SG';
+  }, [myRole, currentUserMember]);
 
   // --- DATA DERIVATION ---
   const activeMembers = useMemo(() => (members || []).filter(m => m.status === 'active'), [members]);

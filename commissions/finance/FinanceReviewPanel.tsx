@@ -26,27 +26,32 @@ const FinanceReviewPanel: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('');
 
   // Data Loading from Context
-  const { budgetRequests, financialReports, updateBudgetRequest, updateFinancialReport } = useData();
+  const { 
+    budgetRequests = [], 
+    financialReports = [], 
+    updateBudgetRequest, 
+    updateFinancialReport 
+  } = useData();
   const [requests, setRequests] = useState<BudgetRequest[]>([]);
   const [reports, setReports] = useState<CommissionFinancialReport[]>([]);
 
   useEffect(() => {
-    setRequests(budgetRequests);
-    setReports(financialReports);
+    setRequests(budgetRequests || []);
+    setReports(financialReports || []);
   }, [budgetRequests, financialReports]);
 
   // Filtering Logic Update: 
-  const filteredRequests = requests.filter(req => {
+  const filteredRequests = (requests || []).filter(req => {
     const isPending = ['soumis_finance', 'revu_finance'].includes(req.status);
     const matchesView = viewMode === 'pending' ? isPending : !isPending;
-    const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) || req.commission.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (req.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (req.commission || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesView && matchesSearch;
   });
 
-  const filteredReports = reports.filter(rep => {
+  const filteredReports = (reports || []).filter(rep => {
     const isPending = ['soumis', 'revu_finance'].includes(rep.status);
     const matchesView = viewMode === 'pending' ? isPending : !isPending;
-    const matchesSearch = rep.period.toLowerCase().includes(searchTerm.toLowerCase()) || rep.commission.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (rep.period || '').toLowerCase().includes(searchTerm.toLowerCase()) || (rep.commission || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesView && matchesSearch;
   });
 

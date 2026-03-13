@@ -33,7 +33,11 @@ const FinanceDashboard: React.FC = () => {
   const [editingTx, setEditingTx] = useState<Contribution | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const isManager = true; // Restriction supprimée
+  const currentUserMember = useMemo(() => (members || []).find(m => m.email === user?.email), [members, user]);
+  const isManager = useMemo(() => {
+    const roleInFinance = currentUserMember?.commissions?.find(c => c.type === CommissionType.FINANCE)?.role_commission;
+    return ['Responsable', 'Trésorier', 'Adjoint'].includes(roleInFinance || '') || currentUserMember?.role === 'ADMIN' || currentUserMember?.role === 'SG';
+  }, [currentUserMember]);
 
   // Load AI Insight
   useEffect(() => {

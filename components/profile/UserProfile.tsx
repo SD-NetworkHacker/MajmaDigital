@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { 
   X, Phone, Mail, MapPin, Shield, Calendar, Hash, User, 
   Wallet, Download, Edit, Save, Lock, QrCode, Share2, Camera, ArrowLeft, BookOpen, FileText, Users,
-  CheckCircle, Plus, Trash2, Bell, Eye, EyeOff, AlertCircle
+  CheckCircle, Plus, Trash2, Bell, Eye, EyeOff, AlertCircle, GraduationCap, Briefcase, Loader2
 } from 'lucide-react';
 // Fix: Corrected path for AuthContext
 import { useAuth } from '../../contexts/AuthContext';
@@ -334,6 +334,29 @@ const UserProfile: React.FC<UserProfileProps> = ({ targetId, onBack }) => {
                               </div>
                            )}
                         </div>
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Date de Naissance</label>
+                           {isEditing ? (
+                              <input type="date" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.birthDate || ''} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
+                           ) : (
+                              <div className="flex items-center gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                 <Calendar size={18} className="text-slate-400" /> {profileMember.birthDate ? new Date(profileMember.birthDate).toLocaleDateString() : 'Non renseignée'}
+                              </div>
+                           )}
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Genre</label>
+                           {isEditing ? (
+                              <select className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.gender || 'Homme'} onChange={e => setFormData({...formData, gender: e.target.value as any})}>
+                                 <option value="Homme">Homme</option>
+                                 <option value="Femme">Femme</option>
+                              </select>
+                           ) : (
+                              <div className="flex items-center gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                 <User size={18} className="text-slate-400" /> {profileMember.gender || 'Non renseigné'}
+                              </div>
+                           )}
+                        </div>
                      </div>
                      
                      <div className="space-y-6">
@@ -359,6 +382,54 @@ const UserProfile: React.FC<UserProfileProps> = ({ targetId, onBack }) => {
                               </div>
                            )}
                         </div>
+
+                        {/* Academic Info */}
+                        {(profileMember.category === 'Étudiant' || profileMember.category === 'Élève') && (
+                           <div>
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Informations Académiques</label>
+                              {isEditing ? (
+                                 <div className="space-y-2">
+                                    <input type="text" placeholder="Établissement" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.academicInfo?.establishment || ''} onChange={e => setFormData({...formData, academicInfo: {...(formData.academicInfo || {establishment:'', level:'', field:''}), establishment: e.target.value}})} />
+                                    <div className="flex gap-2">
+                                       <input type="text" placeholder="Niveau" className="w-1/2 p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.academicInfo?.level || ''} onChange={e => setFormData({...formData, academicInfo: {...(formData.academicInfo || {establishment:'', level:'', field:''}), level: e.target.value}})} />
+                                       <input type="text" placeholder="Filière" className="w-1/2 p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.academicInfo?.field || ''} onChange={e => setFormData({...formData, academicInfo: {...(formData.academicInfo || {establishment:'', level:'', field:''}), field: e.target.value}})} />
+                                    </div>
+                                 </div>
+                              ) : (
+                                 <div className="flex items-start gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    <GraduationCap size={18} className="text-slate-400 shrink-0 mt-0.5" /> 
+                                    <div className="text-sm">
+                                       <p className="font-bold">{profileMember.academicInfo?.establishment || 'Non renseigné'}</p>
+                                       <p className="text-xs text-slate-500">{profileMember.academicInfo?.level} - {profileMember.academicInfo?.field}</p>
+                                    </div>
+                                 </div>
+                              )}
+                           </div>
+                        )}
+
+                        {/* Professional Info */}
+                        {profileMember.category === 'Travailleur' && (
+                           <div>
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Informations Professionnelles</label>
+                              {isEditing ? (
+                                 <div className="space-y-2">
+                                    <input type="text" placeholder="Entreprise" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.professionalInfo?.company || ''} onChange={e => setFormData({...formData, professionalInfo: {...(formData.professionalInfo || {company:'', position:'', sector:''}), company: e.target.value}})} />
+                                    <div className="flex gap-2">
+                                       <input type="text" placeholder="Poste" className="w-1/2 p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.professionalInfo?.position || ''} onChange={e => setFormData({...formData, professionalInfo: {...(formData.professionalInfo || {company:'', position:'', sector:''}), position: e.target.value}})} />
+                                       <input type="text" placeholder="Secteur" className="w-1/2 p-3 bg-slate-50 rounded-xl text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500/20 outline-none" value={formData.professionalInfo?.sector || ''} onChange={e => setFormData({...formData, professionalInfo: {...(formData.professionalInfo || {company:'', position:'', sector:''}), sector: e.target.value}})} />
+                                    </div>
+                                 </div>
+                              ) : (
+                                 <div className="flex items-start gap-3 text-slate-800 font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    <Briefcase size={18} className="text-slate-400 shrink-0 mt-0.5" /> 
+                                    <div className="text-sm">
+                                       <p className="font-bold">{profileMember.professionalInfo?.company || 'Non renseigné'}</p>
+                                       <p className="text-xs text-slate-500">{profileMember.professionalInfo?.position} - {profileMember.professionalInfo?.sector}</p>
+                                    </div>
+                                 </div>
+                              )}
+                           </div>
+                        )}
                      </div>
                   </div>
                </div>

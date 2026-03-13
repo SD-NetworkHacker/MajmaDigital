@@ -6,23 +6,23 @@ import { BudgetRequest, CommissionType } from '../../types';
 import BudgetRequestWizard from '../shared/BudgetRequestWizard';
 
 const BudgetPlanner: React.FC = () => {
-  const { budgetRequests } = useData();
+  const { budgetRequests = [] } = useData();
   const [showWizard, setShowWizard] = useState(false);
   const [filter, setFilter] = useState<'all' | 'actif' | 'clos'>('all');
 
   // Filtrer et trier les budgets
-  const filteredBudgets = budgetRequests.filter(req => {
+  const filteredBudgets = (budgetRequests || []).filter(req => {
     if (filter === 'actif') return ['soumis_finance', 'soumis_bureau', 'approuve'].includes(req.status);
     if (filter === 'clos') return ['rejete', 'termine'].includes(req.status);
     return true;
   }).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
 
   // Calculs globaux
-  const totalBudgeted = budgetRequests
+  const totalBudgeted = (budgetRequests || [])
     .filter(r => r.status === 'approuve')
     .reduce((acc, r) => acc + (r.amountApproved || r.amountRequested), 0);
 
-  const pendingAmount = budgetRequests
+  const pendingAmount = (budgetRequests || [])
     .filter(r => r.status.includes('soumis'))
     .reduce((acc, r) => acc + r.amountRequested, 0);
 

@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { Member, Event, Contribution, Task, InternalMeetingReport } from '../types';
+import { Member, Event, Contribution, Task, InternalMeetingReport, CommissionFinancialReport, BudgetRequest } from '../types';
 import * as db from '../services/dbService';
 
 interface DataContextType {
@@ -10,6 +10,8 @@ interface DataContextType {
   contributions: Contribution[];
   tasks: Task[];
   reports: InternalMeetingReport[];
+  financialReports: CommissionFinancialReport[];
+  budgetRequests: BudgetRequest[];
   schedules: any[];
   khassaideModules: any[];
   tickets: any[];
@@ -37,6 +39,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [reports, setReports] = useState<InternalMeetingReport[]>([]);
+  const [financialReports, setFinancialReports] = useState<CommissionFinancialReport[]>([]);
+  const [budgetRequests, setBudgetRequests] = useState<BudgetRequest[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [khassaideModules, setKhassaideModules] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
@@ -50,13 +54,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
 
     try {
-      const [mRes, eRes, cRes, tRes, rRes, ticketsRes] = await Promise.all([
+      const [mRes, eRes, cRes, tRes, rRes, ticketsRes, finRes, budRes] = await Promise.all([
         db.dbFetchMembers(),
         db.dbFetchEvents(),
         db.dbFetchContributions(),
         db.dbFetchTasks(),
         db.dbFetchReports(),
-        db.dbFetchTickets()
+        db.dbFetchTickets(),
+        db.dbFetchFinancialReports(),
+        db.dbFetchBudgetRequests()
       ]);
 
       setMembers(mRes);
@@ -65,6 +71,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setTasks(tRes);
       setReports(rRes);
       setTickets(ticketsRes);
+      setFinancialReports(finRes);
+      setBudgetRequests(budRes);
 
     } catch (err) {
       console.error("DataContext Error:", err);
@@ -147,7 +155,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <DataContext.Provider value={{ 
-      members, events, contributions, tasks, reports, schedules, khassaideModules, tickets,
+      members, events, contributions, tasks, reports, financialReports, budgetRequests, schedules, khassaideModules, tickets,
       totalTreasury, activeMembersCount, isLoading, refreshAll,
       addContribution, updateContribution, deleteContribution, updateMemberStatus, updateMember,
       addTicket, updateTicket

@@ -44,7 +44,7 @@ const CommissionContent: React.FC<{ initialView: CommissionType | null }> = ({ i
           <div className="flex-1">
              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{activeCommission}</h2>
              <div className="flex items-center gap-2 mt-0.5">
-                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${canEdit ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-50'}`}>
+                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${canEdit ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
                    {canEdit ? 'Accès Édition Total' : 'Consultation Seule'}
                 </span>
                 {!canEdit && <Lock size={10} className="text-slate-400" />}

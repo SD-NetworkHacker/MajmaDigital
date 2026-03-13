@@ -5,7 +5,12 @@ import { PieChart, TrendingUp, Download, FileText, Globe, Activity, Landmark, Sp
 import { useData } from '../../contexts/DataContext';
 
 const FinancialReporting: React.FC = () => {
-  const { contributions, totalTreasury, financialReports, budgetRequests } = useData();
+  const { 
+    contributions = [], 
+    totalTreasury = 0, 
+    financialReports = [], 
+    budgetRequests = [] 
+  } = useData();
 
   // Agrégation des données par mois pour le graphique (6 derniers mois)
   const chartData = useMemo(() => {
@@ -18,14 +23,14 @@ const FinancialReporting: React.FC = () => {
         const month = d.getMonth();
         
         // Recettes réelles (contributions)
-        const revenue = contributions.filter(c => {
+        const revenue = (contributions || []).filter(c => {
             const cDate = new Date(c.date);
             return cDate.getMonth() === month && cDate.getFullYear() === year && c.status === 'paid';
         }).reduce((acc, curr) => acc + curr.amount, 0);
         
         // Dépenses réelles (Basées sur les budgets validés ou rapports financiers soumis ce mois)
         // Note: Idéalement, on aurait une table 'expenses' séparée, ici on approxime via les budgets approuvés
-        const expenses = budgetRequests.filter(req => {
+        const expenses = (budgetRequests || []).filter(req => {
             const rDate = new Date(req.submittedAt);
             return rDate.getMonth() === month && rDate.getFullYear() === year && req.status === 'approuve';
         }).reduce((acc, req) => acc + (req.amountApproved || req.amountRequested), 0);
@@ -41,7 +46,7 @@ const FinancialReporting: React.FC = () => {
       return Math.round(total / (chartData.length || 1));
   }, [chartData]);
 
-  const totalReportsCount = financialReports.length;
+  const totalReportsCount = (financialReports || []).length;
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
