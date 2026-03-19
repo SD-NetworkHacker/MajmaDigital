@@ -10,6 +10,7 @@ import { useData } from '../../contexts/DataContext';
 
 interface Props {
   onClose: () => void;
+  initialData?: TransportSchedule;
 }
 
 const STEPS = [
@@ -19,8 +20,8 @@ const STEPS = [
   { id: 4, label: 'Validation' }
 ];
 
-const TripPlannerWizard: React.FC<Props> = ({ onClose }) => {
-  const { fleet, drivers, addSchedule } = useData();
+const TripPlannerWizard: React.FC<Props> = ({ onClose, initialData }) => {
+  const { fleet, drivers, addSchedule, updateSchedule } = useData();
   const [currentStep, setCurrentStep] = useState(1);
   
   // Form State
@@ -30,13 +31,38 @@ const TripPlannerWizard: React.FC<Props> = ({ onClose }) => {
     time: '07:00',
     origin: 'Dakar',
     destination: 'Touba',
-    stops: [{ location: 'Thiès', time: '08:30' }],
+    stops: [{ location: 'Thiès', time: '08:30' }] as { location: string; time: string }[],
     vehicleId: '',
     driverId: '',
-    capacity: 60,
-    price: 3500,
+    capacity: 60 as number | string,
+    price: 3500 as number | string,
     luggagePolicy: 'Inclus (1 bagage)'
   });
+
+  useEffect(() => {
+    if (initialData) {
+      // Convert date from DD/MM/YYYY to YYYY-MM-DD for input
+      let formattedDate = initialData.departureDate;
+      if (formattedDate.includes('/')) {
+        const [d, m, y] = formattedDate.split('/');
+        formattedDate = `${y}-${m}-${d}`;
+      }
+
+      setFormData({
+        title: initialData.eventTitle,
+        date: formattedDate,
+        time: initialData.departureTime,
+        origin: initialData.origin,
+        destination: initialData.destination,
+        stops: initialData.stops.map(s => ({ location: s.location, time: s.time })),
+        vehicleId: initialData.assignedVehicleId || '',
+        driverId: initialData.driverId || '',
+        capacity: initialData.totalCapacity,
+        price: 3500, // Default or fetch from somewhere
+        luggagePolicy: 'Inclus (1 bagage)'
+      });
+    }
+  }, [initialData]);
 
   const availableFleet = fleet.filter(v => v.status === 'disponible');
   const availableDrivers = drivers.filter(d => d.status === 'disponible');
@@ -68,22 +94,32 @@ const TripPlannerWizard: React.FC<Props> = ({ onClose }) => {
   const handleSubmit = () => {
     if (!formData.title || !formData.date) return;
 
-    const newSchedule: TransportSchedule = {
-        id: '', // Backend generated
-        eventId: `EVT-${Date.now()}`, // Could link to real event
+    const scheduleData: Partial<TransportSchedule> = {
         eventTitle: formData.title,
-        departureDate: new Date(formData.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        departureDate: formData.date.includes('-') 
+            ? formData.date.split('-').reverse().join('/') 
+            : formData.date,
         departureTime: formData.time,
         origin: formData.origin,
         destination: formData.destination,
         stops: formData.stops.map((s, i) => ({ id: `S${i}`, location: s.location, time: s.time, expectedPassengers: 0 })),
-        assignedVehicleId: formData.vehicleId, // Should use registration number ideally for display or ID
-        status: 'planifie',
-        seatsFilled: 0,
-        totalCapacity: formData.capacity
+        assignedVehicleId: formData.vehicleId,
+        driverId: formData.driverId,
+        status: initialData ? initialData.status : 'planifie',
+        seatsFilled: initialData ? initialData.seatsFilled : 0,
+        totalCapacity: Number(formData.capacity) || 0
     };
 
-    addSchedule(newSchedule);
+    if (initialData) {
+        updateSchedule(initialData.id, scheduleData);
+    } else {
+        const newSchedule: TransportSchedule = {
+            id: '', // Backend generated
+            eventId: `EVT-${Date.now()}`,
+            ...scheduleData as TransportSchedule
+        };
+        addSchedule(newSchedule);
+    }
     onClose();
   };
 
@@ -203,8 +239,12 @@ const TripPlannerWizard: React.FC<Props> = ({ onClose }) => {
                       </div>
                       <div className="space-y-2">
                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Capacité (Sièges)</label>
-                         <input type="number" className="w-full p-4 bg-white border border-slate-100 rounded-xl font-bold text-slate-800 outline-none" 
-                           value={formData.capacity} onChange={e => setFormData({...formData, capacity: parseInt(e.target.value)})} />
+                         <input 
+                            type="number" 
+                            className="w-full p-4 bg-white border border-slate-100 rounded-xl font-bold text-slate-800 outline-none" 
+                            value={formData.capacity} 
+                            onChange={e => setFormData({...formData, capacity: e.target.value})} 
+                         />
                       </div>
                    </div>
 
@@ -246,7 +286,8 @@ const TripPlannerWizard: React.FC<Props> = ({ onClose }) => {
                       <input 
                         type="number" 
                         className="bg-transparent text-5xl font-black text-center w-48 outline-none border-b-2 border-slate-700 focus:border-orange-500 transition-all"
-                        value={formData.price} onChange={e => setFormData({...formData, price: parseInt(e.target.value)})}
+                        value={formData.price} 
+                        onChange={e => setFormData({...formData, price: e.target.value})}
                       />
                       <span className="text-xl font-bold text-slate-500">FCFA</span>
                    </div>
@@ -269,7 +310,7 @@ const TripPlannerWizard: React.FC<Props> = ({ onClose }) => {
                       <p className="text-[10px] font-black text-emerald-800 uppercase">Recette Potentielle</p>
                       <p className="text-xs text-emerald-600">Basé sur 100% de remplissage</p>
                    </div>
-                   <p className="text-2xl font-black text-emerald-700">{(formData.price * formData.capacity).toLocaleString()} F</p>
+                   <p className="text-2xl font-black text-emerald-700">{(Number(formData.price) * Number(formData.capacity)).toLocaleString()} F</p>
                 </div>
              </div>
            )}
@@ -302,7 +343,7 @@ const TripPlannerWizard: React.FC<Props> = ({ onClose }) => {
                    </div>
                    <div className="p-4 flex justify-between bg-slate-50">
                       <span className="text-xs font-bold text-slate-500">Tarif</span>
-                      <span className="text-sm font-black text-orange-600">{formData.price.toLocaleString()} FCFA</span>
+                      <span className="text-sm font-black text-orange-600">{Number(formData.price).toLocaleString()} FCFA</span>
                    </div>
                 </div>
              </div>
@@ -332,7 +373,7 @@ const TripPlannerWizard: React.FC<Props> = ({ onClose }) => {
                onClick={handleSubmit}
                className="px-10 py-4 bg-orange-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-orange-500 transition-all flex items-center gap-3 animate-pulse"
              >
-               <Save size={18}/> Publier Convoi
+               <Save size={18}/> {initialData ? 'Mettre à jour' : 'Publier Convoi'}
              </button>
            )}
         </div>

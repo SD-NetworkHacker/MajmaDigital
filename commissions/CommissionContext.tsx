@@ -36,7 +36,8 @@ export const CommissionProvider: React.FC<{ children: ReactNode }> = ({ children
     
     // 3. Droit d'édition : Membres de la commission ou Admin/SG
     // Pour l'instant on laisse assez large mais on respecte la structure
-    const canEdit = isMemberOfThisComm || isSGOrAdmin;
+    // AJOUT : La commission Transport est ouverte à tous pour permettre les réservations
+    const canEdit = isMemberOfThisComm || isSGOrAdmin || activeCommission === CommissionType.TRANSPORT;
 
     return { canEdit, isSupervising };
   }, [user, activeCommission, members]);

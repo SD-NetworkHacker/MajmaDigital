@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { safeLower } from '../utils/string';
+import { INITIAL_COMMISSIONS } from '../constants';
 
 interface SidebarProps {
   activeTab: string;
@@ -16,8 +17,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   
   if (!user) return null;
 
-  const commissions = Array.isArray(user.commissions) ? user.commissions : [];
+  const commissions = Array.isArray(user.commissions) ? [...user.commissions] : [];
   const isAdmin = user.role === 'ADMIN' || user.role === 'SG';
+
+  // S'assurer que la commission Transport est visible pour tous
+  const hasTransport = commissions.some(c => {
+    const name = typeof c === 'string' ? c : c.type;
+    return name === 'Transport';
+  });
+
+  if (!hasTransport) {
+    commissions.push({ type: 'Transport', role_commission: 'Membre' });
+  }
 
   const navItem = (id: string, Icon: any, label: string) => {
     const isActive = activeTab === id;
@@ -54,7 +65,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             <h3 className="px-5 pt-8 text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4">Mes Pôles</h3>
             {commissions.map((c, idx) => {
               const cName = typeof c === 'string' ? c : c.type;
-              const cId = `comm_${safeLower(cName)}`;
+              const commInfo = INITIAL_COMMISSIONS.find(ic => ic.name === cName);
+              const cId = `comm_${commInfo?.slug || safeLower(cName)}`;
+              
               return (
                 <button
                   key={idx}

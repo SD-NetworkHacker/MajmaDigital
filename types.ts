@@ -210,6 +210,7 @@ export interface TransportSchedule {
   destination: string;
   stops: { id: string; location: string; time: string; expectedPassengers: number }[];
   assignedVehicleId?: string;
+  driverId?: string;
   status: 'planifie' | 'en_cours' | 'termine' | 'annule';
   seatsFilled: number;
   totalCapacity: number;
@@ -452,11 +453,12 @@ export interface SocialCase {
 
 export interface TicketItem {
   id: string;
+  memberId?: string;
   passenger: string;
   phone: string;
   trip: string;
   tripId: string;
-  seat: string;
+  seat?: string;
   status: string;
   type: string;
   amount: number;

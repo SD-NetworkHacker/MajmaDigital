@@ -18,6 +18,8 @@ import SettingsModule from './components/SettingsModule';
 import CommissionModule from './components/CommissionModule';
 import EventsModule from './components/EventsModule';
 import AIChatBot from './components/AIChatBot';
+import { INITIAL_COMMISSIONS } from './constants';
+import { CommissionType } from './types';
 
 const AppContent = () => {
   const { user, loading } = useAuth();
@@ -57,7 +59,11 @@ const AppContent = () => {
       case 'settings':
         return <SettingsModule onBack={() => setActiveTab('dashboard')} />;
       default:
-        if (tab.startsWith('comm_')) return <CommissionModule />;
+        if (tab.startsWith('comm_')) {
+          const commSlug = tab.replace('comm_', '');
+          const comm = INITIAL_COMMISSIONS.find(c => c.slug === commSlug);
+          return <CommissionModule defaultView={comm?.name as CommissionType} />;
+        }
         return <Dashboard activeTab="dashboard" setActiveTab={setActiveTab} />;
     }
   };

@@ -7,6 +7,7 @@ import {
   Coins, UserCheck, X, Download, AlertCircle 
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   MemberCategory, Contribution, AdiyaCampaign, FundraisingEvent, 
   FundraisingGroup 
@@ -16,10 +17,19 @@ import { exportToCSV } from '../../services/analyticsEngine';
 import { formatDate } from '../../utils/date';
 
 const ContributionManager: React.FC = () => {
+  const { user } = useAuth();
   const { 
-    members, contributions, addContribution, updateContribution, deleteContribution, 
-    adiyaCampaigns, addAdiyaCampaign, updateAdiyaCampaign,
-    fundraisingEvents, addFundraisingEvent, updateFundraisingEvent
+    members = [], 
+    contributions = [], 
+    addContribution, 
+    updateContribution, 
+    deleteContribution, 
+    adiyaCampaigns = [], 
+    addAdiyaCampaign, 
+    updateAdiyaCampaign,
+    fundraisingEvents = [], 
+    addFundraisingEvent, 
+    updateFundraisingEvent
   } = useData();
   
   // View State
@@ -35,6 +45,8 @@ const ContributionManager: React.FC = () => {
 
   // Adiya Campaign State
   const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<AdiyaCampaign | null>(null);
+  const [memberSearch, setMemberSearch] = useState('');
   const [newCampaign, setNewCampaign] = useState<Partial<AdiyaCampaign>>({
     title: '',
     unitAmount: 50000,
@@ -55,9 +67,9 @@ const ContributionManager: React.FC = () => {
   // --- STATS JOURNAL ---
   const stats = useMemo(() => {
     const activeMembers = members.filter(m => m.status === 'active');
-    const travailleurs = activeMembers.filter(m => m.category === MemberCategory.TRAVAILLEUR).length;
-    const etudiants = activeMembers.filter(m => m.category === MemberCategory.ETUDIANT).length;
-    const eleves = activeMembers.filter(m => m.category === MemberCategory.ELEVE).length;
+    const travailleurs = (activeMembers || []).filter(m => m.category === MemberCategory.TRAVAILLEUR).length;
+    const etudiants = (activeMembers || []).filter(m => m.category === MemberCategory.ETUDIANT).length;
+    const eleves = (activeMembers || []).filter(m => m.category === MemberCategory.ELEVE).length;
     
     // Total potentiel mensuel
     const potential = (travailleurs * 5000) + (etudiants * 2500) + (eleves * 1000);
@@ -178,11 +190,56 @@ const ContributionManager: React.FC = () => {
         deadline: newCampaign.deadline || '',
         status: 'open',
         participants: [],
-        createdBy: 'Admin', // Backend will set user
+        createdBy: user?.id || '00000000-0000-0000-0000-000000000000', // Use real user ID
         description: newCampaign.description || ''
     });
     setShowCampaignModal(false);
     setNewCampaign({ title: '', unitAmount: 50000, deadline: '', status: 'open' });
+  };
+
+  const handleAddParticipant = async (memberId: string) => {
+    if (!selectedCampaign) return;
+    
+    const member = members.find(m => m.id === memberId);
+    if (!member) return;
+
+    if (selectedCampaign.participants?.some(p => p.id === memberId)) {
+        return;
+    }
+
+    const newParticipant = {
+      id: member.id,
+      name: `${member.firstName} ${member.lastName}`,
+      matricule: member.matricule
+    };
+
+    const updatedParticipants = [...(selectedCampaign.participants || []), newParticipant];
+    await updateAdiyaCampaign(selectedCampaign.id, { participants: updatedParticipants });
+    setSelectedCampaign({ ...selectedCampaign, participants: updatedParticipants });
+    setMemberSearch('');
+  };
+
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const handleRemoveParticipant = async (memberId: string) => {
+    if (!selectedCampaign) return;
+    
+    const updatedParticipants = selectedCampaign.participants.filter(p => p.id !== memberId);
+    await updateAdiyaCampaign(selectedCampaign.id, { participants: updatedParticipants });
+    setSelectedCampaign({ ...selectedCampaign, participants: updatedParticipants });
+    setConfirmDelete(null);
+  };
+
+  const getParticipantStats = (campaign: AdiyaCampaign, memberId: string) => {
+    const totalPaid = contributions
+      .filter(c => c.type === 'Adiya Élite' && c.eventLabel === campaign.title && c.memberId === memberId)
+      .reduce((acc, c) => acc + (c.amount || 0), 0);
+    
+    const unitAmount = campaign.unitAmount || 1;
+    return {
+      totalPaid,
+      percent: Math.min(100, (totalPaid / unitAmount) * 100)
+    };
   };
 
   // --- ACTIONS EVENTS ---
@@ -241,6 +298,146 @@ const ContributionManager: React.FC = () => {
               </div>
               <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg mt-4">Créer</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Adiya Campaign Detail Modal */}
+      {selectedCampaign && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-4xl rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-200 max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Crown size={28} className="text-amber-500"/>
+                  <h3 className="text-2xl font-black text-slate-900">{selectedCampaign.title}</h3>
+                </div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  Objectif : {(selectedCampaign.unitAmount || 0).toLocaleString()} F par membre
+                </p>
+              </div>
+              <button onClick={() => setSelectedCampaign(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={24}/></button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 overflow-hidden">
+              {/* Left: Participants List */}
+              <div className="lg:col-span-7 flex flex-col overflow-hidden">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Participants ({selectedCampaign.participants?.length || 0})</h4>
+                </div>
+                <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                  {selectedCampaign.participants?.map(p => {
+                    const stats = getParticipantStats(selectedCampaign, p.id);
+                    return (
+                      <div key={p.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <p className="text-sm font-black text-slate-800">{p.name}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase">{p.matricule}</p>
+                          </div>
+                          <button 
+                            onClick={() => handleRemoveParticipant(p.id)}
+                            className="p-1.5 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 size={14}/>
+                          </button>
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[10px] font-bold">
+                            <span className="text-slate-400">Progression</span>
+                            <span className={stats.percent >= 100 ? 'text-emerald-600' : 'text-amber-600'}>
+                              {stats.totalPaid.toLocaleString()} / {(selectedCampaign.unitAmount || 0).toLocaleString()} F
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-500 ${stats.percent >= 100 ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                              style={{ width: `${stats.percent}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(!selectedCampaign.participants || selectedCampaign.participants.length === 0) && (
+                    <div className="py-10 text-center text-slate-400 italic text-xs">Aucun participant pour le moment.</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Add Participant & Stats */}
+              <div className="lg:col-span-5 space-y-6">
+                <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100">
+                  <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <UserCheck size={14}/> Ajouter un Participant
+                  </h4>
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <input 
+                      type="text" 
+                      placeholder="Nom ou Matricule..." 
+                      className="w-full pl-9 pr-4 py-2.5 bg-white border-none rounded-xl text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-amber-500/20"
+                      value={memberSearch}
+                      onChange={(e) => setMemberSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                    {members
+                      .filter(m => 
+                        m.status === 'active' && 
+                        !selectedCampaign.participants?.some(p => p.id === m.id) &&
+                        (m.firstName + ' ' + m.lastName + m.matricule).toLowerCase().includes(memberSearch.toLowerCase())
+                      )
+                      .slice(0, 5)
+                      .map(m => (
+                        <button 
+                          key={m.id}
+                          onClick={() => handleAddParticipant(m.id)}
+                          className="w-full flex items-center justify-between p-3 bg-white hover:bg-amber-100 rounded-xl transition-colors text-left border border-slate-100"
+                        >
+                          <div>
+                            <p className="text-xs font-black text-slate-800">{m.firstName} {m.lastName}</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase">{m.matricule}</p>
+                          </div>
+                          <Plus size={14} className="text-amber-600" />
+                        </button>
+                      ))
+                    }
+                    {memberSearch && members.filter(m => m.status === 'active' && !selectedCampaign.participants?.some(p => p.id === m.id) && (m.firstName + ' ' + m.lastName + m.matricule).toLowerCase().includes(memberSearch.toLowerCase())).length === 0 && (
+                      <p className="text-[10px] text-slate-400 text-center py-2">Aucun membre trouvé</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-6 bg-slate-900 rounded-2xl text-white">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Résumé Financier</h4>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-[9px] font-black text-slate-500 uppercase">Collecté</p>
+                        <p className="text-2xl font-black">
+                          {selectedCampaign.participants?.reduce((acc, p) => acc + getParticipantStats(selectedCampaign, p.id).totalPaid, 0).toLocaleString()} F
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] font-black text-slate-500 uppercase">Cible</p>
+                        <p className="text-sm font-bold opacity-60">
+                          {((selectedCampaign.unitAmount || 0) * (selectedCampaign.participants?.length || 0)).toLocaleString()} F
+                        </p>
+                      </div>
+                    </div>
+                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-amber-500 transition-all duration-1000" 
+                        style={{ 
+                          width: `${Math.min(100, (selectedCampaign.participants?.reduce((acc, p) => acc + getParticipantStats(selectedCampaign, p.id).totalPaid, 0) / (((selectedCampaign.unitAmount || 1) * (selectedCampaign.participants?.length || 1)) || 1)) * 100)}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -423,7 +620,7 @@ const ContributionManager: React.FC = () => {
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
-                         {recentContributions.length > 0 ? recentContributions.map((c) => {
+                         {recentContributions?.length > 0 ? recentContributions.map((c) => {
                            const m = members.find(mem => mem.id === c.memberId);
                            return (
                              <tr key={c.id} className={`hover:bg-indigo-50/20 transition-all group ${c.status === 'pending' ? 'bg-amber-50/30' : ''}`}>
@@ -501,7 +698,7 @@ const ContributionManager: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {adiyaCampaigns.length > 0 ? adiyaCampaigns.map(campaign => (
+               {adiyaCampaigns?.length > 0 ? adiyaCampaigns.map(campaign => (
                   <div key={campaign.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:border-amber-200 transition-all">
                      <div className="absolute top-0 right-0 w-20 h-20 bg-amber-50 rounded-bl-[3rem] -mr-6 -mt-6"></div>
                      <div className="relative z-10">
@@ -515,15 +712,18 @@ const ContributionManager: React.FC = () => {
                         <div className="space-y-2">
                            <div className="flex justify-between text-[10px] font-bold text-slate-500">
                               <span>Participants</span>
-                              <span>{campaign.participants.length}</span>
+                              <span>{campaign.participants?.length || 0}</span>
                            </div>
                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (campaign.participants.length * 10))}%` }}></div>
+                              <div className="h-full bg-amber-500" style={{ width: `${Math.min(100, ((campaign.participants?.length || 0) * 10))}%` }}></div>
                            </div>
                         </div>
 
                         <div className="mt-6 pt-4 border-t border-slate-50 flex justify-end">
-                           <button className="text-[10px] font-black text-amber-600 uppercase flex items-center gap-1 hover:gap-2 transition-all">
+                           <button 
+                             onClick={() => setSelectedCampaign(campaign)}
+                             className="text-[10px] font-black text-amber-600 uppercase flex items-center gap-1 hover:gap-2 transition-all"
+                           >
                               Gérer <ChevronRight size={12}/>
                            </button>
                         </div>
@@ -553,7 +753,7 @@ const ContributionManager: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 gap-6">
-               {fundraisingEvents.length > 0 ? fundraisingEvents.map(event => (
+               {fundraisingEvents?.length > 0 ? fundraisingEvents.map(event => (
                   <div key={event.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-6">
                      <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shrink-0">
                         <Coins size={32}/>
@@ -573,7 +773,7 @@ const ContributionManager: React.FC = () => {
                                  <p className="text-sm font-bold text-slate-800">{g.amount.toLocaleString()} F</p>
                               </div>
                            ))}
-                           {event.groups.length === 0 && <p className="col-span-2 text-[10px] text-slate-400 italic text-center">Aucun groupe défini</p>}
+                           {event.groups?.length === 0 && <p className="col-span-2 text-[10px] text-slate-400 italic text-center">Aucun groupe défini</p>}
                         </div>
                         <button className="w-full py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">
                            Détails Collecte

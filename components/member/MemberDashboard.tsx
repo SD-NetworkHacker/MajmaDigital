@@ -37,7 +37,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ setActiveTab }) => {
   const primaryCommission = useMemo(() => (currentMember?.commissions && currentMember.commissions.length > 0) ? currentMember.commissions[0] : null, [currentMember]);
   
   const quickActions = useMemo(() => [
-      { id: 'pay', label: 'Cotiser', icon: Wallet, color: 'emerald', action: () => { setStep(1); setActiveModal('pay'); } },
+      { id: 'pay', label: 'Cotiser', icon: Wallet, color: 'emerald', action: () => setActiveTab('finance_perso') },
       { id: 'pedagogy', label: 'Études', icon: BookOpen, action: () => setActiveTab('comm_pédagogie'), color: 'cyan' },
       { id: 'events', label: 'Agenda', icon: Calendar, action: () => setActiveTab('events'), color: 'indigo' },
       { 

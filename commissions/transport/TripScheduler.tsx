@@ -2,27 +2,67 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Calendar, MapPin, Clock, Bus, Navigation, Printer, 
-  CheckCircle, ArrowLeft, Search, Check, Users 
+  CheckCircle, ArrowLeft, Search, Check, Users, Plus,
+  Trash2, Wallet, AlertCircle, MoreVertical, X
 } from 'lucide-react';
-import { TransportSchedule } from '../../types';
+import { TransportSchedule, TicketItem } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { formatDate } from '../../utils/date';
+import TripPlannerWizard from './TripPlannerWizard';
 
 const TripScheduler: React.FC = () => {
-  const { schedules } = useData(); // Utilisation des données réelles du contexte
+  const { schedules, tickets, updateSchedule, deleteSchedule, fleet } = useData();
   
   // View State
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedTrip, setSelectedTrip] = useState<TransportSchedule | null>(null);
   const [activeTab, setActiveTab] = useState<'manifest' | 'finance'>('manifest');
+  const [showWizard, setShowWizard] = useState(false);
+  const [editingTrip, setEditingTrip] = useState<TransportSchedule | null>(null);
 
-  // Detail State (Vide par défaut, à connecter à une API de passagers réelle plus tard)
-  const [passengers] = useState<any[]>([]); 
+  // Detail State
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Filtrer les passagers pour le convoi sélectionné
+  const tripPassengers = useMemo(() => {
+    if (!selectedTrip) return [];
+    return tickets.filter(t => t.tripId === selectedTrip.id);
+  }, [tickets, selectedTrip]);
+
+  const filteredPassengers = useMemo(() => {
+    return tripPassengers.filter(p => 
+      p.passenger.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.phone.includes(searchTerm)
+    );
+  }, [tripPassengers, searchTerm]);
+
+  // Calculs financiers pour le convoi
+  const tripFinance = useMemo(() => {
+    if (!selectedTrip) return { revenue: 0, expenses: 0, margin: 0 };
+    const revenue = tripPassengers.reduce((sum, t) => sum + t.amount, 0);
+    // Estimation des coûts (carburant, chauffeur, etc.) - à affiner avec de vraies données plus tard
+    const expenses = (selectedTrip.totalCapacity * 1500); // Simulation simple
+    return { revenue, expenses, margin: revenue - expenses };
+  }, [tripPassengers, selectedTrip]);
 
   const handleOpenDetail = (trip: TransportSchedule) => {
     setSelectedTrip(trip);
     setViewMode('detail');
+  };
+
+  const handleUpdateStatus = async (tripId: string, newStatus: TransportSchedule['status']) => {
+    await updateSchedule(tripId, { status: newStatus });
+    if (selectedTrip?.id === tripId) {
+      setSelectedTrip({ ...selectedTrip, status: newStatus });
+    }
+  };
+
+  const handleDeleteTrip = async (tripId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce convoi ?')) {
+      await deleteSchedule(tripId);
+      setViewMode('list');
+      setSelectedTrip(null);
+    }
   };
 
   // --- VUE DÉTAIL ---
@@ -52,6 +92,35 @@ const TripScheduler: React.FC = () => {
                <button className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-slate-50 hover:text-orange-600 transition-all">
                   <Printer size={14}/> Manifeste
                </button>
+               
+               <div className="relative group">
+                  <button className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all">
+                     <MoreVertical size={20} />
+                  </button>
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 hidden group-hover:block z-50">
+                     <p className="px-4 py-2 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Changer Statut</p>
+                     {['planifie', 'en_cours', 'termine', 'annule'].map((status) => (
+                        <button 
+                           key={status}
+                           onClick={() => handleUpdateStatus(selectedTrip.id, status as any)}
+                           className="w-full px-4 py-2 text-left text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:text-orange-600 flex items-center gap-2 capitalize"
+                        >
+                           <div className={`w-1.5 h-1.5 rounded-full ${
+                              status === 'en_cours' ? 'bg-emerald-500' : 
+                              status === 'annule' ? 'bg-rose-500' : 'bg-slate-300'
+                           }`}></div>
+                           {status.replace('_', ' ')}
+                        </button>
+                     ))}
+                     <div className="h-px bg-slate-50 my-1"></div>
+                     <button 
+                        onClick={() => handleDeleteTrip(selectedTrip.id)}
+                        className="w-full px-4 py-2 text-left text-[10px] font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                     >
+                        <Trash2 size={14} /> Supprimer Convoi
+                     </button>
+                  </div>
+               </div>
             </div>
          </div>
 
@@ -86,6 +155,12 @@ const TripScheduler: React.FC = () => {
                   >
                      Passagers
                   </button>
+                  <button 
+                     onClick={() => setActiveTab('finance')} 
+                     className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'finance' ? 'text-orange-600 border-b-2 border-orange-600 bg-white' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
+                  >
+                     Finances
+                  </button>
                </div>
 
                {/* TAB CONTENT */}
@@ -108,14 +183,64 @@ const TripScheduler: React.FC = () => {
                         </div>
 
                         <div className="space-y-2">
-                           {passengers.length > 0 ? passengers.map(p => (
-                              <div key={p.id}></div> 
+                           {filteredPassengers.length > 0 ? filteredPassengers.map(p => (
+                              <div key={p.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:border-orange-200 transition-all">
+                                 <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-white rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 font-black text-xs group-hover:text-orange-600 transition-colors">
+                                       {p.passenger.charAt(0)}
+                                    </div>
+                                    <div>
+                                       <h5 className="text-xs font-black text-slate-900">{p.passenger}</h5>
+                                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{p.phone}</p>
+                                    </div>
+                                 </div>
+                                 <div className="text-right">
+                                    <span className="text-xs font-black text-slate-900">{p.amount.toLocaleString()} FCFA</span>
+                                    <div className="flex items-center gap-1 mt-1 justify-end">
+                                       <span className={`w-1.5 h-1.5 rounded-full ${p.status === 'payé' ? 'bg-emerald-500' : 'bg-orange-500'}`}></span>
+                                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{p.status}</span>
+                                    </div>
+                                 </div>
+                              </div>
                            )) : (
                               <div className="text-center py-20 text-slate-400 italic text-xs">
                                 <Users size={32} className="mx-auto mb-2 opacity-20"/>
                                 Aucun passager enregistré sur ce convoi.
                               </div>
                            )}
+                        </div>
+                     </div>
+                  )}
+
+                  {/* --- FINANCE TAB --- */}
+                  {activeTab === 'finance' && (
+                     <div className="space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <div className="p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100">
+                              <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest mb-2">Revenus Totaux</p>
+                              <h5 className="text-xl font-black text-emerald-900">{tripFinance.revenue.toLocaleString()} FCFA</h5>
+                           </div>
+                           <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Coûts Estimés</p>
+                              <h5 className="text-xl font-black text-slate-800">{tripFinance.expenses.toLocaleString()} FCFA</h5>
+                           </div>
+                           <div className="p-6 bg-orange-50 rounded-[2rem] border border-orange-100">
+                              <p className="text-[10px] text-orange-600 font-black uppercase tracking-widest mb-2">Marge Nette</p>
+                              <h5 className="text-xl font-black text-orange-900">{tripFinance.margin.toLocaleString()} FCFA</h5>
+                           </div>
+                        </div>
+
+                        <div className="p-6 bg-slate-900 rounded-[2rem] text-white relative overflow-hidden">
+                           <div className="relative z-10">
+                              <h5 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2">
+                                 <AlertCircle size={16} className="text-orange-500" /> Note Financière
+                              </h5>
+                              <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                                 Les coûts sont estimés sur la base de la capacité du véhicule (1,500 FCFA / siège). 
+                                 La marge réelle peut varier en fonction de la consommation de carburant et des frais de route effectifs.
+                              </p>
+                           </div>
+                           <Wallet size={120} className="absolute -bottom-10 -right-10 text-white/5" />
                         </div>
                      </div>
                   )}
@@ -137,7 +262,23 @@ const TripScheduler: React.FC = () => {
             <Navigation size={14} className="text-orange-500" /> Organisation des départs et itinéraires
           </p>
         </div>
+        <button 
+          onClick={() => setShowWizard(true)}
+          className="px-6 py-3 bg-orange-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-orange-700 transition-all shadow-lg shadow-orange-900/20"
+        >
+          <Plus size={16}/> Planifier un Convoi
+        </button>
       </div>
+
+      {showWizard && (
+        <TripPlannerWizard 
+          onClose={() => {
+            setShowWizard(false);
+            setEditingTrip(null);
+          }} 
+          initialData={editingTrip || undefined}
+        />
+      )}
 
       <div className="grid grid-cols-1 gap-6">
         {(schedules || []).length > 0 ? (schedules || []).map(trip => (

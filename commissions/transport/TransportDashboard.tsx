@@ -40,15 +40,15 @@ const TransportDashboard: React.FC = () => {
 
   const navItems = [
     { id: 'overview', label: 'Console Mobilité', icon: LayoutDashboard, access: true },
-    { id: 'finance', label: 'Budget', icon: Wallet, access: isLeader },
-    { id: 'meetings', label: 'Réunions', icon: FileText, access: isLeader },
+    { id: 'finance', label: 'Budget', icon: Wallet, access: true },
+    { id: 'meetings', label: 'Réunions', icon: FileText, access: true },
     { id: 'tasks', label: 'Tâches', icon: ListTodo, access: true },
-    { id: 'fleet', label: 'Flotte & Parc', icon: Bus, access: isOpsTeam },
+    { id: 'fleet', label: 'Flotte & Parc', icon: Bus, access: true },
     { id: 'trips', label: 'Planning Convois', icon: Navigation, access: true },
-    { id: 'ticketing', label: 'Billetterie', icon: Ticket, access: isOpsTeam },
-    { id: 'drivers', label: 'Chauffeurs', icon: User, access: isOpsTeam },
+    { id: 'ticketing', label: 'Billetterie', icon: Ticket, access: true },
+    { id: 'drivers', label: 'Chauffeurs', icon: User, access: true },
     { id: 'live', label: 'Live Tracking', icon: Radar, access: true },
-    { id: 'stats', label: 'Coûts & ROI', icon: Activity, access: isLeader },
+    { id: 'stats', label: 'Coûts & ROI', icon: Activity, access: true },
   ];
 
   const visibleNavItems = navItems.filter(item => item.access);
@@ -83,32 +83,30 @@ const TransportDashboard: React.FC = () => {
 
       {activeTab === 'overview' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-          {isLeader && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-               <FinancialOverviewWidget commission={CommissionType.TRANSPORT} onClick={() => setActiveTab('finance')} />
-               <MeetingOverviewWidget commission={CommissionType.TRANSPORT} onClick={() => setActiveTab('meetings')} />
-               <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                     <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl"><Bus size={20}/></div>
-                     <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-1 rounded-lg">Prêt</span>
-                  </div>
-                  <div>
-                     <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Véhicules</h4>
-                     <p className="text-[10px] text-slate-400 font-bold">Disponibles ce jour</p>
-                  </div>
-               </div>
-               <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Ticket size={20}/></div>
-                     <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">94%</span>
-                  </div>
-                  <div>
-                     <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Remplissage</h4>
-                     <p className="text-[10px] text-slate-400 font-bold">Moyenne des convois</p>
-                  </div>
-               </div>
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+             <FinancialOverviewWidget commission={CommissionType.TRANSPORT} onClick={() => setActiveTab('finance')} />
+             <MeetingOverviewWidget commission={CommissionType.TRANSPORT} onClick={() => setActiveTab('meetings')} />
+             <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                   <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl"><Bus size={20}/></div>
+                   <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-1 rounded-lg">Prêt</span>
+                </div>
+                <div>
+                   <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Véhicules</h4>
+                   <p className="text-[10px] text-slate-400 font-bold">Disponibles ce jour</p>
+                </div>
+             </div>
+             <div className="glass-card p-6 bg-white border border-slate-100 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                   <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Ticket size={20}/></div>
+                   <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">94%</span>
+                </div>
+                <div>
+                   <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Remplissage</h4>
+                   <p className="text-[10px] text-slate-400 font-bold">Moyenne des convois</p>
+                </div>
+             </div>
+          </div>
 
           <div className="bg-gradient-to-br from-orange-600 via-orange-700 to-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden group">
             <div className="relative z-10">
@@ -127,8 +125,8 @@ const TransportDashboard: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'finance' && isLeader && <CommissionFinancialDashboard commission={CommissionType.TRANSPORT} />}
-      {activeTab === 'meetings' && isLeader && <CommissionMeetingDashboard commission={CommissionType.TRANSPORT} />}
+      {activeTab === 'finance' && <CommissionFinancialDashboard commission={CommissionType.TRANSPORT} />}
+      {activeTab === 'meetings' && <CommissionMeetingDashboard commission={CommissionType.TRANSPORT} />}
       {activeTab === 'tasks' && <TaskManager commission={CommissionType.TRANSPORT} />}
       {activeTab === 'fleet' && <FleetManager />}
       {activeTab === 'trips' && <TripScheduler />}
